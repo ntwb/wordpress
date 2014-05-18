@@ -20,13 +20,9 @@ matrix:
       env: WP_TRAVISCI=phpunit
   fast_finish: true
 
-# Before install, any failures in this section will result in build status 'errored'
+# Before install, failures in this section will result in build status 'errored'
 before_install:
   - WP_CORE_DIR=/tmp/wordpress/
-
-# After install, any failures in this section will result in build status 'errored'
-# See upstream issue https://github.com/travis-ci/travis-ci/issues/2332
-# after_install:
   - >
     if [[ "$WP_TRAVISCI" == "phpunit" ]]; then
         mysql -e "CREATE DATABASE wordpress_tests;" -uroot
@@ -37,7 +33,7 @@ before_install:
         svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
     fi
 
-# Before script, any failures in this section will result in build status 'failed'
+# Before script, failures in this section will result in build status 'failed'
 before_script:
   - npm install -g grunt-cli
   - npm install

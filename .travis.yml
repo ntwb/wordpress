@@ -10,6 +10,11 @@ php:
     - "5.4"
     - "5.5"
 
+env:
+  - TEST_SUITE=qunit:compiled
+  - TEST_SUITE=jshint
+  - TEST_SUITE=phpunit
+
 # Build matrix options
 matrix:
   include:
@@ -38,4 +43,4 @@ before_script:
     - npm install -g grunt-cli
     - npm install
 
-script: grunt travis
+script: grunt $TEST_SUITE

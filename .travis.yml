@@ -1,27 +1,40 @@
+# Travis CI Configuration File
+
+# Tell Travis CI we're using PHP
 language: php
 
+# PHP versions to test against
 php:
     - "5.2"
     - "5.3"
     - "5.4"
     - "5.5"
 
+# Build matrix options
 matrix:
   include:
-  - php: 5.6
-  - php: hhvm
+    - php: "5.6"
+    - php: "hhvm"
   allow_failures:
-  - php: 5.6
-  - php: hhvm
+    - php: "5.6"
+    - php: "hhvm"
   fast_finish: true
 
-before_script:
+# Set environment variables
+before_install:
+    - WP_CORE_DIR=/tmp/wordpress/
+
+# After install, any failures here will return the build 'errored'
+after_install:
     - mysql -e "CREATE DATABASE wordpress_tests;" -uroot
     - cp wp-tests-config-sample.php wp-tests-config.php
     - sed -i "s/youremptytestdbnamehere/wordpress_tests/" wp-tests-config.php
     - sed -i "s/yourusernamehere/travis/" wp-tests-config.php
     - sed -i "s/yourpasswordhere//" wp-tests-config.php
     - svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
+
+# Before script, any failures here will return the build 'failed'
+before_script:
     - npm install -g grunt-cli
     - npm install
 

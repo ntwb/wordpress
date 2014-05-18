@@ -27,7 +27,6 @@ matrix:
 
 # Set environment variables
 before_install:
-    - qwerty
     - WP_CORE_DIR=/tmp/wordpress/
 
 # After install, any failures here will return the build 'errored'

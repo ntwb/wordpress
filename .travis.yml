@@ -6,6 +6,15 @@ php:
     - "5.4"
     - "5.5"
 
+matrix:
+  include:
+  - php: 5.6
+  - php: hhvm
+  allow_failures:
+  - php: 5.6
+  - php: hhvm
+  fast_finish: true
+
 before_script:
     - mysql -e "CREATE DATABASE wordpress_tests;" -uroot
     - cp wp-tests-config-sample.php wp-tests-config.php
@@ -16,4 +25,4 @@ before_script:
     - npm install -g grunt-cli
     - npm install
 
-script: grunt travis 
+script: grunt travis

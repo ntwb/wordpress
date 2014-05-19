@@ -51,8 +51,8 @@ script: grunt $WP_TRAVISCI
 notifications:
   irc:
     channels:
-      - "chat.freenode.net#netweb"
-      - "chat.freenode.net#ntwb"
+      - "irc.freenode.net#netweb"
+      - "irc.freenode.net#ntwb"
     template:
       - "%{repository} (%{commit}) : %{message} %{foo} "
       - "Build details: %{build_url}"

@@ -45,4 +45,16 @@ before_script:
   - npm install -g grunt-cli
   - npm install
 
+# Script, failures in this section will result in build status 'failed'
 script: grunt $WP_TRAVISCI
+
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#netweb"
+      - "chat.freenode.net#ntwb"
+    template:
+      - "%{repository} (%{commit}) : %{message} %{foo} "
+      - "Build details: %{build_url}"
+    on_success: [always|never|change] # default: always
+    on_failure: [always|never|change] # default: always

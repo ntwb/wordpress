@@ -13,7 +13,7 @@ class WP_Ajax_Response {
 	 * @var array
 	 * @access private
 	 */
-	var $responses = array();
+	private $responses = array();
 
 	/**
 	 * Constructor - Passes args to {@link WP_Ajax_Response::add()}.
@@ -24,9 +24,54 @@ class WP_Ajax_Response {
 	 * @param string|array $args Optional. Will be passed to add() method.
 	 * @return WP_Ajax_Response
 	 */
-	function __construct( $args = '' ) {
+	public function __construct( $args = '' ) {
 		if ( !empty($args) )
 			$this->add($args);
+	}
+
+	/**
+	 * Make private properties readable for backwards compatibility
+	 *
+	 * @since 4.0.0
+	 * @param string $name
+	 * @return mixed
+	 */
+	public function __get( $name ) {
+		return $this->$name;
+	}
+
+	/**
+	 * Make private properties setable for backwards compatibility
+	 *
+	 * @since 4.0.0
+	 * @param string $name
+	 * @param string $value
+	 * @return mixed
+	 */
+	public function __set( $name, $value ) {
+		return $this->$name = $value;
+	}
+
+	/**
+	 * Make private properties checkable for backwards compatibility
+	 *
+	 * @since 4.0.0
+	 * @param string $name
+	 * @return mixed
+	 */
+	public function __isset( $name ) {
+		return isset( $this->$name );
+	}
+
+	/**
+	 * Make private properties unsetable for backwards compatibility
+	 *
+	 * @since 4.0.0
+	 * @param string $name
+	 * @return mixed
+	 */
+	public function __unset( $name ) {
+		unset( $this->$name );
 	}
 
 	/**
@@ -52,7 +97,7 @@ class WP_Ajax_Response {
 	 * @param string|array $args Override defaults.
 	 * @return string XML response.
 	 */
-	function add( $args = '' ) {
+	public function add( $args = '' ) {
 		$defaults = array(
 			'what' => 'object', 'action' => false,
 			'id' => '0', 'old_id' => false,
@@ -133,7 +178,7 @@ class WP_Ajax_Response {
 	 *
 	 * @since 2.1.0
 	 */
-	function send() {
+	public function send() {
 		header( 'Content-Type: text/xml; charset=' . get_option( 'blog_charset' ) );
 		echo "<?xml version='1.0' encoding='" . get_option( 'blog_charset' ) . "' standalone='yes'?><wp_ajax>";
 		foreach ( (array) $this->responses as $response )

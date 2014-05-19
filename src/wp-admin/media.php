@@ -14,7 +14,7 @@ $submenu_file = 'upload.php';
 
 wp_reset_vars(array('action'));
 
-switch( $action ) :
+switch ( $action ) {
 case 'editattachment' :
 	$attachment_id = (int) $_POST['attachment_id'];
 	check_admin_referer('media-form');
@@ -117,7 +117,7 @@ if ( current_user_can( 'upload_files' ) ) { ?>
 </p>
 
 <div class="media-single">
-<div id='media-item-<?php echo $att_id; ?>' class='media-item'>
+<div id="media-item-<?php echo $att_id; ?>" class="media-item">
 <?php echo get_media_item( $att_id, array( 'toggle' => false, 'send' => false, 'delete' => false, 'show_title' => false, 'errors' => !empty($errors[$att_id]) ? $errors[$att_id] : null ) ); ?>
 </div>
 </div>
@@ -143,4 +143,4 @@ default:
 	wp_redirect( admin_url('upload.php') );
 	exit;
 
-endswitch;
+}

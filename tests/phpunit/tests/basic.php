@@ -1,5 +1,4 @@
 <?php
-
 /**
  * just make sure the test framework is working
  *
@@ -121,5 +120,43 @@ EOF;
 		$empty_array[$page][$field] = 'foo';
 
 		unset( $empty_array[$page]['bar']['baz'] );
+	}
+
+	function test_magic_getter() {
+		$basic = new Basic_Object();
+
+		$this->assertEquals( 'bar', $basic->foo );
+	}
+
+	function test_subclass_magic_getter() {
+		$basic = new Basic_Subclass();
+
+		$this->assertEquals( 'bar', $basic->foo );
+	}
+
+	function test_call_method() {
+		$basic = new Basic_Object();
+
+		$this->assertEquals( 'maybe', $basic->callMe() );
+	}
+
+	function test_subclass_call_method() {
+		$basic = new Basic_Subclass();
+
+		$this->assertEquals( 'maybe', $basic->callMe() );
+	}
+
+	function test_subclass_isset() {
+		$basic = new Basic_Subclass();
+
+		$this->assertTrue( isset( $basic->foo ) );
+	}
+
+	function test_subclass_unset() {
+		$basic = new Basic_Subclass();
+
+		unset( $basic->foo );
+
+		$this->assertFalse( isset( $basic->foo ) );
 	}
 }

@@ -65,7 +65,14 @@ function the_title($before = '', $after = '', $echo = true) {
  *
  * @since 2.3.0
  *
- * @param string|array $args Optional. Override the defaults.
+ * @param string|array $args {
+ *     Title attribute arguments. Optional.
+ *
+ *     @type string  $before Markup to prepend to the title. Default empty.
+ *     @type string  $after  Markup to append to the title. Default empty.
+ *     @type bool    $echo   Whether to echo or return the title. Default true for echo.
+ *     @type WP_Post $post   Current post object to retrieve the title for.
+ * }
  * @return string|null Null on failure or display. String when echo is false.
  */
 function the_title_attribute( $args = '' ) {
@@ -1219,7 +1226,7 @@ class Walker_Page extends Walker {
 	 * @since 2.1.0
 	 * @var string
 	 */
-	var $tree_type = 'page';
+	public $tree_type = 'page';
 
 	/**
 	 * @see Walker::$db_fields
@@ -1227,7 +1234,7 @@ class Walker_Page extends Walker {
 	 * @todo Decouple this.
 	 * @var array
 	 */
-	var $db_fields = array ('parent' => 'post_parent', 'id' => 'ID');
+	public $db_fields = array ('parent' => 'post_parent', 'id' => 'ID');
 
 	/**
 	 * @see Walker::start_lvl()
@@ -1237,7 +1244,7 @@ class Walker_Page extends Walker {
 	 * @param int $depth Depth of page. Used for padding.
 	 * @param array $args
 	 */
-	function start_lvl( &$output, $depth = 0, $args = array() ) {
+	public function start_lvl( &$output, $depth = 0, $args = array() ) {
 		$indent = str_repeat("\t", $depth);
 		$output .= "\n$indent<ul class='children'>\n";
 	}
@@ -1250,7 +1257,7 @@ class Walker_Page extends Walker {
 	 * @param int $depth Depth of page. Used for padding.
 	 * @param array $args
 	 */
-	function end_lvl( &$output, $depth = 0, $args = array() ) {
+	public function end_lvl( &$output, $depth = 0, $args = array() ) {
 		$indent = str_repeat("\t", $depth);
 		$output .= "$indent</ul>\n";
 	}
@@ -1265,7 +1272,7 @@ class Walker_Page extends Walker {
 	 * @param int $current_page Page ID.
 	 * @param array $args
 	 */
-	function start_el( &$output, $page, $depth = 0, $args = array(), $current_page = 0 ) {
+	public function start_el( &$output, $page, $depth = 0, $args = array(), $current_page = 0 ) {
 		if ( $depth ) {
 			$indent = str_repeat( "\t", $depth );
 		} else {
@@ -1346,7 +1353,7 @@ class Walker_Page extends Walker {
 	 * @param int $depth Depth of page. Not Used.
 	 * @param array $args
 	 */
-	function end_el( &$output, $page, $depth = 0, $args = array() ) {
+	public function end_el( &$output, $page, $depth = 0, $args = array() ) {
 		$output .= "</li>\n";
 	}
 
@@ -1364,7 +1371,7 @@ class Walker_PageDropdown extends Walker {
 	 * @since 2.1.0
 	 * @var string
 	 */
-	var $tree_type = 'page';
+	public $tree_type = 'page';
 
 	/**
 	 * @see Walker::$db_fields
@@ -1372,7 +1379,7 @@ class Walker_PageDropdown extends Walker {
 	 * @todo Decouple this
 	 * @var array
 	 */
-	var $db_fields = array ('parent' => 'post_parent', 'id' => 'ID');
+	public $db_fields = array ('parent' => 'post_parent', 'id' => 'ID');
 
 	/**
 	 * @see Walker::start_el()
@@ -1384,7 +1391,7 @@ class Walker_PageDropdown extends Walker {
 	 * @param array $args Uses 'selected' argument for selected page to set selected HTML attribute for option element.
 	 * @param int $id
 	 */
-	function start_el( &$output, $page, $depth = 0, $args = array(), $id = 0 ) {
+	public function start_el( &$output, $page, $depth = 0, $args = array(), $id = 0 ) {
 		$pad = str_repeat('&nbsp;', $depth * 3);
 
 		$output .= "\t<option class=\"level-$depth\" value=\"$page->ID\"";

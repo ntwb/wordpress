@@ -292,6 +292,7 @@ function category_description( $category = 0 ) {
  * The list of arguments is below:
  *     'show_option_all' (string) - Text to display for showing all categories.
  *     'show_option_none' (string) - Text to display for showing no categories.
+ *     'option_none_value' (mixed) - Value to use when no category is selected.
  *     'orderby' (string) default is 'ID' - What column to use for ordering the
  * categories.
  *     'order' (string) default is 'ASC' - What direction to order categories.
@@ -443,7 +444,7 @@ function wp_dropdown_categories( $args = '' ) {
  *     'hide_empty' (bool|int) default is 1 - Whether to hide categories that
  * don't have any posts attached to them.
  *     'use_desc_for_title' (bool|int) default is 1 - Whether to use the
- * description instead of the category title.
+ * category description as the title attribute.
  *     'feed' - See {@link get_categories()}.
  *     'feed_type' - See {@link get_categories()}.
  *     'feed_image' - See {@link get_categories()}.
@@ -971,9 +972,7 @@ class Walker_Category extends Walker {
 		);
 
 		$link = '<a href="' . esc_url( get_term_link( $category ) ) . '" ';
-		if ( $args['use_desc_for_title'] == 0 || empty( $category->description ) ) {
-			$link .= '';
-		} else {
+		if ( $args['use_desc_for_title'] && ! empty( $category->description ) ) {
 			/**
 			 * Filter the category description for display.
 			 *

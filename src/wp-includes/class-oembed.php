@@ -27,8 +27,10 @@ class WP_oEmbed {
 	 */
 	public function __construct() {
 		$providers = array(
-			'#http://(www\.)?youtube\.com/(watch|playlist).*#i'   => array( 'http://www.youtube.com/oembed',                      true  ),
-			'#https://(www\.)?youtube\.com/(watch|playlist).*#i'  => array( 'http://www.youtube.com/oembed?scheme=https',         true  ),
+			'#http://(www\.)?youtube\.com/watch.*#i'              => array( 'http://www.youtube.com/oembed',                      true  ),
+			'#https://(www\.)?youtube\.com/watch.*#i'             => array( 'http://www.youtube.com/oembed?scheme=https',         true  ),
+			'#http://(www\.)?youtube\.com/playlist.*#i'           => array( 'http://www.youtube.com/oembed',                      true  ),
+			'#https://(www\.)?youtube\.com/playlist.*#i'          => array( 'http://www.youtube.com/oembed?scheme=https',         true  ),
 			'#http://youtu\.be/.*#i'                              => array( 'http://www.youtube.com/oembed',                      true  ),
 			'#https://youtu\.be/.*#i'                             => array( 'http://www.youtube.com/oembed?scheme=https',         true  ),
 			'http://blip.tv/*'                                    => array( 'http://blip.tv/oembed/',                             false ),
@@ -39,11 +41,10 @@ class WP_oEmbed {
 			'http://flic.kr/*'                                    => array( 'http://www.flickr.com/services/oembed/',             false ),
 			'#https?://(.+\.)?smugmug\.com/.*#i'                  => array( 'http://api.smugmug.com/services/oembed/',            true  ),
 			'#https?://(www\.)?hulu\.com/watch/.*#i'              => array( 'http://www.hulu.com/api/oembed.{format}',            true  ),
-			'#https?://(www\.)?viddler\.com/.*#i'                 => array( 'http://www.viddler.com/oembed/',                     true  ),
 			'http://revision3.com/*'                              => array( 'http://revision3.com/api/oembed/',                   false ),
 			'http://i*.photobucket.com/albums/*'                  => array( 'http://photobucket.com/oembed',                      false ),
 			'http://gi*.photobucket.com/groups/*'                 => array( 'http://photobucket.com/oembed',                      false ),
-			'#https?://(www\.)?scribd\.com/.*#i'                  => array( 'http://www.scribd.com/services/oembed',              true  ),
+			'#https?://(www\.)?scribd\.com/doc/.*#i'              => array( 'http://www.scribd.com/services/oembed',              true  ),
 			'http://wordpress.tv/*'                               => array( 'http://wordpress.tv/oembed/',                        false ),
 			'#https?://(.+\.)?polldaddy\.com/.*#i'                => array( 'http://polldaddy.com/oembed/',                       true  ),
 			'#https?://poll\.fm/.*#i'                             => array( 'http://polldaddy.com/oembed/',                       true  ),

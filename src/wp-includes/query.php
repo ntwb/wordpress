@@ -1510,9 +1510,9 @@ class WP_Query {
 			$this->is_page = true;
 			$this->is_single = false;
 		} else {
-		// Look for archive queries. Dates, categories, authors, search, post type archives.
+			// Look for archive queries. Dates, categories, authors, search, post type archives.
 
-			if ( !empty($qv['s']) ) {
+			if ( isset( $this->query['s'] ) ) {
 				$this->is_search = true;
 			}
 
@@ -2261,6 +2261,7 @@ class WP_Query {
 				$q['nopaging'] = false;
 			}
 		}
+
 		if ( $this->is_feed ) {
 			// This overrides posts_per_page.
 			if ( ! empty( $q['posts_per_rss'] ) ) {
@@ -2444,6 +2445,9 @@ class WP_Query {
 		} elseif ( $q['post__in'] ) {
 			$post__in = implode(',', array_map( 'absint', $q['post__in'] ));
 			$where .= " AND {$wpdb->posts}.ID IN ($post__in)";
+		} elseif ( isset( $this->query['post__in'] ) ) {
+			$post__in = 0;
+			$where .= " AND 1=0 ";
 		} elseif ( $q['post__not_in'] ) {
 			$post__not_in = implode(',',  array_map( 'absint', $q['post__not_in'] ));
 			$where .= " AND {$wpdb->posts}.ID NOT IN ($post__not_in)";
@@ -2454,6 +2458,9 @@ class WP_Query {
 		} elseif ( $q['post_parent__in'] ) {
 			$post_parent__in = implode( ',', array_map( 'absint', $q['post_parent__in'] ) );
 			$where .= " AND {$wpdb->posts}.post_parent IN ($post_parent__in)";
+		} elseif ( isset( $this->query['post_parent__in'] ) ) {
+			$post_parent__in = 0;
+			$where .= " AND 1=0 ";
 		} elseif ( $q['post_parent__not_in'] ) {
 			$post_parent__not_in = implode( ',',  array_map( 'absint', $q['post_parent__not_in'] ) );
 			$where .= " AND {$wpdb->posts}.post_parent NOT IN ($post_parent__not_in)";
@@ -2467,8 +2474,11 @@ class WP_Query {
 		}
 
 		// If a search pattern is specified, load the posts that match.
-		if ( ! empty( $q['s'] ) )
+		if ( ! empty( $q['s'] ) ) {
 			$search = $this->parse_search( $q );
+		} elseif ( $this->is_search ) {
+			$search = 'AND 0';
+		}
 
 		/**
 		 * Filter the search SQL that is used in the WHERE clause of WP_Query.
@@ -2757,9 +2767,12 @@ class WP_Query {
 			$r_status = array();
 			$p_status = array();
 			$e_status = array();
-			if ( in_array('any', $q_status) ) {
-				foreach ( get_post_stati( array('exclude_from_search' => true) ) as $status )
-					$e_status[] = "$wpdb->posts.post_status <> '$status'";
+			if ( in_array( 'any', $q_status ) ) {
+				foreach ( get_post_stati( array( 'exclude_from_search' => true ) ) as $status ) {
+					if ( ! in_array( $status, $q_status ) ) {
+						$e_status[] = "$wpdb->posts.post_status <> '$status'";
+					}
+				}
 			} else {
 				foreach ( get_post_stati() as $status ) {
 					if ( in_array( $status, $q_status ) ) {
@@ -2876,7 +2889,7 @@ class WP_Query {
 		}
 
 		// Comments feeds
-		if ( $this->is_comment_feed && ( $this->is_archive || $this->is_search || !$this->is_singular ) ) {
+		if ( $this->is_comment_feed && ( $this->is_archive || ( $this->is_search && ! empty( $q['s'] ) ) || !$this->is_singular ) ) {
 			if ( $this->is_archive || $this->is_search ) {
 				$cjoin = "JOIN $wpdb->posts ON ($wpdb->comments.comment_post_ID = $wpdb->posts.ID) $join ";
 				$cwhere = "WHERE comment_approved = '1' $where";

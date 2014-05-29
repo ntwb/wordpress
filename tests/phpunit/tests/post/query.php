@@ -677,4 +677,88 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 		return $posts;
 	}
+
+	function test_post__in_ordering() {
+		$post_id1 = $this->factory->post->create( array( 'post_type' => 'page', 'menu_order' => rand( 1, 100 ) ) );
+		$post_id2 = $this->factory->post->create( array( 'post_type' => 'page', 'menu_order' => rand( 1, 100 ) ) );
+		$post_id3 = $this->factory->post->create( array(
+			'post_type' => 'page',
+			'post_parent' => $post_id2,
+			'menu_order' => rand( 1, 100 )
+		) );
+		$post_id4 = $this->factory->post->create( array(
+			'post_type' => 'page',
+			'post_parent' => $post_id2,
+			'menu_order' => rand( 1, 100 )
+		) );
+		$post_id5 = $this->factory->post->create( array( 'post_type' => 'page', 'menu_order' => rand( 1, 100 ) ) );
+
+		$ordered = array( $post_id2, $post_id4, $post_id3, $post_id1, $post_id5 );
+
+		$q = new WP_Query( array(
+			'post_type' => 'any',
+			'post__in' => $ordered,
+			'orderby' => 'post__in'
+		) );
+		$this->assertEqualSets( $ordered, wp_list_pluck( $q->posts, 'ID' ) );
+	}
+
+	function test_post__in_attachment_ordering() {
+		$post_id = $this->factory->post->create();
+		$att_ids = array();
+		$file = DIR_TESTDATA . '/images/canola.jpg';
+		$att_ids[1] = $this->factory->attachment->create_object( $file, $post_id, array(
+			'post_mime_type' => 'image/jpeg',
+			'menu_order' => rand( 1, 100 )
+		) );
+		$att_ids[2] = $this->factory->attachment->create_object( $file, $post_id, array(
+			'post_mime_type' => 'image/jpeg',
+			'menu_order' => rand( 1, 100 )
+		) );
+		$att_ids[3] = $this->factory->attachment->create_object( $file, $post_id, array(
+			'post_mime_type' => 'image/jpeg',
+			'menu_order' => rand( 1, 100 )
+		) );
+		$att_ids[4] = $this->factory->attachment->create_object( $file, $post_id, array(
+			'post_mime_type' => 'image/jpeg',
+			'menu_order' => rand( 1, 100 )
+		) );
+		$att_ids[5] = $this->factory->attachment->create_object( $file, $post_id, array(
+			'post_mime_type' => 'image/jpeg',
+			'menu_order' => rand( 1, 100 )
+		) );
+
+		$ordered = array( $att_ids[5], $att_ids[1], $att_ids[4], $att_ids[3], $att_ids[2] );
+
+		$attached = new WP_Query( array(
+			'post__in' => $ordered,
+			'post_type' => 'attachment',
+			'post_parent' => $post_id,
+			'post_mime_type' => 'image',
+			'post_status' => 'inherit',
+			'posts_per_page' => '-1',
+			'orderby' => 'post__in'
+		) );
+		$this->assertEqualSets( $ordered, wp_list_pluck( $attached->posts, 'ID' ) );
+	}
+
+	function test_post_status() {
+		$statuses1 = get_post_stati();
+		$this->assertContains( 'auto-draft', $statuses1 );
+
+		$statuses2 = get_post_stati( array( 'exclude_from_search' => true ) );
+		$this->assertContains( 'auto-draft', $statuses2 );
+
+		$statuses3 = get_post_stati( array( 'exclude_from_search' => false ) );
+		$this->assertNotContains( 'auto-draft', $statuses3 );
+
+		$q1 = new WP_Query( array( 'post_status' => 'any' ) );
+		$this->assertContains( "post_status <> 'auto-draft'", $q1->request );
+
+		$q2 = new WP_Query( array( 'post_status' => 'any, auto-draft' ) );
+		$this->assertNotContains( "post_status <> 'auto-draft'", $q2->request );
+
+		$q3 = new WP_Query( array( 'post_status' => array( 'any', 'auto-draft' ) ) );
+		$this->assertNotContains( "post_status <> 'auto-draft'", $q3->request );
+	}
 }

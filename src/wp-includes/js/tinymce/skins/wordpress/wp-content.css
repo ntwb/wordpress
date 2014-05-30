@@ -1,4 +1,14 @@
 /* Additional default styles for the editor */
+
+html.ios {
+	height: 100%;
+}
+
+.ios body#tinymce {
+	height: 200%;
+	max-width: none;
+}
+
 body {
 	font-family: Georgia, "Times New Roman", "Bitstream Charter", Times, serif;
 	font-size: 13px;
@@ -258,6 +268,7 @@ audio {
 
 #wp-image-toolbar {
 	position: absolute;
+	margin: 0;
 }
 
 .wpview-wrap .toolbar div,

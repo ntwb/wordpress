@@ -2301,7 +2301,7 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 				$title = $error_data['title'];
 		}
 		$errors = $message->get_error_messages();
-		switch ( count( $errors ) ) :
+		switch ( count( $errors ) ) {
 		case 0 :
 			$message = '';
 			break;
@@ -2311,7 +2311,7 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 		default :
 			$message = "<ul>\n\t\t<li>" . join( "</li>\n\t\t<li>", $errors ) . "</li>\n\t</ul>";
 			break;
-		endswitch;
+		}
 	} elseif ( is_string( $message ) ) {
 		$message = "<p>$message</p>";
 	}
@@ -4006,9 +4006,6 @@ function send_nosniff_header() {
  */
 function _wp_mysql_week( $column ) {
 	switch ( $start_of_week = (int) get_option( 'start_of_week' ) ) {
-	default :
-	case 0 :
-		return "WEEK( $column, 0 )";
 	case 1 :
 		return "WEEK( $column, 1 )";
 	case 2 :
@@ -4017,6 +4014,9 @@ function _wp_mysql_week( $column ) {
 	case 5 :
 	case 6 :
 		return "WEEK( DATE_SUB( $column, INTERVAL $start_of_week DAY ), 0 )";
+	case 0 :
+	default :
+		return "WEEK( $column, 0 )";
 	}
 }
 

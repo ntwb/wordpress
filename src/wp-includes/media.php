@@ -2184,6 +2184,8 @@ function wp_maybe_load_embeds() {
 		return;
 	}
 
+	wp_embed_register_handler( 'youtube_embed_url', '#https?://(www.)?youtube\.com/embed/([^/]+)#i', 'wp_embed_handler_youtube' );
+
 	wp_embed_register_handler( 'googlevideo', '#http://video\.google\.([A-Za-z.]{2,5})/videoplay\?docid=([\d-]+)(.*?)#i', 'wp_embed_handler_googlevideo' );
 
 	/**
@@ -2238,6 +2240,33 @@ function wp_embed_handler_googlevideo( $matches, $attr, $url, $rawattr ) {
 	 * @param array  $rawattr The original unmodified attributes.
 	 */
 	return apply_filters( 'embed_googlevideo', '<embed type="application/x-shockwave-flash" src="http://video.google.com/googleplayer.swf?docid=' . esc_attr($matches[2]) . '&amp;hl=en&amp;fs=true" style="width:' . esc_attr($width) . 'px;height:' . esc_attr($height) . 'px" allowFullScreen="true" allowScriptAccess="always" />', $matches, $attr, $url, $rawattr );
+}
+
+/**
+ * The YouTube embed handler callback. Catches URLs that can be parsed but aren't supported by oEmbed.
+ *
+ * @since 4.0.0
+ *
+ * @param array $matches The regex matches from the provided regex when calling {@link wp_embed_register_handler()}.
+ * @param array $attr Embed attributes.
+ * @param string $url The original URL that was matched by the regex.
+ * @param array $rawattr The original unmodified attributes.
+ * @return string The embed HTML.
+ */
+function wp_embed_handler_youtube( $matches, $attr, $url, $rawattr ) {
+	global $wp_embed;
+	$embed = $wp_embed->autoembed( "https://youtube.com/watch?v={$matches[2]}" );
+	/**
+	 * Filter the YoutTube embed output.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @param string $embed   YouTube embed output.
+	 * @param array  $attr    An array of embed attributes.
+	 * @param string $url     The original URL that was matched by the regex.
+	 * @param array  $rawattr The original unmodified attributes.
+	 */
+	return apply_filters( 'wp_embed_handler_youtube', $embed, $attr, $url, $rawattr );
 }
 
 /**
@@ -2563,6 +2592,19 @@ function wp_prepare_attachment_for_js( $attachment ) {
 		'editLink'   => false,
 	);
 
+	$author = new WP_User( $attachment->post_author );
+	$response['authorName'] = $author->display_name;
+
+	if ( $attachment->post_parent ) {
+		$post_parent = get_post( $attachment->post_parent );
+		$response['uploadedToLink'] = get_edit_post_link( $attachment->post_parent, 'raw' );
+		$response['uploadedToTitle'] = $post_parent->post_title ? $post_parent->post_title : __( '(No title)' );
+	}
+
+	$bytes = filesize( get_attached_file( $attachment->ID ) );
+	$response['filesizeInBytes'] = $bytes;
+	$response['filesizeHumanReadable'] = size_format( $bytes );
+
 	if ( current_user_can( 'edit_post', $attachment->ID ) ) {
 		$response['nonces']['update'] = wp_create_nonce( 'update-post_' . $attachment->ID );
 		$response['nonces']['edit'] = wp_create_nonce( 'image_editor-' . $attachment->ID );
@@ -2820,6 +2862,7 @@ function wp_enqueue_media( $args = array() ) {
 		'createNewVideoPlaylist'   => __( 'Create a new video playlist' ),
 		'returnToLibrary'    => __( '&#8592; Return to library' ),
 		'allMediaItems'      => __( 'All media items' ),
+		'allMediaTypes'      => __( 'All media types' ),
 		'noItemsFound'       => __( 'No items found.' ),
 		'insertIntoPost'     => $hier ? __( 'Insert into page' ) : __( 'Insert into post' ),
 		'uploadedToThisPost' => $hier ? __( 'Uploaded to this page' ) : __( 'Uploaded to this post' ),
@@ -2945,9 +2988,9 @@ function wp_enqueue_media( $args = array() ) {
  *
  * @since 3.6.0
  *
- * @param string $type (Mime) type of media desired
- * @param mixed $post Post ID or object
- * @return array Found attachments
+ * @param string      $type Mime type.
+ * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global `$post`.
+ * @return array Found attachments.
  */
 function get_attached_media( $type, $post = 0 ) {
 	if ( ! $post = get_post( $post ) )
@@ -3071,7 +3114,7 @@ function get_post_galleries( $post, $html = true ) {
  *
  * @since 3.6.0
  *
- * @param int|WP_Post $post Optional. Post ID or object.
+ * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global `$post`.
  * @param bool        $html Whether to return HTML or data.
  * @return string|array Gallery data and srcs parsed from the expanded shortcode.
  */
@@ -3096,8 +3139,8 @@ function get_post_gallery( $post = 0, $html = true ) {
  *
  * @since 3.6.0
  *
- * @param mixed $post Optional. Post ID or object.
- * @return array A list of lists, each containing image srcs parsed
+ * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global `$post`.
+ * @return array A list of lists, each containing image srcs parsed.
  *		from an expanded shortcode
  */
 function get_post_galleries_images( $post = 0 ) {
@@ -3110,8 +3153,8 @@ function get_post_galleries_images( $post = 0 ) {
  *
  * @since 3.6.0
  *
- * @param mixed $post Optional. Post ID or object.
- * @return array A list of a gallery's image srcs in order
+ * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global `$post`.
+ * @return array A list of a gallery's image srcs in order.
  */
 function get_post_gallery_images( $post = 0 ) {
 	$gallery = get_post_gallery( $post, false );

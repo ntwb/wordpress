@@ -92,14 +92,16 @@
 
 	_.extend( media.controller.Region.prototype, {
 		/**
-		 * Switch modes
+		 * Activate a mode.
 		 *
 		 * @param {string} mode
 		 *
-		 * @fires wp.media.controller.Region#{id}:activate:{mode}
-		 * @fires wp.media.controller.Region#{id}:deactivate:{mode}
+		 * @fires this.view#{this.id}:activate:{this._mode}
+		 * @fires this.view#{this.id}:activate
+		 * @fires this.view#{this.id}:deactivate:{this._mode}
+		 * @fires this.view#{this.id}:deactivate
 		 *
-		 * @returns {wp.media.controller.Region} Returns itself to allow chaining
+		 * @returns {wp.media.controller.Region} Returns itself to allow chaining.
 		 */
 		mode: function( mode ) {
 			if ( ! mode ) {
@@ -110,27 +112,40 @@
 				return this;
 			}
 
+			/**
+			 * Region mode deactivation event.
+			 *
+			 * @event this.view#{this.id}:deactivate:{this._mode}
+			 * @event this.view#{this.id}:deactivate
+			 */
 			this.trigger('deactivate');
+
 			this._mode = mode;
 			this.render( mode );
+
+			/**
+			 * Region mode activation event.
+			 *
+			 * @event this.view#{this.id}:activate:{this._mode}
+			 * @event this.view#{this.id}:activate
+			 */
 			this.trigger('activate');
 			return this;
 		},
 		/**
-		 * Render a new mode, the view is set in the `create` callback method
-		 *   of the extending class
-		 *
-		 * If no mode is provided, just re-render the current mode.
-		 * If the provided mode isn't active, perform a full switch.
+		 * Render a mode.
 		 *
 		 * @param {string} mode
 		 *
-		 * @fires wp.media.controller.Region#{id}:create:{mode}
-		 * @fires wp.media.controller.Region#{id}:render:{mode}
+		 * @fires this.view#{this.id}:create:{this._mode}
+		 * @fires this.view#{this.id}:create
+		 * @fires this.view#{this.id}:render:{this._mode}
+		 * @fires this.view#{this.id}:render
 		 *
 		 * @returns {wp.media.controller.Region} Returns itself to allow chaining
 		 */
 		render: function( mode ) {
+			// If the mode isn't active, activate it.
 			if ( mode && mode !== this._mode ) {
 				return this.mode( mode );
 			}
@@ -138,8 +153,25 @@
 			var set = { view: null },
 				view;
 
+			/**
+			 * Create region view event.
+			 *
+			 * Region view creation takes place in an event callback on the frame.
+			 *
+			 * @event this.view#{this.id}:create:{this._mode}
+			 * @event this.view#{this.id}:create
+			 */
 			this.trigger( 'create', set );
 			view = set.view;
+
+			/**
+			 * Render region view event.
+			 *
+			 * Region view creation takes place in an event callback on the frame.
+			 *
+			 * @event this.view#{this.id}:create:{this._mode}
+			 * @event this.view#{this.id}:create
+			 */
 			this.trigger( 'render', view );
 			if ( view ) {
 				this.set( view );
@@ -148,13 +180,17 @@
 		},
 
 		/**
-		 * @returns {wp.media.View} Returns the selector's first subview
+		 * Get the region's view.
+		 *
+		 * @returns {wp.media.View}
 		 */
 		get: function() {
 			return this.view.views.first( this.selector );
 		},
 
 		/**
+		 * Set the region's view as a subview of the frame.
+		 *
 		 * @param {Array|Object} views
 		 * @param {Object} [options={}]
 		 * @returns {wp.Backbone.Subviews} Subviews is returned to allow chaining
@@ -167,10 +203,10 @@
 		},
 
 		/**
-		 * Helper function to trigger view events based on {id}:{event}:{mode}
+		 * Trigger regional view events on the frame.
 		 *
 		 * @param {string} event
-		 * @returns {undefined|wp.media.controller.Region} Returns itself to allow chaining
+		 * @returns {undefined|wp.media.controller.Region} Returns itself to allow chaining.
 		 */
 		trigger: function( event ) {
 			var base, args;
@@ -182,11 +218,11 @@
 			args = _.toArray( arguments );
 			base = this.id + ':' + event;
 
-			// Trigger `region:action:mode` event.
+			// Trigger `{this.id}:{event}:{this._mode}` event on the frame.
 			args[0] = base + ':' + this._mode;
 			this.view.trigger.apply( this.view, args );
 
-			// Trigger `region:action` event.
+			// Trigger `{this.id}:{event}` event on the frame.
 			args[0] = base;
 			this.view.trigger.apply( this.view, args );
 			return this;
@@ -210,7 +246,6 @@
 	// Use Backbone's self-propagating `extend` inheritance method.
 	media.controller.StateMachine.extend = Backbone.Model.extend;
 
-	// Add events to the `StateMachine`.
 	_.extend( media.controller.StateMachine.prototype, Backbone.Events, {
 		/**
 		 * Fetch a state.
@@ -286,10 +321,10 @@
 		}
 	});
 
-	// Map methods from the `states` collection to the `StateMachine` itself.
+	// Map all event binding and triggering on a StateMachine to its `states` collection.
 	_.each([ 'on', 'off', 'trigger' ], function( method ) {
 		/**
-		 * @returns {wp.media.controller.StateMachine} Returns itself to allow chaining
+		 * @returns {wp.media.controller.StateMachine} Returns itself to allow chaining.
 		 */
 		media.controller.StateMachine.prototype[ method ] = function() {
 			// Ensure that the `states` collection exists so the `StateMachine`
@@ -304,10 +339,9 @@
 	/**
 	 * wp.media.controller.State
 	 *
-	 * A state is a step in a workflow that when set will trigger
-	 * the controllers for the regions to be updated as specified. This
-	 * class is the base class that the various states used in the media
-	 * modals extend.
+	 * A state is a step in a workflow that when set will trigger the controllers
+	 * for the regions to be updated as specified in the frame. This is the base
+	 * class that the various states used in wp.media extend.
 	 *
 	 * @constructor
 	 * @augments Backbone.Model
@@ -538,7 +572,7 @@
 	};
 
 	/**
-	 * wp.media.controller.Library
+	 * A state for choosing an attachment from the media library.
 	 *
 	 * @constructor
 	 * @augments wp.media.controller.State
@@ -546,24 +580,25 @@
 	 */
 	media.controller.Library = media.controller.State.extend({
 		defaults: {
-			id:         'library',
-			multiple:   false, // false, 'add', 'reset'
-			describe:   false,
-			toolbar:    'select',
-			sidebar:    'settings',
-			content:    'upload',
-			router:     'browse',
-			menu:       'default',
-			searchable: true,
-			filterable: false,
-			sortable:   true,
-			title:      l10n.mediaLibraryTitle,
+			id:                 'library',
+			title:              l10n.mediaLibraryTitle,
+			// Selection defaults. @see media.model.Selection
+			multiple:           false,
+			// Initial region modes.
+			content:            'upload',
+			menu:               'default',
+			router:             'browse',
+			toolbar:            'select',
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
+			searchable:         true,
+			filterable:         false,
+			sortable:           true,
 
+			describe:           false,
 			// Uses a user setting to override the content mode.
 			contentUserSetting: true,
-
 			// Sync the selection from the last state when 'multiple' matches.
-			syncSelection: true
+			syncSelection:      true
 		},
 
 		/**
@@ -614,7 +649,7 @@
 
 			this.get('selection').on( 'add remove reset', this.refreshContent, this );
 
-			if ( this.get('contentUserSetting') ) {
+			if ( this.get( 'router' ) && this.get('contentUserSetting') ) {
 				this.frame.on( 'content:activate', this.saveContentMode, this );
 				this.set( 'content', getUserSetting( 'libraryContent', this.get('content') ) );
 			}
@@ -746,7 +781,7 @@
 	_.extend( media.controller.Library.prototype, media.selectionSync );
 
 	/**
-	 * wp.media.controller.ImageDetails
+	 * A state for editing the settings of an image within a content editor.
 	 *
 	 * @constructor
 	 * @augments wp.media.controller.State
@@ -754,15 +789,16 @@
 	 */
 	media.controller.ImageDetails = media.controller.State.extend({
 		defaults: _.defaults({
-			id: 'image-details',
-			toolbar: 'image-details',
-			title: l10n.imageDetailsTitle,
-			content: 'image-details',
-			menu: 'image-details',
-			router: false,
-			attachment: false,
-			priority: 60,
-			editing: false
+			id:       'image-details',
+			title:    l10n.imageDetailsTitle,
+			// Initial region modes.
+			content:  'image-details',
+			menu:     'image-details',
+			router:   false,
+			toolbar:  'image-details',
+
+			editing:  false,
+			priority: 60
 		}, media.controller.Library.prototype.defaults ),
 
 		initialize: function( options ) {
@@ -776,7 +812,7 @@
 	});
 
 	/**
-	 * wp.media.controller.GalleryEdit
+	 * A state for editing a gallery's images and settings.
 	 *
 	 * @constructor
 	 * @augments wp.media.controller.Library
@@ -786,18 +822,22 @@
 	media.controller.GalleryEdit = media.controller.Library.extend({
 		defaults: {
 			id:              'gallery-edit',
+			title:           l10n.editGalleryTitle,
+			// Selection defaults. @see media.model.Selection
 			multiple:        false,
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
+			searchable:      false,
+			sortable:        true,
+			// Initial region modes.
+			content:         'browse',
+			toolbar:         'gallery-edit',
+
 			describe:        true,
+			displaySettings: true,
+			dragInfo:        true,
 			edge:            199,
 			editing:         false,
-			sortable:        true,
-			searchable:      false,
-			toolbar:         'gallery-edit',
-			content:         'browse',
-			title:           l10n.editGalleryTitle,
 			priority:        60,
-			dragInfo:        true,
-			displaySettings: true,
 
 			// Don't sync the selection, as the Edit Gallery library
 			// *is* the selection.
@@ -871,7 +911,7 @@
 	});
 
 	/**
-	 * wp.media.controller.GalleryAdd
+	 * A state for adding an image to a gallery.
 	 *
 	 * @constructor
 	 * @augments wp.media.controller.Library
@@ -880,14 +920,17 @@
 	 */
 	media.controller.GalleryAdd = media.controller.Library.extend({
 		defaults: _.defaults({
-			id:           'gallery-library',
-			filterable:   'uploaded',
-			multiple:     'add',
-			menu:         'gallery',
-			toolbar:      'gallery-add',
-			title:        l10n.addToGalleryTitle,
-			priority:     100,
+			id:            'gallery-library',
+			title:         l10n.addToGalleryTitle,
+			// Selection defaults. @see media.model.Selection
+			multiple:      'add',
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
+			filterable:    'uploaded',
+			// Initial region modes.
+			menu:          'gallery',
+			toolbar:       'gallery-add',
 
+			priority:      100,
 			// Don't sync the selection, as the Edit Gallery library
 			// *is* the selection.
 			syncSelection: false
@@ -935,15 +978,19 @@
 	 */
 	media.controller.CollectionEdit = media.controller.Library.extend({
 		defaults: {
+			// Selection defaults. @see media.model.Selection
 			multiple:     false,
-			describe:     true,
-			edge:         199,
-			editing:      false,
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
 			sortable:     true,
 			searchable:   false,
+			// Region mode defaults.
 			content:      'browse',
-			priority:     60,
+
+			describe:     true,
 			dragInfo:     true,
+			edge:         199,
+			editing:      false,
+			priority:     60,
 			SettingsView: false,
 
 			// Don't sync the selection, as the Edit {Collection} library
@@ -1044,8 +1091,11 @@
 	 */
 	media.controller.CollectionAdd = media.controller.Library.extend({
 		defaults: _.defaults( {
-			filterable:    'uploaded',
+			// Selection defaults. @see media.model.Selection
 			multiple:      'add',
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
+			filterable:    'uploaded',
+
 			priority:      100,
 			syncSelection: false
 		}, media.controller.Library.prototype.defaults ),
@@ -1095,7 +1145,7 @@
 	});
 
 	/**
-	 * wp.media.controller.FeaturedImage
+	 * A state for selecting a featured image for a post.
 	 *
 	 * @constructor
 	 * @augments wp.media.controller.Library
@@ -1104,12 +1154,16 @@
 	 */
 	media.controller.FeaturedImage = media.controller.Library.extend({
 		defaults: _.defaults({
-			id:         'featured-image',
-			filterable: 'uploaded',
-			multiple:   false,
-			toolbar:    'featured-image',
-			title:      l10n.setFeaturedImageTitle,
-			priority:   60,
+			id:            'featured-image',
+			title:         l10n.setFeaturedImageTitle,
+			// Selection defaults. @see media.model.Selection
+			multiple:      false,
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
+			filterable:    'uploaded',
+			// Region mode defaults.
+			toolbar:       'featured-image',
+
+			priority:      60,
 			syncSelection: true
 		}, media.controller.Library.prototype.defaults ),
 
@@ -1174,9 +1228,7 @@
 	});
 
 	/**
-	 * wp.media.controller.ReplaceImage
-	 *
-	 * Replace a selected single image
+	 * A state for replacing an image.
 	 *
 	 * @constructor
 	 * @augments wp.media.controller.Library
@@ -1185,12 +1237,16 @@
 	 */
 	media.controller.ReplaceImage = media.controller.Library.extend({
 		defaults: _.defaults({
-			id:         'replace-image',
-			filterable: 'uploaded',
-			multiple:   false,
-			toolbar:    'replace',
-			title:      l10n.replaceImageTitle,
-			priority:   60,
+			id:            'replace-image',
+			title:         l10n.replaceImageTitle,
+			// Selection defaults. @see media.model.Selection
+			multiple:      false,
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
+			filterable:    'uploaded',
+			// Region mode defaults.
+			toolbar:       'replace',
+
+			priority:      60,
 			syncSelection: true
 		}, media.controller.Library.prototype.defaults ),
 
@@ -1242,7 +1298,7 @@
 	});
 
 	/**
-	 * wp.media.controller.EditImage
+	 * A state for editing (cropping, etc.) an image.
 	 *
 	 * @constructor
 	 * @augments wp.media.controller.State
@@ -1250,12 +1306,14 @@
 	 */
 	media.controller.EditImage = media.controller.State.extend({
 		defaults: {
-			id: 'edit-image',
-			url: '',
-			menu: false,
+			id:      'edit-image',
+			title:   l10n.editImage,
+			// Region mode defaults.
+			menu:    false,
 			toolbar: 'edit-image',
-			title: l10n.editImage,
-			content: 'edit-image'
+			content: 'edit-image',
+
+			url:     ''
 		},
 
 		activate: function() {
@@ -1301,10 +1359,12 @@
 	 */
 	media.controller.MediaLibrary = media.controller.Library.extend({
 		defaults: _.defaults({
-			filterable: 'uploaded',
-			priority:   80,
-			syncSelection: false,
-			displaySettings: false
+			// Attachments browser defaults. @see media.view.AttachmentsBrowser
+			filterable:      'uploaded',
+
+			displaySettings: false,
+			priority:        80,
+			syncSelection:   false
 		}, media.controller.Library.prototype.defaults ),
 
 		initialize: function( options ) {
@@ -1333,15 +1393,16 @@
 	 */
 	media.controller.Embed = media.controller.State.extend({
 		defaults: {
-			id:      'embed',
-			url:     '',
-			menu:    'default',
-			content: 'embed',
-			toolbar: 'main-embed',
-			type:    'link',
-
+			id:       'embed',
 			title:    l10n.insertFromUrlTitle,
-			priority: 120
+			// Region mode defaults.
+			content:  'embed',
+			menu:     'default',
+			toolbar:  'main-embed',
+
+			priority: 120,
+			type:     'link',
+			url:      ''
 		},
 
 		// The amount of time used when debouncing the scan.
@@ -1445,11 +1506,13 @@
 	 */
 	media.controller.Cropper = media.controller.State.extend({
 		defaults: {
-			id: 'cropper',
-			title: l10n.cropImage,
-			toolbar: 'crop',
-			content: 'crop',
-			router: false,
+			id:          'cropper',
+			title:       l10n.cropImage,
+			// Region mode defaults.
+			toolbar:     'crop',
+			content:     'crop',
+			router:      false,
+
 			canSkipCrop: false
 		},
 
@@ -1887,6 +1950,160 @@
 			}
 			return this;
 		};
+	});
+
+	/**
+	 * wp.media.view.MediaFrame.Manage
+	 *
+	 * A generic management frame workflow.
+	 *
+	 * Used in the media grid view.
+	 *
+	 * @constructor
+	 * @augments wp.media.view.MediaFrame
+	 * @augments wp.media.view.Frame
+	 * @augments wp.media.View
+	 * @augments wp.Backbone.View
+	 * @augments Backbone.View
+	 * @mixes wp.media.controller.StateMachine
+	 */
+	media.view.MediaFrame.Manage = media.view.MediaFrame.extend({
+		/**
+		 * @global wp.Uploader
+		 */
+		initialize: function() {
+			_.defaults( this.options, {
+				title:     l10n.mediaLibraryTitle,
+				modal:     false,
+				selection: [],
+				library:   {},
+				multiple:  false,
+				state:     'library',
+				uploader:  true
+			});
+
+			// Ensure core and media grid view UI is enabled.
+			this.$el.addClass('wp-core-ui media-grid-view');
+
+			// Force the uploader off if the upload limit has been exceeded or
+			// if the browser isn't supported.
+			if ( wp.Uploader.limitExceeded || ! wp.Uploader.browser.supported ) {
+				this.options.uploader = false;
+			}
+
+			// Initialize a window-wide uploader.
+			if ( this.options.uploader ) {
+				this.uploader = new media.view.UploaderWindow({
+					controller: this,
+					uploader: {
+						dropzone:  $('body'),
+						container: $('body')
+					}
+				}).render();
+				this.uploader.ready();
+				$('body').append( this.uploader.el );
+
+				this.options.uploader = false;
+			}
+
+			/**
+			 * call 'initialize' directly on the parent class
+			 */
+			media.view.MediaFrame.prototype.initialize.apply( this, arguments );
+
+			// Since we're not using the default modal built into
+			// a media frame, append our $element to the supplied container.
+			this.$el.appendTo( this.options.container );
+
+			this.createSelection();
+			this.createStates();
+			this.bindHandlers();
+			this.render();
+		},
+
+		createSelection: function() {
+			var selection = this.options.selection;
+
+			if ( ! (selection instanceof media.model.Selection) ) {
+				this.options.selection = new media.model.Selection( selection, {
+					multiple: this.options.multiple
+				});
+			}
+
+			this._selection = {
+				attachments: new media.model.Attachments(),
+				difference: []
+			};
+		},
+
+		createStates: function() {
+			var options = this.options;
+
+			if ( this.options.states ) {
+				return;
+			}
+
+			// Add the default states.
+			this.states.add([
+				new media.controller.Library({
+					library:    media.query( options.library ),
+					multiple:   options.multiple,
+					title:      options.title,
+					priority:   20,
+					toolbar:    false,
+					router:     false,
+					content:    'browse',
+					filterable: 'mime-types'
+				}),
+
+				new media.controller.EditImage( { model: options.editImage } )
+			]);
+		},
+
+		bindHandlers: function() {
+			this.on( 'content:create:browse', this.browseContent, this );
+			this.on( 'content:render:edit-image', this.editImageContent, this );
+		},
+
+		/**
+		 * Content
+		 *
+		 * @param {Object} content
+		 * @this wp.media.controller.Region
+		 */
+		browseContent: function( content ) {
+			var state = this.state();
+
+			// Browse our library of attachments.
+			content.view = new media.view.AttachmentsBrowser({
+				controller: this,
+				collection: state.get('library'),
+				selection:  state.get('selection'),
+				model:      state,
+				sortable:   state.get('sortable'),
+				search:     state.get('searchable'),
+				filters:    state.get('filterable'),
+				display:    state.get('displaySettings'),
+				dragInfo:   state.get('dragInfo'),
+				bulkEdit:   true,
+
+				suggestedWidth:  state.get('suggestedWidth'),
+				suggestedHeight: state.get('suggestedHeight'),
+
+				AttachmentView: state.get('AttachmentView')
+			});
+		},
+
+		editImageContent: function() {
+			var image = this.state().get('image'),
+				view = new media.view.EditImage( { model: image, controller: this } ).render();
+
+			this.content.set( view );
+
+			// after creating the wrapper view, load the actual editor via an ajax call
+			view.loadEditor();
+
+		}
 	});
 
 	/**
@@ -4345,6 +4562,9 @@
 	 * @augments Backbone.View
 	 */
 	media.view.RouterItem = media.view.MenuItem.extend({
+		/**
+		 * On click handler to activate the content region's corresponding mode.
+		 */
 		click: function() {
 			var contentMode = this.options.contentMode;
 			if ( contentMode ) {
@@ -5332,6 +5552,45 @@
 		}
 	});
 
+	/**
+	 * wp.media.view.AttachmentFilters.FileTypes
+	 *
+	 * @constructor
+	 * @augments wp.media.view.AttachmentFilters
+	 * @augments wp.media.View
+	 * @augments wp.Backbone.View
+	 * @augments Backbone.View
+	 */
+	media.view.AttachmentFilters.mimeTypes = media.view.AttachmentFilters.extend({
+		createFilters: function() {
+			var filters = {};
+
+			_.each( media.view.settings.mimeTypes || {}, function( text, key ) {
+				filters[ key ] = {
+					text: text,
+					props: {
+						type:    key,
+						uploadedTo: null,
+						orderby: 'date',
+						order:   'DESC'
+					}
+				};
+			});
+			filters.all = {
+				text:  l10n.allMediaTypes,
+				props: {
+					type:    null,
+					uploadedTo: null,
+					orderby: 'date',
+					order:   'DESC'
+				},
+				priority: 10
+			};
+
+			this.filters = filters;
+		}
+	});
+
 
 	/**
 	 * wp.media.view.AttachmentsBrowser
@@ -5386,6 +5645,8 @@
 				FiltersConstructor = media.view.AttachmentFilters.Uploaded;
 			} else if ( 'all' === filters ) {
 				FiltersConstructor = media.view.AttachmentFilters.All;
+			} else if ( 'mime-types' === filters ) {
+				FiltersConstructor = media.view.AttachmentFilters.mimeTypes;
 			}
 
 			if ( FiltersConstructor ) {

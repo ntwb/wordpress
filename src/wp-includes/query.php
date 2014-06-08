@@ -1830,6 +1830,8 @@ class WP_Query {
 				'field' => 'term_id',
 				'include_children' => false
 			);
+		} elseif ( isset( $this->query['category__in'] ) ) {
+			$q['category__in'] = false;
 		}
 
 		if ( ! empty($q['category__not_in']) ) {
@@ -1887,6 +1889,8 @@ class WP_Query {
 				'taxonomy' => 'post_tag',
 				'terms' => $q['tag__in']
 			);
+		} elseif ( isset( $this->query['tag__in'] ) ) {
+			$q['tag__in'] = false;
 		}
 
 		if ( !empty($q['tag__not_in']) ) {
@@ -1914,6 +1918,8 @@ class WP_Query {
 				'terms' => $q['tag_slug__in'],
 				'field' => 'slug'
 			);
+		} elseif ( isset( $this->query['tag_slug__in'] ) ) {
+			$q['tag_slug__in'] = false;
 		}
 
 		if ( !empty($q['tag_slug__and']) ) {
@@ -2476,8 +2482,8 @@ class WP_Query {
 		// If a search pattern is specified, load the posts that match.
 		if ( ! empty( $q['s'] ) ) {
 			$search = $this->parse_search( $q );
-		} elseif ( $this->is_search ) {
-			$search = 'AND 0';
+		} elseif ( ! $this->is_admin && $this->is_search ) {
+			$search = ' AND 0';
 		}
 
 		/**
@@ -2498,6 +2504,13 @@ class WP_Query {
 
 			$join .= $clauses['join'];
 			$where .= $clauses['where'];
+		}
+
+		// If *__in is passed to WP_Query as an empty array, don't return results
+		foreach ( array( 'category', 'tag', 'tag_slug' ) as $in ) {
+			if ( isset( $q["{$in}__in"] ) && false === $q["{$in}__in"] ) {
+				$where = " AND 1=0 $where";
+			}
 		}
 
 		if ( $this->is_tax ) {
@@ -2591,6 +2604,9 @@ class WP_Query {
 		} elseif ( ! empty( $q['author__in'] ) ) {
 			$author__in = implode( ',', array_map( 'absint', array_unique( (array) $q['author__in'] ) ) );
 			$where .= " AND {$wpdb->posts}.post_author IN ($author__in) ";
+		} elseif ( isset( $this->query['author__in'] ) ) {
+			$author__in = 0;
+			$where .= ' AND 1=0 ';
 		}
 
 		// Author stuff for nice URLs
@@ -3707,7 +3723,7 @@ class WP_Query {
 			$page_for_posts = get_option('page_for_posts');
 			$this->queried_object = get_post( $page_for_posts );
 			$this->queried_object_id = (int) $this->queried_object->ID;
-		} elseif ( $this->is_singular && !is_null($this->post) ) {
+		} elseif ( $this->is_singular && ! empty( $this->post ) ) {
 			$this->queried_object = $this->post;
 			$this->queried_object_id = (int) $this->post->ID;
 		} elseif ( $this->is_author ) {

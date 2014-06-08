@@ -863,8 +863,12 @@ span + .edit-link:before,
 	font-weight: 700;
 	line-height: 48px;
 	margin: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
+.site-title,
 .site-title a,
 .site-title a:hover {
 	color: #fff;
@@ -1003,7 +1007,6 @@ span + .edit-link:before,
 	background-color: #000;
 	border-radius: 0;
 	cursor: pointer;
-	font-size: 0;
 	height: 48px;
 	margin: 0;
 	overflow: hidden;
@@ -1018,8 +1021,7 @@ span + .edit-link:before,
 .menu-toggle:before {
 	color: #fff;
 	content: "\f419";
-	display: inline;
-	margin-top: 16px;
+	padding: 15px;
 }
 
 .menu-toggle:active,
@@ -1367,6 +1369,83 @@ a.post-thumbnail:hover {
 
 .hentry .mejs-overlay-loading {
 	background: transparent;
+}
+
+.hentry .mejs-overlay-button {
+	background-color: #fff;
+	background-image: none;
+	border-radius: 10px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.8);
+	color: #000;
+	height: 48px;
+	margin: -24px 0 0 -32px;
+	width: 64px;
+}
+
+.hentry .mejs-overlay-button:before {
+	-webkit-font-smoothing: antialiased;
+	content: '\f452';
+	display: inline-block;
+	font: normal 48px/1 Genericons;	
+	position: absolute;
+	top: 0;
+	left: 10px;
+}
+
+.hentry .mejs-controls .mejs-button button:focus {
+	outline: none;
+}
+
+.hentry .mejs-controls .mejs-button button {
+	-webkit-font-smoothing: antialiased;
+	background: none;
+	color: #fff;
+	display: inline-block;
+	font: normal 16px/1 Genericons;
+}
+
+.hentry .mejs-playpause-button.mejs-play button:before {
+	content: '\f452';
+}
+
+.hentry .mejs-playpause-button.mejs-pause button:before {
+	content: '\f448';
+}
+
+.hentry .mejs-volume-button.mejs-mute button:before {
+	content: '\f109';
+	font-size: 20px;
+	position: absolute;
+	top: -2px;
+	left: 0;
+}
+
+.hentry .mejs-volume-button.mejs-unmute button:before {
+	content: '\f109';
+	left: 0;
+	position: absolute;
+	top: 0;
+}
+
+.hentry .mejs-fullscreen-button button:before {
+	content: '\f474';
+}
+
+.hentry .mejs-fullscreen-button.mejs-unfullscreen button:before {
+	content: '\f406';
+}
+
+.hentry .mejs-overlay:hover .mejs-overlay-button {
+	background-color: #24890d;
+	color: #fff;
+}
+
+.hentry .mejs-controls .mejs-button button:hover {
+	color: #41a62a;
+}
+
+.content-sidebar .wp-playlist-item .wp-playlist-caption {
+	color: #000;
 }
 
 /* Page links */
@@ -2248,8 +2327,8 @@ a.post-thumbnail:hover {
 	margin-bottom: 18px;
 }
 
-.widget input,
-.widget textarea {
+.widget-area .widget input,
+.widget-area .widget textarea {
 	background-color: rgba(255, 255, 255, 0.1);
 	border-color: rgba(255, 255, 255, 0.2);
 	color: #fff;
@@ -2257,8 +2336,8 @@ a.post-thumbnail:hover {
 	padding: 1px 2px 2px 4px;
 }
 
-.widget input:focus,
-.widget textarea:focus {
+.widget-area .widget input:focus,
+.widget-area .widget textarea:focus {
 	border-color: rgba(255, 255, 255, 0.3);
 }
 
@@ -3001,6 +3080,10 @@ a.post-thumbnail:hover {
 }
 
 @media screen and (max-width: 400px) {
+	.site-title {
+		max-width: 71%;
+	}
+
 	.list-view .site-content .post-thumbnail {
 		background: none;
 		width: auto;
@@ -3075,6 +3158,10 @@ a.post-thumbnail:hover {
 }
 
 @media screen and (min-width: 401px) {
+	.site-title {
+		max-width: 77%;
+	}
+
 	a.post-thumbnail:hover img {
 		opacity: 0.85;
 	}
@@ -3203,6 +3290,10 @@ a.post-thumbnail:hover {
 }
 
 @media screen and (min-width: 594px) {
+	.site-title {
+		max-width: 85%;
+	}
+
 	.site-content .entry-header {
 		padding-right: 30px;
 		padding-left: 30px;
@@ -3216,6 +3307,10 @@ a.post-thumbnail:hover {
 @media screen and (min-width: 673px) {
 	.header-main {
 		padding: 0 30px;
+	}
+
+	.site-title {
+		max-width: 89%;
 	}
 
 	.search-toggle {
@@ -3351,6 +3446,10 @@ a.post-thumbnail:hover {
 @media screen and (min-width: 783px) {
 	.header-main {
 		padding-right: 0;
+	}
+
+	.site-title {
+		max-width: 93%;
 	}
 
 	.search-toggle {
@@ -3600,6 +3699,10 @@ a.post-thumbnail:hover {
 }
 
 @media screen and (min-width: 1008px) {
+	.site-title {
+		max-width: 95%;
+	}
+
 	.search-box-wrapper {
 		padding-left: 182px;
 	}
@@ -4121,6 +4224,7 @@ a.post-thumbnail:hover {
 		display: none;
 	}
 
+	.site-title,
 	.site-title a,
 	.entry-meta,
 	.entry-meta a,

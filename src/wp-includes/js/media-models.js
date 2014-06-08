@@ -5,7 +5,7 @@ window.wp = window.wp || {};
 	var Attachment, Attachments, Query, PostImage, compare, l10n, media;
 
 	/**
-	 * wp.media( attributes )
+	 * Create and return a media frame.
 	 *
 	 * Handles the default media experience. Automatically creates
 	 * and opens a media frame, and returns the result.
@@ -30,6 +30,8 @@ window.wp = window.wp || {};
 			frame = new MediaFrame.Select( attributes );
 		} else if ( 'post' === attributes.frame && MediaFrame.Post ) {
 			frame = new MediaFrame.Post( attributes );
+		} else if ( 'manage' === attributes.frame && MediaFrame.Manage ) {
+			frame = new MediaFrame.Manage( attributes );
 		} else if ( 'image' === attributes.frame && MediaFrame.ImageDetails ) {
 			frame = new MediaFrame.ImageDetails( attributes );
 		} else if ( 'audio' === attributes.frame && MediaFrame.AudioDetails ) {

@@ -104,7 +104,7 @@ function the_title_attribute( $args = '' ) {
  *
  * @since 0.71
  *
- * @param int|WP_Post $post Optional. Post ID or post object.
+ * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global `$post`.
  * @return string
  */
 function get_the_title( $post = 0 ) {
@@ -594,8 +594,9 @@ function get_body_class( $class = '' ) {
 
 		$classes[] = 'page-id-' . $page_id;
 
-		if ( $wpdb->get_var( $wpdb->prepare("SELECT ID FROM $wpdb->posts WHERE post_parent = %d AND post_type = 'page' AND post_status = 'publish' LIMIT 1", $page_id) ) )
+		if ( get_pages( array( 'parent' => $page_id, 'number' => 1 ) ) ) {
 			$classes[] = 'page-parent';
+		}
 
 		if ( $post->post_parent ) {
 			$classes[] = 'page-child';
@@ -1545,8 +1546,8 @@ function prepend_attachment($content) {
  * Retrieve protected post password form content.
  *
  * @since 1.0.0
- * @uses apply_filters() Calls 'the_password_form' filter on output.
- * @param int|WP_Post $post Optional. A post ID or post object.
+ *
+ * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global `$post`.
  * @return string HTML content for password form for password protected post.
  */
 function get_the_password_form( $post = 0 ) {
@@ -1719,7 +1720,7 @@ function wp_post_revision_title_expanded( $revision, $link = true ) {
  * @uses get_edit_post_link()
  * @uses get_the_author_meta()
  *
- * @param int|WP_Post $post_id Optional. Post ID or post object.
+ * @param int|WP_Post $post_id Optional. Post ID or WP_Post object. Default is global `$post`.
  * @param string $type 'all' (default), 'revision' or 'autosave'
  * @return null
  */

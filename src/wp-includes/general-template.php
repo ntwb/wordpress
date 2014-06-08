@@ -836,13 +836,20 @@ function wp_title($sep = '&raquo;', $display = true, $seplocation = '') {
 	if ( !empty($title) )
 		$prefix = " $sep ";
 
+	/**
+	 * Filter the parts of the page title.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @param array $title_array Parts of the page title.
+	 */
+	$title_array = apply_filters( 'wp_title_parts', explode( $t_sep, $title ) );
+
  	// Determines position of the separator and direction of the breadcrumb
 	if ( 'right' == $seplocation ) { // sep on right, so reverse the order
-		$title_array = explode( $t_sep, $title );
 		$title_array = array_reverse( $title_array );
 		$title = implode( " $sep ", $title_array ) . $prefix;
 	} else {
-		$title_array = explode( $t_sep, $title );
 		$title = $prefix . implode( " $sep ", $title_array );
 	}
 
@@ -2469,10 +2476,10 @@ function paginate_links( $args = '' ) {
 	$r = '';
 	$page_links = array();
 	$dots = false;
+	$base = str_replace( '%_%', $args['format'], $args['base'] );
 
 	if ( $args['prev_next'] && $current && 1 < $current ) :
-		$link = str_replace( '%_%', 2 == $current ? '' : $args['format'], $args['base'] );
-		$link = str_replace( '%#%', $current - 1, $link );
+		$link = str_replace( '%#%', $current - 1, $base );
 		if ( $add_args )
 			$link = add_query_arg( $add_args, $link );
 		$link .= $args['add_fragment'];
@@ -2492,8 +2499,7 @@ function paginate_links( $args = '' ) {
 			$dots = true;
 		else :
 			if ( $args['show_all'] || ( $n <= $end_size || ( $current && $n >= $current - $mid_size && $n <= $current + $mid_size ) || $n > $total - $end_size ) ) :
-				$link = str_replace( '%_%', 1 == $n ? '' : $args['format'], $args['base'] );
-				$link = str_replace( '%#%', $n, $link );
+				$link = str_replace( '%#%', $n, $base );
 				if ( $add_args )
 					$link = add_query_arg( $add_args, $link );
 				$link .= $args['add_fragment'];
@@ -2508,8 +2514,7 @@ function paginate_links( $args = '' ) {
 		endif;
 	endfor;
 	if ( $args['prev_next'] && $current && ( $current < $total || -1 == $total ) ) :
-		$link = str_replace( '%_%', $args['format'], $args['base'] );
-		$link = str_replace( '%#%', $current + 1, $link );
+		$link = str_replace( '%#%', $current + 1, $base );
 		if ( $add_args )
 			$link = add_query_arg( $add_args, $link );
 		$link .= $args['add_fragment'];

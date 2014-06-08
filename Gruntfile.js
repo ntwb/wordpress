@@ -440,10 +440,11 @@ module.exports = function(grunt) {
 	grunt.registerTask('qunit:compiled', 'Runs QUnit tests on compiled as well as uncompiled scripts.',
 		['build', 'copy:qunit', 'qunit']);
 
+	grunt.registerTask('test', 'Runs all QUnit and PHPUnit tasks.', ['qunit:compiled', 'phpunit']);
+
 	// Travis CI tasks.
-	grunt.registerTask('travis:js',      'Runs Javascript Travis CI tasks.', 'jshint');
-	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.',    'phpunit');
-	grunt.registerTask('travis:qunit',   'Runs QUnit Travis CI tasks.',      'qunit:compiled');
+	grunt.registerTask('travis:js', 'Runs Javascript Travis CI tasks.', [ 'jshint', 'qunit:compiled' ]);
+	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.', 'phpunit');
 
 	// Patch task.
 	grunt.renameTask('patch_wordpress', 'patch');

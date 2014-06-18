@@ -24,15 +24,38 @@
  * @uses $wp_cockneyreplace Array of formatted entities for certain common phrases
  *
  * @param string $text The text to be formatted
+ * @param bool $reset Set to true for unit testing. Translated patterns will reset.
  * @return string The string replaced with html entities
  */
-function wptexturize($text) {
+function wptexturize($text, $reset = false) {
 	global $wp_cockneyreplace;
 	static $static_characters, $static_replacements, $dynamic_characters, $dynamic_replacements,
-		$default_no_texturize_tags, $default_no_texturize_shortcodes;
+		$default_no_texturize_tags, $default_no_texturize_shortcodes, $run_texturize = true;
 
-	// No need to set up these static variables more than once
-	if ( ! isset( $static_characters ) ) {
+	// If there's nothing to do, just stop.
+	if ( empty( $text ) || false === $run_texturize ) {
+		return $text;
+	}
+
+	// Set up static variables. Run once only.
+	if ( $reset || ! isset( $static_characters ) ) {
+		/**
+		 * Filter whether to skip running `wptexturize()`.
+		 *
+		 * Passing false to the filter will effectively short-circuit `wptexturize()`.
+		 * returning the original text passed to the function instead.
+		 *
+		 * The filter runs only once, the first time `wptexturize()` is called.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param bool $run_texturize Whether to short-circuit `wptexturize()`.
+		 */
+		$run_texturize = apply_filters( 'run_wptexturize', $run_texturize );
+		if ( false === $run_texturize ) {
+			return $text;
+		}
+
 		/* translators: opening curly double quote */
 		$opening_quote = _x( '&#8220;', 'opening curly double quote' );
 		/* translators: closing curly double quote */
@@ -70,30 +93,45 @@ function wptexturize($text) {
 			$cockney = $cockneyreplace = array();
 		}
 
-		$static_characters = array_merge( array( '---', ' -- ', '--', ' - ', 'xn&#8211;', '...', '``', '\'\'', ' (tm)' ), $cockney );
-		$static_replacements = array_merge( array( $em_dash, ' ' . $em_dash . ' ', $en_dash, ' ' . $en_dash . ' ', 'xn--', '&#8230;', $opening_quote, $closing_quote, ' &#8482;' ), $cockneyreplace );
+		$static_characters = array_merge( array( '...', '``', '\'\'', ' (tm)' ), $cockney );
+		$static_replacements = array_merge( array( '&#8230;', $opening_quote, $closing_quote, ' &#8482;' ), $cockneyreplace );
 
-		/*
-		 * Regex for common whitespace characters.
-		 *
-		 * By default, spaces include new lines, tabs, nbsp entities, and the UTF-8 nbsp.
-		 * This is designed to replace the PCRE \s sequence.  In #WP22692, that sequence
-		 * was found to be unreliable due to random inclusion of the A0 byte.
-		 */
-		$spaces = '[\r\n\t ]|\xC2\xA0|&nbsp;';
+		$spaces = wp_spaces_regexp();
 
 
 		// Pattern-based replacements of characters.
 		$dynamic = array();
 
-		// '99 '99s '99's (apostrophe)
-		if ( "'" !== $apos ) {
-			$dynamic[ '/\'(?=\d)/' ] = $apos;
+		// '99' and '99" are ambiguous among other patterns; assume it's an abbreviated year at the end of a quotation.
+		if ( "'" !== $apos || "'" !== $closing_single_quote ) {
+			$dynamic[ '/\'(\d\d)\'(?=\Z|[.,)}>\-\]]|' . $spaces . ')/' ] = $apos . '$1' . $closing_single_quote;
 		}
 
-		// Single quote at start, or preceded by (, {, <, [, ", or spaces.
+		if ( "'" !== $apos || '"' !== $closing_quote ) {
+			$dynamic[ '/\'(\d\d)"(?=\Z|[.,)}>\-\]]|' . $spaces . ')/' ] = $apos . '$1' . $closing_quote;
+		}
+
+		// '99 '99s '99's (apostrophe)  But never '9 or '99% or '999 or '99.0.
+		if ( "'" !== $apos ) {
+			$dynamic[ '/\'(?=\d\d(?:\Z|(?![%\d]|[.,]\d)))/' ] = $apos;
+		}
+
+		// Quoted Numbers like "42" or '42.00'
+		if ( '"' !== $opening_quote && '"' !== $closing_quote ) {
+			$dynamic[ '/(?<=\A|' . $spaces . ')"(\d[.,\d]*)"/' ] = $opening_quote . '$1' . $closing_quote;
+		}
+		if ( "'" !== $opening_single_quote && "'" !== $closing_single_quote ) {
+			$dynamic[ '/(?<=\A|' . $spaces . ')\'(\d[.,\d]*)\'/' ] = $opening_single_quote . '$1' . $closing_single_quote;
+		}
+
+		// Single quote at start, or preceded by (, {, <, [, ", -, or spaces.
 		if ( "'" !== $opening_single_quote ) {
-			$dynamic[ '/(?<=\A|[([{<"]|' . $spaces . ')\'/' ] = $opening_single_quote;
+			$dynamic[ '/(?<=\A|[([{<"\-]|' . $spaces . ')\'/' ] = $opening_single_quote;
+		}
+
+		// Apostrophe in a word.  No spaces, double apostrophes, or other punctuation.
+		if ( "'" !== $apos ) {
+			$dynamic[ '/(?<!' . $spaces . ')\'(?!\Z|[.,:;"\'(){}<>[\]\-]|' . $spaces . ')/' ] = $apos;
 		}
 
 		// 9" (double prime)
@@ -106,14 +144,9 @@ function wptexturize($text) {
 			$dynamic[ '/(?<=\d)\'/' ] = $prime;
 		}
 
-		// Apostrophe in a word.  No spaces or double primes.
-		if ( "'" !== $apos ) {
-			$dynamic[ '/(?<!' . $spaces . ')\'(?!\'|' . $spaces . ')/' ] = $apos;
-		}
-
-		// Double quote at start, or preceded by (, {, <, [, or spaces, and not followed by spaces.
+		// Double quote at start, or preceded by (, {, <, [, -, or spaces, and not followed by spaces.
 		if ( '"' !== $opening_quote ) {
-			$dynamic[ '/(?<=\A|[([{<]|' . $spaces . ')"(?!' . $spaces . ')/' ] = $opening_quote;
+			$dynamic[ '/(?<=\A|[([{<\-]|' . $spaces . ')"(?!' . $spaces . ')/' ] = $opening_quote;
 		}
 
 		// Any remaining double quotes.
@@ -121,10 +154,16 @@ function wptexturize($text) {
 			$dynamic[ '/"/' ] = $closing_quote;
 		}
 
-		// Single quotes followed by spaces or a period.
+		// Single quotes followed by spaces or ending punctuation.
 		if ( "'" !== $closing_single_quote ) {
-			$dynamic[ '/\'(?=\Z|\.|' . $spaces . ')/' ] = $closing_single_quote;
+			$dynamic[ '/\'(?=\Z|[.,)}>\-\]]|' . $spaces . ')/' ] = $closing_single_quote; 
 		}
+
+		// Dashes and spaces
+		$dynamic[ '/---/' ] = $em_dash;
+		$dynamic[ '/(?<=' . $spaces . ')--(?=' . $spaces . ')/' ] = $em_dash;
+		$dynamic[ '/(?<!xn)--/' ] = $en_dash;
+		$dynamic[ '/(?<=' . $spaces . ')-(?=' . $spaces . ')/' ] = $en_dash;
 
 		$dynamic_characters = array_keys( $dynamic );
 		$dynamic_replacements = array_values( $dynamic );
@@ -152,31 +191,56 @@ function wptexturize($text) {
 	$no_texturize_tags_stack = array();
 	$no_texturize_shortcodes_stack = array();
 
-	$textarr = preg_split('/(<.*>|\[.*\])/Us', $text, -1, PREG_SPLIT_DELIM_CAPTURE);
+	// Look for shortcodes and HTML elements.
+
+	$regex =  '/('			// Capture the entire match.
+		.	'<'		// Find start of element.
+		.	'(?(?=!--)'	// Is this a comment?
+		.		'.+?--\s*>'	// Find end of comment
+		.	'|'
+		.		'.+?>'		// Find end of element
+		.	')'
+		. '|'
+		.	'\['		// Find start of shortcode.
+		.	'\[?'		// Shortcodes may begin with [[
+		.	'[^\[\]<>]+'	// Shortcodes do not contain other shortcodes or HTML elements.
+		.	'\]'		// Find end of shortcode.
+		.	'\]?'		// Shortcodes may end with ]]
+		. ')/s';
+
+	$textarr = preg_split( $regex, $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
 
 	foreach ( $textarr as &$curl ) {
-		if ( empty( $curl ) ) {
-			continue;
-		}
-
-		// Only call _wptexturize_pushpop_element if first char is correct tag opening
+		// Only call _wptexturize_pushpop_element if $curl is a delimeter.
 		$first = $curl[0];
-		if ( '<' === $first ) {
-			_wptexturize_pushpop_element($curl, $no_texturize_tags_stack, $no_texturize_tags, '<', '>');
-		} elseif ( '[' === $first ) {
-			_wptexturize_pushpop_element($curl, $no_texturize_shortcodes_stack, $no_texturize_shortcodes, '[', ']');
+		if ( '<' === $first && '>' === substr( $curl, -1 ) ) {
+			// This is an HTML delimeter.
+
+			if ( '<!--' !== substr( $curl, 0, 4 ) ) {
+				_wptexturize_pushpop_element( $curl, $no_texturize_tags_stack, $no_texturize_tags, '<', '>' );
+			}
+
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[[^\[\]<>]+\]$/', $curl ) ) {
+			// This is a shortcode delimeter.
+
+			_wptexturize_pushpop_element( $curl, $no_texturize_shortcodes_stack, $no_texturize_shortcodes, '[', ']' );
+
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[\[?[^\[\]<>]+\]\]?$/', $curl ) ) {
+			// This is an escaped shortcode delimeter.
+
+			// Do not texturize.
+			// Do not push to the shortcodes stack.
+
 		} elseif ( empty($no_texturize_shortcodes_stack) && empty($no_texturize_tags_stack) ) {
+			// This is neither a delimeter, nor is this content inside of no_texturize pairs.  Do texturize.
 
-			// This is not a tag, nor is the texturization disabled static strings
 			$curl = str_replace($static_characters, $static_replacements, $curl);
-
-			// regular expressions
 			$curl = preg_replace($dynamic_characters, $dynamic_replacements, $curl);
 
-			// 9x9 (times)
-			if ( 1 === preg_match( '/(?<=\d)x\d/', $text ) ) {
+			// 9x9 (times), but never 0x9999
+			if ( 1 === preg_match( '/(?<=\d)x-?\d/', $text ) ) {
 				// Searching for a digit is 10 times more expensive than for the x, so we avoid doing this one!
-				$curl = preg_replace( '/\b(\d+)x(\d+)\b/', '$1&#215;$2', $curl );
+				$curl = preg_replace( '/\b(\d(?(?<=0)[\d\.,]+|[\d\.,]*))x(-?\d[\d\.,]*)\b/', '$1&#215;$2', $curl );
 			}
 		}
 
@@ -214,6 +278,8 @@ function _wptexturize_pushpop_element($text, &$stack, $disabled_elements, $openi
 
 			array_push($stack, $matches[1]);
 		}
+	} elseif ( 0 == count( $stack ) ) {
+		// Stack is empty. Just stop.
 	} else {
 		// Closing? Check $text+2 against disabled elements
 		$c = preg_quote($closing, '/');
@@ -361,11 +427,12 @@ function shortcode_unautop( $pee ) {
 	}
 
 	$tagregexp = join( '|', array_map( 'preg_quote', array_keys( $shortcode_tags ) ) );
+	$spaces = wp_spaces_regexp();
 
 	$pattern =
 		  '/'
 		. '<p>'                              // Opening paragraph
-		. '\\s*+'                            // Optional leading whitespace
+		. '(?:' . $spaces . ')*+'            // Optional leading whitespace
 		. '('                                // 1: The shortcode
 		.     '\\['                          // Opening bracket
 		.     "($tagregexp)"                 // 2: Shortcode name
@@ -390,7 +457,7 @@ function shortcode_unautop( $pee ) {
 		.         ')?'
 		.     ')'
 		. ')'
-		. '\\s*+'                            // optional trailing whitespace
+		. '(?:' . $spaces . ')*+'            // optional trailing whitespace
 		. '<\\/p>'                           // closing paragraph
 		. '/s';
 
@@ -1909,7 +1976,7 @@ function translate_smiley( $matches ) {
 	 */
 	$src_url = apply_filters( 'smilies_src', includes_url( "images/smilies/$img" ), $img, site_url() );
 
-	return sprintf( ' <img src="%s" alt="%s" class="wp-smiley" /> ', esc_url( $src_url ), esc_attr( $smiley ) );
+	return sprintf( '<img src="%s" alt="%s" class="wp-smiley" />', esc_url( $src_url ), esc_attr( $smiley ) );
 }
 
 /**
@@ -3100,18 +3167,6 @@ function tag_escape($tag_name) {
 }
 
 /**
- * Escapes text for SQL LIKE special characters % and _.
- *
- * @since 2.5.0
- *
- * @param string $text The text to be escaped.
- * @return string text, safe for inclusion in LIKE query.
- */
-function like_escape($text) {
-	return str_replace(array("%", "_"), array("\\%", "\\_"), $text);
-}
-
-/**
  * Convert full URL paths to absolute paths.
  *
  * Removes the http or https protocols and the domain. Keeps the path '/' at the
@@ -3843,4 +3898,37 @@ function get_url_in_content( $content ) {
 	}
 
 	return false;
+}
+
+/**
+ * Returns the regexp for common whitespace characters.
+ *
+ * By default, spaces include new lines, tabs, nbsp entities, and the UTF-8 nbsp.
+ * This is designed to replace the PCRE \s sequence.  In ticket #22692, that
+ * sequence was found to be unreliable due to random inclusion of the A0 byte.
+ *
+ * @since 4.0.0
+ *
+ * @return string The spaces regexp.
+ */
+function wp_spaces_regexp() {
+	static $spaces;
+
+	if ( empty( $spaces ) ) {
+		/**
+		 * Filter the regexp for common whitespace characters.
+		 *
+		 * This string is substituted for the \s sequence as needed in regular
+		 * expressions. For websites not written in English, different characters
+		 * may represent whitespace. For websites not encoded in UTF-8, the 0xC2 0xA0
+		 * sequence may not be in use.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param string $spaces Regexp pattern for matching common whitespace characters.
+		 */
+		$spaces = apply_filters( 'wp_spaces_regexp', '[\r\n\t ]|\xC2\xA0|&nbsp;' );
+	}
+
+	return $spaces;
 }

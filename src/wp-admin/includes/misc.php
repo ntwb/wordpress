@@ -274,17 +274,15 @@ function url_shorten( $url ) {
  * @param array $vars An array of globals to reset.
  */
 function wp_reset_vars( $vars ) {
-	for ( $i=0; $i<count( $vars ); $i += 1 ) {
-		$var = $vars[$i];
-		global $$var;
-
-		if ( empty( $_POST[$var] ) ) {
-			if ( empty( $_GET[$var] ) )
-				$$var = '';
-			else
-				$$var = $_GET[$var];
+	foreach ( $vars as $var ) {
+		if ( empty( $_POST[ $var ] ) ) {
+			if ( empty( $_GET[ $var ] ) ) {
+				$GLOBALS[ $var ] = '';
+			} else {
+				$GLOBALS[ $var ] = $_GET[ $var ];
+			}
 		} else {
-			$$var = $_POST[$var];
+			$GLOBALS[ $var ] = $_POST[ $var ];
 		}
 	}
 }
@@ -826,3 +824,15 @@ function heartbeat_autosave( $response, $data ) {
 }
 // Run later as we have to set DOING_AUTOSAVE for back-compat
 add_filter( 'heartbeat_received', 'heartbeat_autosave', 500, 2 );
+
+/**
+ * Send error message when an URL cannot be embedded. Used in wp_ajax_parse_embed().
+ *
+ * @access private
+ * @since 4.0
+ */
+function _wpview_embed_error( $output, $url ) {
+	wp_send_json_error( array(
+		'message' => sprintf( __( '%s failed to embed.' ), esc_url( $url ) ),
+	) );
+}

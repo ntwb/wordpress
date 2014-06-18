@@ -1480,13 +1480,11 @@ function get_terms( $taxonomies, $args = '' ) {
 	}
 
 	if ( ! empty( $args['name__like'] ) ) {
-		$name__like = like_escape( $args['name__like'] );
-		$where .= $wpdb->prepare( " AND t.name LIKE %s", '%' . $name__like . '%' );
+		$where .= $wpdb->prepare( " AND t.name LIKE %s", '%' . $wpdb->esc_like( $args['name__like'] ) . '%' );
 	}
 
 	if ( ! empty( $args['description__like'] ) ) {
-		$description__like = like_escape( $args['description__like'] );
-		$where .= $wpdb->prepare( " AND tt.description LIKE %s", '%' . $description__like . '%' );
+		$where .= $wpdb->prepare( " AND tt.description LIKE %s", '%' . $wpdb->esc_like( $args['description__like'] ) . '%' );
 	}
 
 	if ( '' !== $parent ) {
@@ -1517,8 +1515,8 @@ function get_terms( $taxonomies, $args = '' ) {
 	}
 
 	if ( ! empty( $args['search'] ) ) {
-		$search = like_escape( $args['search'] );
-		$where .= $wpdb->prepare( ' AND ((t.name LIKE %s) OR (t.slug LIKE %s))', '%' . $search . '%', '%' . $search . '%' );
+		$like = '%' . $wpdb->esc_like( $args['search'] ) . '%';
+		$where .= $wpdb->prepare( ' AND ((t.name LIKE %s) OR (t.slug LIKE %s))', $like, $like );
 	}
 
 	$selects = array();
@@ -1573,9 +1571,13 @@ function get_terms( $taxonomies, $args = '' ) {
 	 * @param array        $args       An array of terms query arguments.
 	 */
 	$clauses = apply_filters( 'terms_clauses', compact( $pieces ), $taxonomies, $args );
-	foreach ( $pieces as $piece ) {
-		$$piece = isset( $clauses[ $piece ] ) ? $clauses[ $piece ] : '';
-	}
+	$fields = isset( $clauses[ 'fields' ] ) ? $clauses[ 'fields' ] : '';
+	$join = isset( $clauses[ 'join' ] ) ? $clauses[ 'join' ] : '';
+	$where = isset( $clauses[ 'where' ] ) ? $clauses[ 'where' ] : '';
+	$orderby = isset( $clauses[ 'orderby' ] ) ? $clauses[ 'orderby' ] : '';
+	$order = isset( $clauses[ 'order' ] ) ? $clauses[ 'order' ] : '';
+	$limits = isset( $clauses[ 'limits' ] ) ? $clauses[ 'limits' ] : '';
+
 	$query = "SELECT $fields FROM $wpdb->terms AS t $join WHERE $where $orderby $order $limits";
 
 	if ( 'count' == $_fields ) {
@@ -1679,7 +1681,8 @@ function get_terms( $taxonomies, $args = '' ) {
  * @param string $taxonomy The taxonomy name to use
  * @param int $parent ID of parent term under which to confine the exists search.
  * @return mixed Returns 0 if the term does not exist. Returns the term ID if no taxonomy is specified
- * 	and the term ID exists. Returns an array of the term ID and the taxonomy if the pairing exists.
+ *               and the term ID exists. Returns an array of the term ID and the term taxonomy ID
+ *               if the taxonomy is specified and the pairing exists.
  */
 function term_exists($term, $taxonomy = '', $parent = 0) {
 	global $wpdb;
@@ -2438,7 +2441,13 @@ function wp_insert_term( $term, $taxonomy, $args = array() ) {
 
 	$slug_provided = ! empty( $args['slug'] );
 	if ( ! $slug_provided ) {
-		$slug = sanitize_title($name);
+		$_name = trim( $name );
+		$existing_term = get_term_by( 'name', $_name, $taxonomy );
+		if ( $existing_term ) {
+			$slug = $existing_term->slug;
+		} else {
+			$slug = sanitize_title( $name );
+		}
 	} else {
 		$slug = $args['slug'];
 	}

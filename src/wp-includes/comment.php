@@ -443,8 +443,14 @@ class WP_Comment_Query {
 		 * @param WP_Comment_Query &$this  Current instance of WP_Comment_Query, passed by reference.
 		 */
 		$clauses = apply_filters_ref_array( 'comments_clauses', array( compact( $pieces ), &$this ) );
-		foreach ( $pieces as $piece )
-			$$piece = isset( $clauses[ $piece ] ) ? $clauses[ $piece ] : '';
+
+		$fields = isset( $clauses[ 'fields' ] ) ? $clauses[ 'fields' ] : '';
+		$join = isset( $clauses[ 'join' ] ) ? $clauses[ 'join' ] : '';
+		$where = isset( $clauses[ 'where' ] ) ? $clauses[ 'where' ] : '';
+		$orderby = isset( $clauses[ 'orderby' ] ) ? $clauses[ 'orderby' ] : '';
+		$order = isset( $clauses[ 'order' ] ) ? $clauses[ 'order' ] : '';
+		$limits = isset( $clauses[ 'limits' ] ) ? $clauses[ 'limits' ] : '';
+		$groupby = isset( $clauses[ 'groupby' ] ) ? $clauses[ 'groupby' ] : '';
 
 		if ( $groupby ) {
 			$groupby = 'GROUP BY ' . $groupby;
@@ -481,11 +487,14 @@ class WP_Comment_Query {
 	 * @return string
 	 */
 	protected function get_search_sql( $string, $cols ) {
-		$string = esc_sql( like_escape( $string ) );
+		global $wpdb;
+
+		$like = '%' . $wpdb->esc_like( $string ) . '%';
 
 		$searches = array();
-		foreach ( $cols as $col )
-			$searches[] = "$col LIKE '%$string%'";
+		foreach ( $cols as $col ) {
+			$searches[] = $wpdb->prepare( "$col LIKE %s", $like );
+		}
 
 		return ' AND (' . implode(' OR ', $searches) . ')';
 	}

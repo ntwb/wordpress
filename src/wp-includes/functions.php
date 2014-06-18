@@ -479,7 +479,7 @@ function do_enclose( $content, $post_ID ) {
 
 	foreach ( $pung as $link_test ) {
 		if ( ! in_array( $link_test, $post_links_temp ) ) { // link no longer in post
-			$mids = $wpdb->get_col( $wpdb->prepare("SELECT meta_id FROM $wpdb->postmeta WHERE post_id = %d AND meta_key = 'enclosure' AND meta_value LIKE (%s)", $post_ID, like_escape( $link_test ) . '%') );
+			$mids = $wpdb->get_col( $wpdb->prepare("SELECT meta_id FROM $wpdb->postmeta WHERE post_id = %d AND meta_key = 'enclosure' AND meta_value LIKE %s", $post_ID, $wpdb->esc_like( $link_test ) . '%') );
 			foreach ( $mids as $mid )
 				delete_metadata_by_mid( 'post', $mid );
 		}
@@ -498,7 +498,7 @@ function do_enclose( $content, $post_ID ) {
 	}
 
 	foreach ( (array) $post_links as $url ) {
-		if ( $url != '' && !$wpdb->get_var( $wpdb->prepare( "SELECT post_id FROM $wpdb->postmeta WHERE post_id = %d AND meta_key = 'enclosure' AND meta_value LIKE (%s)", $post_ID, like_escape( $url ) . '%' ) ) ) {
+		if ( $url != '' && !$wpdb->get_var( $wpdb->prepare( "SELECT post_id FROM $wpdb->postmeta WHERE post_id = %d AND meta_key = 'enclosure' AND meta_value LIKE %s", $post_ID, $wpdb->esc_like( $url ) . '%' ) ) ) {
 
 			if ( $headers = wp_get_http_headers( $url) ) {
 				$len = isset( $headers['content-length'] ) ? (int) $headers['content-length'] : 0;
@@ -2713,7 +2713,10 @@ function smilies_init() {
 	 */
 	krsort($wpsmiliestrans);
 
-	$wp_smiliessearch = '/((?:\s|^)';
+	$spaces = wp_spaces_regexp();
+
+	// Begin first "subpattern"
+	$wp_smiliessearch = '/(?<=' . $spaces . '|^)';
 
 	$subchar = '';
 	foreach ( (array) $wpsmiliestrans as $smiley => $img ) {
@@ -2723,7 +2726,8 @@ function smilies_init() {
 		// new subpattern?
 		if ($firstchar != $subchar) {
 			if ($subchar != '') {
-				$wp_smiliessearch .= ')(?=\s|$))|((?:\s|^)'; ;
+				$wp_smiliessearch .= ')(?=' . $spaces . '|$)';  // End previous "subpattern"
+				$wp_smiliessearch .= '|(?<=' . $spaces . '|^)'; // Begin another "subpattern"
 			}
 			$subchar = $firstchar;
 			$wp_smiliessearch .= preg_quote($firstchar, '/') . '(?:';
@@ -2733,7 +2737,7 @@ function smilies_init() {
 		$wp_smiliessearch .= preg_quote($rest, '/');
 	}
 
-	$wp_smiliessearch .= ')(?=\s|$))/m';
+	$wp_smiliessearch .= ')(?=' . $spaces . '|$)/m';
 
 }
 
@@ -2999,41 +3003,6 @@ function dead_db() {
  */
 function absint( $maybeint ) {
 	return abs( intval( $maybeint ) );
-}
-
-/**
- * Determines if the blog can be accessed over SSL.
- *
- * Determines if blog can be accessed over SSL by using cURL to access the site
- * using the https in the siteurl. Requires cURL extension to work correctly.
- *
- * @since 2.5.0
- *
- * @param string $url
- * @return bool Whether SSL access is available
- */
-function url_is_accessable_via_ssl($url)
-{
-	if ( in_array( 'curl', get_loaded_extensions() ) ) {
-		$ssl = set_url_scheme( $url, 'https' );
-
-		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $ssl);
-		curl_setopt($ch, CURLOPT_FAILONERROR, true);
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
-
-		curl_exec($ch);
-
-		$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		curl_close ($ch);
-
-		if ($status == 200 || $status == 401) {
-			return true;
-		}
-	}
-	return false;
 }
 
 /**

@@ -59,7 +59,7 @@ var wpLink;
 
 		open: function( editorId ) {
 			var ed;
-			
+
 			wpLink.range = null;
 
 			if ( editorId ) {
@@ -268,9 +268,22 @@ var wpLink;
 		},
 
 		setDefaultValues: function() {
-			// Set URL and description to defaults.
-			// Leave the new tab setting as-is.
-			inputs.url.val( 'http://' );
+			var selection = editor && editor.selection.getContent(),
+				emailRegexp = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,4}$/i,
+				urlRegexp = /^(https?|ftp):\/\/[A-Z0-9.-]+\.[A-Z]{2,4}$/i;
+
+			if ( selection && emailRegexp.test( selection ) ) {
+				// Selection is email address
+				inputs.url.val( 'mailto:' + selection );
+			} else if ( selection && urlRegexp.test( selection ) ) {
+				// Selection is URL
+				inputs.url.val( selection );
+			} else {
+				// Set URL to default.
+				inputs.url.val( 'http://' );
+			}
+
+			// Set description to default.
 			inputs.title.val( '' );
 
 			// Update save prompt.

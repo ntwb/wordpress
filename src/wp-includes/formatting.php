@@ -203,12 +203,18 @@ function wptexturize($text, $reset = false) {
 		. '|'
 		.	'\['		// Find start of shortcode.
 		.	'\[?'		// Shortcodes may begin with [[
-		.	'[^\[\]<>]+'	// Shortcodes do not contain other shortcodes or HTML elements.
+		.	'(?:'
+		.		'[^\[\]<>]'	// Shortcodes do not contain other shortcodes.
+		.	'|'
+		.		'<.+?>' // HTML elements permitted. Prevents matching ] before >.
+		.	')+'
 		.	'\]'		// Find end of shortcode.
 		.	'\]?'		// Shortcodes may end with ]]
 		. ')/s';
 
 	$textarr = preg_split( $regex, $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
+
+	$do_times_check = ( 1 === preg_match( '/(?<=\d)x-?\d/', $text ) );
 
 	foreach ( $textarr as &$curl ) {
 		// Only call _wptexturize_pushpop_element if $curl is a delimeter.
@@ -220,12 +226,12 @@ function wptexturize($text, $reset = false) {
 				_wptexturize_pushpop_element( $curl, $no_texturize_tags_stack, $no_texturize_tags, '<', '>' );
 			}
 
-		} elseif ( '[' === $first && 1 === preg_match( '/^\[[^\[\]<>]+\]$/', $curl ) ) {
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[(?:[^\[\]<>]|<.+?>)+\]$/', $curl ) ) {
 			// This is a shortcode delimeter.
 
 			_wptexturize_pushpop_element( $curl, $no_texturize_shortcodes_stack, $no_texturize_shortcodes, '[', ']' );
 
-		} elseif ( '[' === $first && 1 === preg_match( '/^\[\[?[^\[\]<>]+\]\]?$/', $curl ) ) {
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[\[?(?:[^\[\]<>]|<.+?>)+\]\]?$/', $curl ) ) {
 			// This is an escaped shortcode delimeter.
 
 			// Do not texturize.
@@ -238,7 +244,7 @@ function wptexturize($text, $reset = false) {
 			$curl = preg_replace($dynamic_characters, $dynamic_replacements, $curl);
 
 			// 9x9 (times), but never 0x9999
-			if ( 1 === preg_match( '/(?<=\d)x-?\d/', $text ) ) {
+			if ( $do_times_check ) {
 				// Searching for a digit is 10 times more expensive than for the x, so we avoid doing this one!
 				$curl = preg_replace( '/\b(\d(?(?<=0)[\d\.,]+|[\d\.,]*))x(-?\d[\d\.,]*)\b/', '$1&#215;$2', $curl );
 			}

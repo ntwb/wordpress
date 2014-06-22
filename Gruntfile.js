@@ -5,7 +5,9 @@ module.exports = function(grunt) {
 		BUILD_DIR = 'build/';
 
 	// Load tasks.
-	require('matchdep').filterDev('grunt-*').forEach( grunt.loadNpmTasks );
+	require('matchdep').filterDev(['grunt-*', '!grunt-legacy-util']).forEach( grunt.loadNpmTasks );
+	// Load legacy utils
+	grunt.util = require('grunt-legacy-util');
 
 	// Project configuration.
 	grunt.initConfig({
@@ -266,6 +268,36 @@ module.exports = function(grunt) {
 
 					// Match only the filename passed from cli
 					if ( filepath === file || ( -1 !== index && index === filepath.length - ( file.length + 1 ) ) ) {
+						return true;
+					}
+
+					return false;
+				}
+			},
+			plugins: {
+				expand: true,
+				cwd: SOURCE_DIR + 'wp-content/plugins',
+				src: [
+					'**/*.js',
+					'!**/*.min.js'
+				],
+				// Limit JSHint's run to a single specified plugin folder:
+				//
+				//    grunt jshint:plugins --folder=foldername
+				//
+				filter: function( folderpath ) {
+					var index, folder = grunt.option( 'folder' );
+
+					// Don't filter when no target folder is specified
+					if ( ! folder ) {
+						return true;
+					}
+
+					folderpath = folderpath.replace( /\\/g, '/' );
+					index = folderpath.lastIndexOf( '/' + folder );
+
+					// Match only the folder name passed from cli
+					if ( -1 !== index ) {
 						return true;
 					}
 

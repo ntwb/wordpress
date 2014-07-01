@@ -1160,7 +1160,7 @@ if ( !function_exists('wp_sanitize_redirect') ) :
  * @return string redirect-sanitized URL
  **/
 function wp_sanitize_redirect($location) {
-	$location = preg_replace('|[^a-z0-9-~+_.?#=&;,/:%!]|i', '', $location);
+	$location = preg_replace('|[^a-z0-9-~+_.?#=&;,/:%!*]|i', '', $location);
 	$location = wp_kses_no_null($location);
 
 	// remove %0d and %0a from location
@@ -1860,7 +1860,7 @@ function wp_hash_password($password) {
 	global $wp_hasher;
 
 	if ( empty($wp_hasher) ) {
-		require_once( ABSPATH . 'wp-includes/class-phpass.php');
+		require_once( ABSPATH . WPINC . '/class-phpass.php');
 		// By default, use the portable hash from phpass
 		$wp_hasher = new PasswordHash(8, true);
 	}
@@ -1918,7 +1918,7 @@ function wp_check_password($password, $hash, $user_id = '') {
 	// If the stored hash is longer than an MD5, presume the
 	// new style phpass portable hash.
 	if ( empty($wp_hasher) ) {
-		require_once( ABSPATH . 'wp-includes/class-phpass.php');
+		require_once( ABSPATH . WPINC . '/class-phpass.php');
 		// By default, use the portable hash from phpass
 		$wp_hasher = new PasswordHash(8, true);
 	}

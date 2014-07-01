@@ -23,10 +23,11 @@ function the_ID() {
  * @since 2.1.0
  * @uses $post
  *
- * @return int
+ * @return int|bool The ID of the current item in the WordPress Loop. False if $post is not set.
  */
 function get_the_ID() {
-	return get_post()->ID;
+	$post = get_post();
+	return ! empty( $post ) ? $post->ID : false;
 }
 
 /**
@@ -340,6 +341,9 @@ function get_the_excerpt( $deprecated = '' ) {
 		_deprecated_argument( __FUNCTION__, '2.3' );
 
 	$post = get_post();
+	if ( empty( $post ) ) {
+		return '';
+	}
 
 	if ( post_password_required() ) {
 		return __( 'There is no excerpt because this is a protected post.' );
@@ -690,7 +694,7 @@ function post_password_required( $post = null ) {
 	if ( ! isset( $_COOKIE['wp-postpass_' . COOKIEHASH] ) )
 		return true;
 
-	require_once ABSPATH . 'wp-includes/class-phpass.php';
+	require_once ABSPATH . WPINC . '/class-phpass.php';
 	$hasher = new PasswordHash( 8, true );
 
 	$hash = wp_unslash( $_COOKIE[ 'wp-postpass_' . COOKIEHASH ] );
@@ -710,33 +714,27 @@ function post_password_required( $post = null ) {
  * Displays page links for paginated posts (i.e. includes the <!--nextpage-->.
  * Quicktag one or more times). This tag must be within The Loop.
  *
- * The defaults for overwriting are:
- * 'before' - Default is '<p> Pages:' (string). The html or text to prepend to
- *      each bookmarks.
- * 'after' - Default is '</p>' (string). The html or text to append to each
- *      bookmarks.
- * 'link_before' - Default is '' (string). The html or text to prepend to each
- *      Pages link inside the <a> tag. Also prepended to the current item, which
- *      is not linked.
- * 'link_after' - Default is '' (string). The html or text to append to each
- *      Pages link inside the <a> tag. Also appended to the current item, which
- *      is not linked.
- * 'next_or_number' - Default is 'number' (string). Indicates whether page
- *      numbers should be used. Valid values are number and next.
- * 'separator' - Default is ' ' (string). Text used between pagination links.
- * 'nextpagelink' - Default is 'Next Page' (string). Text for link to next page.
- *      of the bookmark.
- * 'previouspagelink' - Default is 'Previous Page' (string). Text for link to
- *      previous page, if available.
- * 'pagelink' - Default is '%' (String).Format string for page numbers. The % in
- *      the parameter string will be replaced with the page number, so Page %
- *      generates "Page 1", "Page 2", etc. Defaults to %, just the page number.
- * 'echo' - Default is 1 (integer). When not 0, this triggers the HTML to be
- *      echoed and then returned.
- *
  * @since 1.2.0
  *
- * @param string|array $args Optional. Overwrite the defaults.
+ * @param string|array $args {
+ *     Optional. Array or string of default arguments.
+ *
+ *     @type string       $before           HTML or text to prepend to each link. Default is '<p> Pages:'.
+ *     @type string       $after            HTML or text to append to each link. Default is '</p>'.
+ *     @type string       $link_before      HTML or text to prepend to each link, inside the <a> tag.
+ *                                          Also prepended to the current item, which is not linked. Default empty.
+ *     @type string       $link_after       HTML or text to append to each Pages link inside the <a> tag.
+ *                                          Also appended to the current item, which is not linked. Default empty.
+ *     @type string       $next_or_number   Indicates whether page numbers should be used. Valid values are number
+ *                                          and next. Default is 'number'.
+ *     @type string       $separator        Text between pagination links. Default is ' '.
+ *     @type string       $nextpagelink     Link text for the next page link, if available. Default is 'Next Page'.
+ *     @type string       $previouspagelink Link text for the previous page link, if available. Default is 'Previous Page'.
+ *     @type string       $pagelink         Format string for page numbers. The % in the parameter string will be
+ *                                          replaced with the page number, so 'Page %' generates "Page 1", "Page 2", etc.
+ *                                          Defaults to '%', just the page number.
+ *     @type int|bool     $echo             Whether to echo or not. Accepts 1|true or 0|false. Default 1|true.
+ * }
  * @return string Formatted output in HTML.
  */
 function wp_link_pages( $args = '' ) {

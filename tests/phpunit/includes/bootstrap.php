@@ -23,6 +23,7 @@ if ( !is_readable( $config_file_path ) ) {
 }
 require_once $config_file_path;
 
+define( 'WP_TESTS_TABLE_PREFIX', $table_prefix );
 define( 'DIR_TESTDATA', dirname( __FILE__ ) . '/../data' );
 
 if ( ! defined( 'WP_TESTS_FORCE_KNOWN_BUGS' ) )
@@ -55,10 +56,6 @@ if ( $multisite ) {
 	echo "Running as multisite..." . PHP_EOL;
 	define( 'MULTISITE', true );
 	define( 'SUBDOMAIN_INSTALL', false );
-	define( 'DOMAIN_CURRENT_SITE', WP_TESTS_DOMAIN );
-	define( 'PATH_CURRENT_SITE', '/' );
-	define( 'SITE_ID_CURRENT_SITE', 1 );
-	define( 'BLOG_ID_CURRENT_SITE', 1 );
 	$GLOBALS['base'] = '/';
 } else {
 	echo "Running as single site... To run multisite, use -c tests/phpunit/multisite.xml" . PHP_EOL;

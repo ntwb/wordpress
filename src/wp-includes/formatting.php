@@ -156,7 +156,7 @@ function wptexturize($text, $reset = false) {
 
 		// Single quotes followed by spaces or ending punctuation.
 		if ( "'" !== $closing_single_quote ) {
-			$dynamic[ '/\'(?=\Z|[.,)}>\-\]]|' . $spaces . ')/' ] = $closing_single_quote; 
+			$dynamic[ '/\'(?=\Z|[.,)}>\-\]]|' . $spaces . ')/' ] = $closing_single_quote;
 		}
 
 		// Dashes and spaces
@@ -169,7 +169,6 @@ function wptexturize($text, $reset = false) {
 		$dynamic_replacements = array_values( $dynamic );
 	}
 
-	// Transform into regexp sub-expression used in _wptexturize_pushpop_element
 	// Must do this every time in case plugins use these filters in a context sensitive manner
 	/**
 	 * Filter the list of HTML elements not to texturize.
@@ -178,7 +177,7 @@ function wptexturize($text, $reset = false) {
 	 *
 	 * @param array $default_no_texturize_tags An array of HTML element names.
 	 */
-	$no_texturize_tags = '(' . implode( '|', apply_filters( 'no_texturize_tags', $default_no_texturize_tags ) ) . ')';
+	$no_texturize_tags = apply_filters( 'no_texturize_tags', $default_no_texturize_tags );
 	/**
 	 * Filter the list of shortcodes not to texturize.
 	 *
@@ -186,7 +185,7 @@ function wptexturize($text, $reset = false) {
 	 *
 	 * @param array $default_no_texturize_shortcodes An array of shortcode names.
 	 */
-	$no_texturize_shortcodes = '(' . implode( '|', apply_filters( 'no_texturize_shortcodes', $default_no_texturize_shortcodes ) ) . ')';
+	$no_texturize_shortcodes = apply_filters( 'no_texturize_shortcodes', $default_no_texturize_shortcodes );
 
 	$no_texturize_tags_stack = array();
 	$no_texturize_shortcodes_stack = array();
@@ -198,7 +197,7 @@ function wptexturize($text, $reset = false) {
 		.	'(?(?=!--)'	// Is this a comment?
 		.		'.+?--\s*>'	// Find end of comment
 		.	'|'
-		.		'.+?>'		// Find end of element
+		.		'[^>]+>'	// Find end of element
 		.	')'
 		. '|'
 		.	'\['		// Find start of shortcode.
@@ -206,7 +205,7 @@ function wptexturize($text, $reset = false) {
 		.	'(?:'
 		.		'[^\[\]<>]'	// Shortcodes do not contain other shortcodes.
 		.	'|'
-		.		'<.+?>' // HTML elements permitted. Prevents matching ] before >.
+		.		'<[^>]+>' 	// HTML elements permitted. Prevents matching ] before >.
 		.	')+'
 		.	'\]'		// Find end of shortcode.
 		.	'\]?'		// Shortcodes may end with ]]
@@ -221,25 +220,25 @@ function wptexturize($text, $reset = false) {
 			// This is an HTML delimeter.
 
 			if ( '<!--' !== substr( $curl, 0, 4 ) ) {
-				_wptexturize_pushpop_element( $curl, $no_texturize_tags_stack, $no_texturize_tags, '<', '>' );
+				_wptexturize_pushpop_element( $curl, $no_texturize_tags_stack, $no_texturize_tags );
 			}
 
-		} elseif ( '[' === $first && 1 === preg_match( '/^\[(?:[^\[\]<>]|<.+?>)+\]$/', $curl ) ) {
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[(?:[^\[\]<>]|<[^>]+>)+\]$/', $curl ) ) {
 			// This is a shortcode delimeter.
 
-			_wptexturize_pushpop_element( $curl, $no_texturize_shortcodes_stack, $no_texturize_shortcodes, '[', ']' );
+			_wptexturize_pushpop_element( $curl, $no_texturize_shortcodes_stack, $no_texturize_shortcodes );
 
-		} elseif ( '[' === $first && 1 === preg_match( '/^\[\[?(?:[^\[\]<>]|<.+?>)+\]\]?$/', $curl ) ) {
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[\[?(?:[^\[\]<>]|<[^>]+>)+\]\]?$/', $curl ) ) {
 			// This is an escaped shortcode delimeter.
 
 			// Do not texturize.
 			// Do not push to the shortcodes stack.
 
-		} elseif ( empty($no_texturize_shortcodes_stack) && empty($no_texturize_tags_stack) ) {
+		} elseif ( empty( $no_texturize_shortcodes_stack ) && empty( $no_texturize_tags_stack ) ) {
 			// This is neither a delimeter, nor is this content inside of no_texturize pairs.  Do texturize.
 
-			$curl = str_replace($static_characters, $static_replacements, $curl);
-			$curl = preg_replace($dynamic_characters, $dynamic_replacements, $curl);
+			$curl = str_replace( $static_characters, $static_replacements, $curl );
+			$curl = preg_replace( $dynamic_characters, $dynamic_replacements, $curl );
 
 			// 9x9 (times), but never 0x9999
 			if ( 1 === preg_match( '/(?<=\d)x-?\d/', $curl ) ) {
@@ -247,31 +246,54 @@ function wptexturize($text, $reset = false) {
 				$curl = preg_replace( '/\b(\d(?(?<=0)[\d\.,]+|[\d\.,]*))x(-?\d[\d\.,]*)\b/', '$1&#215;$2', $curl );
 			}
 		}
-
-		// Replace each & with &#038; unless it already looks like an entity.
-		$curl = preg_replace('/&([^#])(?![a-zA-Z1-4]{1,8};)/', '&#038;$1', $curl);
 	}
-	return implode( '', $textarr );
+	$text = implode( '', $textarr );
+
+	// Replace each & with &#038; unless it already looks like an entity.
+	$text = preg_replace('/&(?!#(?:\d+|x[a-f0-9]+);|[a-z1-4]{1,8};)/i', '&#038;', $text);
+
+	return $text;
 }
 
 /**
  * Search for disabled element tags. Push element to stack on tag open and pop
- * on tag close. Assumes first character of $text is tag opening.
+ * on tag close.
+ *
+ * Assumes first char of $text is tag opening and last char is tag closing.
+ * Assumes second char of $text is optionally '/' to indicate closing as in </html>.
  *
  * @since 2.9.0
  * @access private
  *
- * @param string $text Text to check. First character is assumed to be $opening
- * @param array $stack Array used as stack of opened tag elements
- * @param string $disabled_elements Tags to match against formatted as regexp sub-expression
- * @param string $opening Tag opening character, assumed to be 1 character long
- * @param string $closing Tag closing character
+ * @param string $text Text to check. Must be a tag like <html> or [shortcode].
+ * @param array $stack List of open tag elements.
+ * @param array $disabled_elements The tag names to match against. Spaces are not allowed in tag names.
  */
-function _wptexturize_pushpop_element($text, &$stack, $disabled_elements, $opening = '<', $closing = '>') {
-	// Check if it is a closing tag -- otherwise assume opening tag
-	if (strncmp($opening . '/', $text, 2)) {
-		// Opening? Check $text+1 against disabled elements
-		if (preg_match('/^' . $disabled_elements . '\b/', substr($text, 1), $matches)) {
+function _wptexturize_pushpop_element($text, &$stack, $disabled_elements) {
+	// Is it an opening tag or closing tag?
+	if ( '/' !== $text[1] ) {
+		$opening_tag = true;
+		$name_offset = 1;
+	} elseif ( 0 == count( $stack ) ) {
+		// Stack is empty. Just stop.
+		return;
+	} else {
+		$opening_tag = false;
+		$name_offset = 2;
+	}
+
+	// Parse out the tag name.
+	$space = strpos( $text, ' ' );
+	if ( FALSE === $space ) {
+		$space = -1;
+	} else {
+		$space -= $name_offset;
+	}
+	$tag = substr( $text, $name_offset, $space );
+
+	// Handle disabled tags.
+	if ( in_array( $tag, $disabled_elements ) ) {
+		if ( $opening_tag ) {
 			/*
 			 * This disables texturize until we find a closing tag of our type
 			 * (e.g. <pre>) even if there was invalid nesting before that
@@ -280,20 +302,9 @@ function _wptexturize_pushpop_element($text, &$stack, $disabled_elements, $openi
 			 *          "baba" won't be texturize
 			 */
 
-			array_push($stack, $matches[1]);
-		}
-	} elseif ( 0 == count( $stack ) ) {
-		// Stack is empty. Just stop.
-	} else {
-		// Closing? Check $text+2 against disabled elements
-		$c = preg_quote($closing, '/');
-		if (preg_match('/^' . $disabled_elements . $c . '/', substr($text, 2), $matches)) {
-			$last = array_pop($stack);
-
-			// Make sure it matches the opening tag
-			if ( $last != $matches[1] ) {
-				array_push( $stack, $last );
-			}
+			array_push( $stack, $tag );
+		} elseif ( end( $stack ) == $tag ) {
+			array_pop( $stack );
 		}
 	}
 }
@@ -347,7 +358,7 @@ function wpautop($pee, $br = true) {
 
 	$pee = preg_replace('|<br />\s*<br />|', "\n\n", $pee);
 	// Space things out a little
-	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|noscript|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
+	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
 	$pee = preg_replace('!(<' . $allblocks . '[^>]*>)!', "\n$1", $pee);
 	$pee = preg_replace('!(</' . $allblocks . '>)!', "$1\n\n", $pee);
 	$pee = str_replace(array("\r\n", "\r"), "\n", $pee); // cross-platform newlines
@@ -481,7 +492,9 @@ function shortcode_unautop( $pee ) {
  * @return bool True if $str fits a UTF-8 model, false otherwise.
  */
 function seems_utf8($str) {
+	mbstring_binary_safe_encoding();
 	$length = strlen($str);
+	reset_mbstring_encoding();
 	for ($i=0; $i < $length; $i++) {
 		$c = ord($str[$i]);
 		if ($c < 0x80) $n = 0; # 0bbbbbbb
@@ -705,7 +718,10 @@ function utf8_uri_encode( $utf8_string, $length = 0 ) {
 	$num_octets = 1;
 	$unicode_length = 0;
 
+	mbstring_binary_safe_encoding();
 	$string_length = strlen( $utf8_string );
+	reset_mbstring_encoding();
+
 	for ($i = 0; $i < $string_length; $i++ ) {
 
 		$value = ord( $utf8_string[ $i ] );

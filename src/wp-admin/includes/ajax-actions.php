@@ -11,7 +11,7 @@
 //
 
 /**
- * Ajax handler for the (experimental) Heartbeat API in
+ * Ajax handler for the Heartbeat API in
  * the no-privilege context.
  *
  * Runs when the user is not logged in.
@@ -124,8 +124,25 @@ function wp_ajax_ajax_tag_search() {
 		$s = $s[count( $s ) - 1];
 	}
 	$s = trim( $s );
-	if ( strlen( $s ) < 2 )
-		wp_die(); // require 2 chars for matching
+
+	/**
+	 * Filter the minimum number of characters required to fire a tag search via AJAX.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @param int $characters The minimum number of characters required. Default 2.
+	 * @param object $tax The taxonomy object.
+	 * @param string $s The search term.
+	 */
+	$term_search_min_chars = (int) apply_filters( 'term_search_min_chars', 2, $tax, $s );
+
+	/*
+	 * Require $term_search_min_chars chars for matching (default: 2)
+	 * ensure it's a non-negative, non-zero integer.
+	 */
+	if ( ( $term_search_min_chars == 0 ) || ( strlen( $s ) < $term_search_min_chars ) ){
+		wp_die();
+	}
 
 	$results = get_terms( $taxonomy, array( 'name__like' => $s, 'fields' => 'names', 'hide_empty' => false ) );
 
@@ -2353,7 +2370,7 @@ function wp_ajax_send_link_to_editor() {
 }
 
 /**
- * Ajax handler for the (experimental) Heartbeat API.
+ * Ajax handler for the Heartbeat API.
  *
  * Runs when the user is logged in.
  *
@@ -2530,17 +2547,50 @@ function wp_ajax_parse_embed() {
 		wp_send_json_error();
 	}
 
-	if ( empty( $_POST['shortcode'] ) || ! current_user_can( 'read_post', $post->ID ) ) {
+	if ( empty( $_POST['shortcode'] ) || ! current_user_can( 'edit_post', $post->ID ) ) {
 		wp_send_json_error();
 	}
 
+	$shortcode = $_POST['shortcode'];
+	$url = str_replace( '[embed]', '', str_replace( '[/embed]', '', $shortcode ) );
+	$parsed = false;
 	setup_postdata( $post );
 
-	// If the URL cannot be embedded, return an eror message with wp_send_json_error()
-	add_filter( 'embed_maybe_make_link', '_wpview_embed_error', 20, 2 );
+	$wp_embed->return_false_on_fail = true;
 
-	$parsed = $wp_embed->run_shortcode( $_POST['shortcode'] );
+	if ( is_ssl() && preg_match( '%^\\[embed\\]http://%i', $shortcode ) ) {
+		// Admin is ssl and the user pasted non-ssl URL.
+		// Check if the provider supports ssl embeds and use that for the preview.
+		$ssl_shortcode = preg_replace( '%^\\[embed\\]http://%i', '[embed]https://', $shortcode );
+		$parsed = $wp_embed->run_shortcode( $ssl_shortcode );
+
+		if ( ! $parsed ) {
+			$no_ssl_support = true;
+		}
+	}
+
+	if ( ! $parsed ) {
+		$parsed = $wp_embed->run_shortcode( $shortcode );
+	}
+
+	if ( ! $parsed ) {
+		wp_send_json_error( array(
+			'type' => 'not-embeddable',
+			'message' => sprintf( __( '%s failed to embed.' ), '<code>' . esc_url( $url ) . '</code>' ),
+		) );
+	}
+
+	// TODO: needed?
 	$parsed = do_shortcode( $parsed );
+
+	if ( ! empty( $no_ssl_support ) || ( is_ssl() && ( preg_match( '%<(iframe|script|embed) [^>]*src="http://%', $parsed ) ||
+		preg_match( '%<link [^>]*href="http://%', $parsed ) ) ) ) {
+		// Admin is ssl and the embed is not. Iframes, scripts, and other "active content" will be blocked.
+		wp_send_json_error( array(
+			'type' => 'not-ssl',
+			'message' => sprintf( __( 'Preview not available. %s cannot be embedded securely.' ), '<code>' . esc_url( $url ) . '</code>' ),
+		) );
+	}
 
 	wp_send_json_success( $parsed );
 }

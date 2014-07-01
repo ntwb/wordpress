@@ -830,8 +830,16 @@ class Tests_Formatting_WPTexturize extends WP_UnitTestCase {
 				"word &#038; word",
 			),
 			array(
+				"word &#xabc; word",
+				"word &#xabc; word",
+			),
+			array(
+				"word &#X394; word",
+				"word &#X394; word",
+			),
+			array(
 				"word &# word",
-				"word &# word", // invalid output?
+				"word &#038;# word",
 			),
 			array(
 				"word &44; word",
@@ -839,11 +847,19 @@ class Tests_Formatting_WPTexturize extends WP_UnitTestCase {
 			),
 			array(
 				"word &&amp; word",
-				"word &&amp; word",
+				"word &#038;&amp; word",
 			),
 			array(
 				"word &!amp; word",
-				"word &!amp; word",
+				"word &#038;!amp; word",
+			),
+			array(
+				"word &#",
+				"word &#038;#",
+			),
+			array(
+				"word &",
+				"word &#038;",
 			),
 		);
 	}
@@ -1285,6 +1301,26 @@ class Tests_Formatting_WPTexturize extends WP_UnitTestCase {
 				'<ul><li>Hello.</li><!--<li>Goodbye.</li>--></ul>',
 				'<ul><li>Hello.</li><!--<li>Goodbye.</li>--></ul>',
 			),
+			array(
+				'word <img src="http://example.com/wp-content/uploads/2014/06/image-300x216.gif" /> word', // Ensure we are not corrupting image URLs.
+				'word <img src="http://example.com/wp-content/uploads/2014/06/image-300x216.gif" /> word',
+			),
+			array(
+				'[ do texturize "[quote]" here ]',
+				'[ do texturize &#8220;[quote]&#8221; here ]',
+			),
+			array(
+				'[ regex catches this <a href="[quote]">here</a> ]',
+				'[ regex catches this <a href="[quote]">here</a> ]',
+			),
+			array(
+				'[ but also catches the <b>styled "[quote]" here</b> ]',
+				'[ but also catches the <b>styled &#8220;[quote]&#8221; here</b> ]',
+			),
+			array(
+				'[Let\'s get crazy<input>[plugin code="<a href=\'?a[]=100\'>hello</a>"]</input>world]',
+				'[Let&#8217;s get crazy<input>[plugin code="<a href=\'?a[]=100\'>hello</a>"]</input>world]',
+			),
 		);
 	}
 
@@ -1292,7 +1328,7 @@ class Tests_Formatting_WPTexturize extends WP_UnitTestCase {
 	 * Year abbreviations consist of exactly two digits.
 	 *
 	 * @ticket 26850
-	 * @dataProvider data_quotes_and_dashes
+	 * @dataProvider data_year_abbr
 	 */
 	function test_year_abbr( $input, $output ) {
 		return $this->assertEquals( $output, wptexturize( $input ) );
@@ -1381,7 +1417,7 @@ class Tests_Formatting_WPTexturize extends WP_UnitTestCase {
 	 * Also make sure apostrophes and closing quotes aren't being confused by default.
 	 *
 	 * @ticket 27426
-	 * @dataProvider data_tag_avoidance
+	 * @dataProvider data_translate
 	 */
 	function test_translate( $input, $output ) {
 		add_filter( 'gettext_with_context', array( $this, 'filter_translate' ), 10, 4 );
@@ -1598,7 +1634,7 @@ class Tests_Formatting_WPTexturize extends WP_UnitTestCase {
 	 * Extra sanity checks for _wptexturize_pushpop_element()
 	 *
 	 * @ticket 28483
-	 * @dataProvider data_quotes_and_dashes
+	 * @dataProvider data_element_stack
 	 */
 	function test_element_stack( $input, $output ) {
 		return $this->assertEquals( $output, wptexturize( $input ) );

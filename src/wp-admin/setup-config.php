@@ -99,11 +99,11 @@ function setup_config_display_header() {
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <title><?php _e( 'WordPress &rsaquo; Setup Configuration File' ); ?></title>
 <link rel="stylesheet" href="css/install.css?ver=<?php echo preg_replace( '/[^0-9a-z\.-]/i', '', $wp_version ); ?>" type="text/css" />
-<link rel="stylesheet" href="../wp-includes/css/buttons.css?ver=<?php echo preg_replace( '/[^0-9a-z\.-]/i', '', $wp_version ); ?>" type="text/css" />
+<link rel="stylesheet" href="../<?php echo WPINC ?>/css/buttons.css?ver=<?php echo preg_replace( '/[^0-9a-z\.-]/i', '', $wp_version ); ?>" type="text/css" />
 
 </head>
 <body class="wp-core-ui<?php if ( is_rtl() ) echo ' rtl'; ?>">
-<h1 id="logo"><a href="<?php esc_attr_e( 'https://wordpress.org/' ); ?>"><?php _e( 'WordPress' ); ?></a></h1>
+<h1 id="logo"><a href="<?php esc_attr_e( 'https://wordpress.org/' ); ?>" tabindex="-1"><?php _e( 'WordPress' ); ?></a></h1>
 <?php
 } // end function setup_config_display_header();
 

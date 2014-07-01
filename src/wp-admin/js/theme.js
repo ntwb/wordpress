@@ -190,6 +190,12 @@ themes.Collection = Backbone.Collection.extend({
 			return match.test( haystack );
 		});
 
+		if ( results.length === 0 ) {
+			this.trigger( 'query:empty' );
+		} else {
+			$( 'body' ).removeClass( 'no-results' );
+		}
+
 		this.reset( results );
 	},
 
@@ -362,7 +368,6 @@ themes.view.Theme = wp.Backbone.View.extend({
 
 	events: {
 		'click': themes.isInstall ? 'preview': 'expand',
-		'click .preview': 'preview',
 		'keydown': themes.isInstall ? 'preview': 'expand',
 		'touchend': themes.isInstall ? 'preview': 'expand',
 		'keyup': 'addFocus',
@@ -487,7 +492,7 @@ themes.view.Theme = wp.Backbone.View.extend({
 			preview.$el.removeClass( 'no-navigation' );
 		}
 
-		// Apend preview
+		// Append preview
 		$( 'div.wrap' ).append( preview.el );
 
 		// Listen to our preview object
@@ -511,15 +516,11 @@ themes.view.Theme = wp.Backbone.View.extend({
 				return self.current = current;
 			}
 
-			// Construct a new Preview view.
-			preview = new themes.view.Preview({
-				model: self.current
-			});
+			preview.model = self.current;
 
 			// Render and append.
 			preview.render();
 			this.setNavButtonsState();
-			$( 'div.wrap' ).append( preview.el );
 			$( '.next-theme' ).focus();
 		})
 		.listenTo( preview, 'theme:previous', function() {
@@ -545,15 +546,11 @@ themes.view.Theme = wp.Backbone.View.extend({
 				return;
 			}
 
-			// Construct a new Preview view.
-			preview = new themes.view.Preview({
-				model: self.current
-			});
+			preview.model = self.current;
 
 			// Render and append.
 			preview.render();
 			this.setNavButtonsState();
-			$( 'div.wrap' ).append( preview.el );
 			$( '.previous-theme' ).focus();
 		});
 
@@ -786,6 +783,7 @@ themes.view.Preview = themes.view.Details.extend({
 
 		themes.router.navigate( themes.router.baseUrl( '' ) );
 		this.trigger( 'preview:close' );
+		this.undelegateEvents();
 		this.unbind();
 		return false;
 	},

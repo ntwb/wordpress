@@ -1161,7 +1161,30 @@ add_action( 'wp_playlist_scripts', 'wp_playlist_scripts' );
  *
  * @since 3.9.0
  *
- * @param array $attr Playlist shortcode attributes.
+ * @param array $attr {
+ *     Array of default playlist attributes.
+ *
+ *     @type string  $type         Type of playlist to display. Accepts 'audio' or 'video'. Default 'audio'.
+ *     @type string  $order        Designates ascending or descending order of items in the playlist.
+ *                                 Accepts 'ASC', 'DESC', or 'RAND'. Default 'ASC'.
+ *     @type string  $orderby      Any column, or columns, to sort the playlist. If $ids are
+ *                                 passed, this defaults to the order of the $ids array ('post__in').
+ *                                 Otherwise default is 'menu_order ID'.
+ *     @type int     $id           If an explicit $ids array is not present, this parameter
+ *                                 will determine which attachments are used for the playlist.
+ *                                 Default is the current post ID.
+ *     @type array   $ids          Create a playlist out of these explicit attachment IDs. If empty,
+ *                                 a playlist will be created from all $type attachments of $id.
+ *                                 Default empty.
+ *     @type array   $exclude      List of specific attachment IDs to exclude from the playlist. Default empty.
+ *     @type string  $style        Playlist style to use. Accepts 'light' or 'dark'. Default 'light'.
+ *     @type bool    $tracklist    Whether to show or hide the playlist. Default true.
+ *     @type bool    $tracknumbers Whether to show or hide the numbers next to entries in the playlist. Default true.
+ *     @type bool    $images       Show or hide the video or audio thumbnail (Featured Image/post
+ *                                 thumbnail). Default true.
+ *     @type bool    $artists      Whether to show or hide artist name in the playlist. Default true.
+ * }
+ *
  * @return string Playlist output. Empty string if the passed type is unsupported.
  */
 function wp_playlist_shortcode( $attr ) {
@@ -2059,9 +2082,11 @@ function wp_embed_unregister_handler( $id, $priority = 10 ) {
  *
  * @since 2.9.0
  *
+ * @param string $url Optional. The URL that should be embedded. Default empty.
+ *
  * @return array Default embed parameters.
  */
-function wp_embed_defaults() {
+function wp_embed_defaults( $url = '' ) {
 	if ( ! empty( $GLOBALS['content_width'] ) )
 		$width = (int) $GLOBALS['content_width'];
 
@@ -2075,10 +2100,11 @@ function wp_embed_defaults() {
 	 *
 	 * @since 2.9.0
 	 *
-	 * @param int $width  Width of the embed in pixels.
-	 * @param int $height Height of the embed in pixels.
+	 * @param int    $width  Width of the embed in pixels.
+	 * @param int    $height Height of the embed in pixels.
+	 * @param string $url    The URL that should be embedded.
 	 */
-	return apply_filters( 'embed_defaults', compact( 'width', 'height' ) );
+	return apply_filters( 'embed_defaults', compact( 'width', 'height' ), $url );
 }
 
 /**
@@ -2135,8 +2161,13 @@ function wp_oembed_get( $url, $args = '' ) {
  */
 function wp_oembed_add_provider( $format, $provider, $regex = false ) {
 	require_once( ABSPATH . WPINC . '/class-oembed.php' );
-	$oembed = _wp_oembed_get_object();
-	$oembed->providers[$format] = array( $provider, $regex );
+
+	if ( did_action( 'plugins_loaded' ) ) {
+		$oembed = _wp_oembed_get_object();
+		$oembed->providers[$format] = array( $provider, $regex );
+	} else {
+		WP_oEmbed::_add_provider_early( $format, $provider, $regex );
+	}
 }
 
 /**
@@ -2152,11 +2183,15 @@ function wp_oembed_add_provider( $format, $provider, $regex = false ) {
 function wp_oembed_remove_provider( $format ) {
 	require_once( ABSPATH . WPINC . '/class-oembed.php' );
 
-	$oembed = _wp_oembed_get_object();
+	if ( did_action( 'plugins_loaded' ) ) {
+		$oembed = _wp_oembed_get_object();
 
-	if ( isset( $oembed->providers[ $format ] ) ) {
-		unset( $oembed->providers[ $format ] );
-		return true;
+		if ( isset( $oembed->providers[ $format ] ) ) {
+			unset( $oembed->providers[ $format ] );
+			return true;
+		}
+	} else {
+		WP_oEmbed::_remove_provider_early( $format );
 	}
 
 	return false;
@@ -2491,11 +2526,6 @@ function wp_plupload_default_settings() {
 			'max_file_size'   => $max_upload_size . 'b',
 		),
 	);
-
-	// Multi-file uploading doesn't currently work in iOS Safari,
-	// single-file allows the built-in camera to be used as source for images
-	if ( wp_is_mobile() )
-		$defaults['multi_selection'] = false;
 
 	/**
 	 * Filter the Plupload default settings.

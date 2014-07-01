@@ -1243,8 +1243,10 @@ function register_post_type( $post_type, $args = array() ) {
 	$post_type = sanitize_key( $post_type );
 	$args->name = $post_type;
 
-	if ( strlen( $post_type ) > 20 )
+	if ( strlen( $post_type ) > 20 ) {
+		_doing_it_wrong( __FUNCTION__, __( 'Post types cannot exceed 20 characters in length' ), '4.0' );
 		return new WP_Error( 'post_type_too_long', __( 'Post types cannot exceed 20 characters in length' ) );
+	}
 
 	// If not set, default to the setting for public.
 	if ( null === $args->publicly_queryable )
@@ -5257,9 +5259,6 @@ function clean_post_cache( $post ) {
 	 * @param WP_Post $post    Post object.
 	 */
 	do_action( 'clean_post_cache', $post->ID, $post );
-
-	if ( is_post_type_hierarchical( $post->post_type ) )
-		wp_cache_delete( 'get_pages', 'posts' );
 
 	if ( 'page' == $post->post_type ) {
 		wp_cache_delete( 'all_page_ids', 'posts' );

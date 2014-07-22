@@ -18,9 +18,6 @@ if ( defined( 'SUNRISE' ) ) {
 	include_once( WP_CONTENT_DIR . '/sunrise.php' );
 }
 
-
-global $wpdb;
-
 /** Check for and define SUBDOMAIN_INSTALL and the deprecated VHOST constant. */
 ms_subdomain_constants();
 

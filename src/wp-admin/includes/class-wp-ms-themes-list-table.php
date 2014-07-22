@@ -33,7 +33,8 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 	}
 
 	protected function get_table_classes() {
-		return array( 'widefat', 'plugins' );	// todo: remove and add CSS for .themes
+		// todo: remove and add CSS for .themes
+		return array( 'widefat', 'plugins' );
 	}
 
 	public function ajax_user_can() {
@@ -174,7 +175,7 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 			_e( 'You do not appear to have any themes available at this time.' );
 	}
 
-	protected function get_columns() {
+	public function get_columns() {
 		global $status;
 
 		return array(
@@ -250,12 +251,12 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 		return $actions;
 	}
 
-	protected function display_rows() {
+	public function display_rows() {
 		foreach ( $this->items as $theme )
 			$this->single_row( $theme );
 	}
 
-	protected function single_row( $theme ) {
+	public function single_row( $theme ) {
 		global $status, $page, $s, $totals;
 
 		$context = $status;
@@ -268,7 +269,7 @@ class WP_MS_Themes_List_Table extends WP_List_Table {
 			$allowed = $theme->is_allowed( 'network' );
 		}
 
-		// preorder
+		// Pre-order.
 		$actions = array(
 			'enable' => '',
 			'disable' => '',

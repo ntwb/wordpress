@@ -157,8 +157,9 @@ final class WP_Customize_Manager {
 
 		show_admin_bar( false );
 
-		if ( ! current_user_can( 'edit_theme_options' ) )
+		if ( ! current_user_can( 'customize' ) ) {
 			$this->wp_die( -1 );
+		}
 
 		$this->original_stylesheet = get_stylesheet();
 
@@ -319,8 +320,9 @@ final class WP_Customize_Manager {
 	 * Get the registered panels.
 	 *
 	 * @since 4.0.0
+	 * @access public
 	 *
-	 * @return array
+	 * @return array Panels.
 	 */
 	public function panels() {
 		return $this->panels;
@@ -433,6 +435,7 @@ final class WP_Customize_Manager {
 	 * preview, since it causes the jQuery Ajax to fail. Send 200 instead.
 	 *
 	 * @since 4.0.0
+	 * @access public
 	 */
 	public function customize_preview_override_404_status() {
 		if ( is_404() ) {
@@ -475,7 +478,8 @@ final class WP_Customize_Manager {
 	public function customize_preview_settings() {
 		$settings = array(
 			'values'  => array(),
-			'channel' => esc_js( $_POST['customize_messenger_channel'] ),
+			'channel' => wp_unslash( $_POST['customize_messenger_channel'] ),
+			'activeControls' => array(),
 		);
 
 		if ( 2 == $this->nonce_tick ) {
@@ -487,6 +491,9 @@ final class WP_Customize_Manager {
 
 		foreach ( $this->settings as $id => $setting ) {
 			$settings['values'][ $id ] = $setting->js_value();
+		}
+		foreach ( $this->controls as $id => $control ) {
+			$settings['activeControls'][ $id ] = $control->active();
 		}
 
 		?>
@@ -676,9 +683,10 @@ final class WP_Customize_Manager {
 	 * Add a customize panel.
 	 *
 	 * @since 4.0.0
+	 * @access public
 	 *
 	 * @param WP_Customize_Panel|string $id   Customize Panel object, or Panel ID.
-	 * @param array                     $args Panel arguments.
+	 * @param array                     $args Optional. Panel arguments. Default empty array.
 	 */
 	public function add_panel( $id, $args = array() ) {
 		if ( is_a( $id, 'WP_Customize_Panel' ) ) {
@@ -695,9 +703,10 @@ final class WP_Customize_Manager {
 	 * Retrieve a customize panel.
 	 *
 	 * @since 4.0.0
+	 * @access public
 	 *
-	 * @param string $id Panel ID.
-	 * @return WP_Customize_Panel
+	 * @param string $id Panel ID to get.
+	 * @return WP_Customize_Panel Requested panel instance.
 	 */
 	public function get_panel( $id ) {
 		if ( isset( $this->panels[ $id ] ) ) {
@@ -709,8 +718,9 @@ final class WP_Customize_Manager {
 	 * Remove a customize panel.
 	 *
 	 * @since 4.0.0
+	 * @access public
 	 *
-	 * @param string $id Panel ID.
+	 * @param string $id Panel ID to remove.
 	 */
 	public function remove_panel( $id ) {
 		unset( $this->panels[ $id ] );
@@ -1015,7 +1025,7 @@ final class WP_Customize_Manager {
 		$this->add_control( new WP_Customize_Background_Image_Control( $this ) );
 
 		$this->add_setting( 'background_repeat', array(
-			'default'        => 'repeat',
+			'default'        => get_theme_support( 'custom-background', 'default-repeat' ),
 			'theme_supports' => 'custom-background',
 		) );
 
@@ -1032,7 +1042,7 @@ final class WP_Customize_Manager {
 		) );
 
 		$this->add_setting( 'background_position_x', array(
-			'default'        => 'left',
+			'default'        => get_theme_support( 'custom-background', 'default-position-x' ),
 			'theme_supports' => 'custom-background',
 		) );
 
@@ -1048,7 +1058,7 @@ final class WP_Customize_Manager {
 		) );
 
 		$this->add_setting( 'background_attachment', array(
-			'default'        => 'fixed',
+			'default'        => get_theme_support( 'custom-background', 'default-attachment' ),
 			'theme_supports' => 'custom-background',
 		) );
 
@@ -1057,8 +1067,8 @@ final class WP_Customize_Manager {
 			'section'    => 'background_image',
 			'type'       => 'radio',
 			'choices'    => array(
-				'fixed'      => __('Fixed'),
 				'scroll'     => __('Scroll'),
+				'fixed'      => __('Fixed'),
 			),
 		) );
 

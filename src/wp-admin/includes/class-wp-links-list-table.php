@@ -75,7 +75,7 @@ class WP_Links_List_Table extends WP_List_Table {
 <?php
 	}
 
-	protected function get_columns() {
+	public function get_columns() {
 		return array(
 			'cb'         => '<input type="checkbox" />',
 			'name'       => _x( 'Name', 'link name' ),
@@ -96,7 +96,7 @@ class WP_Links_List_Table extends WP_List_Table {
 		);
 	}
 
-	protected function display_rows() {
+	public function display_rows() {
 		global $cat_id;
 
 		$alt = 0;

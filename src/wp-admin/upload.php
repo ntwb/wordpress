@@ -24,8 +24,48 @@ if ( 'grid' === $mode ) {
 	wp_enqueue_media();
 	wp_enqueue_script( 'media-grid' );
 	wp_enqueue_script( 'media' );
+	wp_localize_script( 'media-grid', '_wpMediaGridSettings', array(
+		'adminUrl' => parse_url( self_admin_url(), PHP_URL_PATH ),
+	) );
+
+	add_screen_option( 'misc_screen_options', array( 'option' => 'manageuploadgridcolumnshidden', 'id' => 'grid' ) );
+	add_screen_option( 'title', array( 'label' => __( 'Name' ) ) );
+	add_screen_option( 'uploadedTo', array( 'label' => __( 'Uploaded To' ) ) );
+	add_screen_option( 'dateFormatted', array( 'label' => __( 'Date' ) ) );
+	add_screen_option( 'mime', array( 'label' => __( 'Mime-type' ) ) );
+
+	get_current_screen()->add_help_tab( array(
+		'id'		=> 'overview',
+		'title'		=> __( 'Overview' ),
+		'content'	=>
+			'<p>' . __( 'All the files you&#8217;ve uploaded are listed in the Media Library, with the most recent uploads listed first. You can use the Screen Options tab to customize the display of this screen.' ) . '</p>'
+	) );
+
+	get_current_screen()->set_help_sidebar(
+		'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
+		'<p>' . __( '<a href="http://codex.wordpress.org/Media_Library_Screen" target="_blank">Documentation on Media Library</a>' ) . '</p>' .
+		'<p>' . __( '<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
+	);
+
+	$title = __('Media Library');
+	$parent_file = 'upload.php';
 
 	require_once( ABSPATH . 'wp-admin/admin-header.php' );
+	?>
+	<div class="wrap">
+		<h2>
+		<?php
+		echo esc_html( $title );
+		if ( current_user_can( 'upload_files' ) ) { ?>
+			<a href="media-new.php" class="add-new-h2"><?php echo esc_html_x( 'Add New', 'file' ); ?></a><?php
+		}
+		?>
+		</h2>
+		<div class="error hide-if-js">
+			<p><?php _e( 'The grid view for the Media Library requires JavaScript. <a href="upload.php?mode=list">Switch to the list view</a>.' ); ?></p>
+		</div>
+	</div>
+	<?php
 	include( ABSPATH . 'wp-admin/admin-footer.php' );
 	exit;
 }

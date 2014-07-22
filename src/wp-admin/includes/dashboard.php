@@ -531,7 +531,7 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 
 	$actions_string = '';
 	if ( current_user_can( 'edit_comment', $comment->comment_ID ) ) {
-		// preorder it: Approve | Reply | Edit | Spam | Trash
+		// Pre-order it: Approve | Reply | Edit | Spam | Trash.
 		$actions = array(
 			'approve' => '', 'unapprove' => '',
 			'reply' => '',
@@ -898,7 +898,8 @@ function wp_dashboard_rss_control( $widget_id, $form_inputs = array() ) {
 		$_POST['widget-rss'][$number] = wp_unslash( $_POST['widget-rss'][$number] );
 		$widget_options[$widget_id] = wp_widget_rss_process( $_POST['widget-rss'][$number] );
 		$widget_options[$widget_id]['number'] = $number;
-		// title is optional. If black, fill it if possible
+
+		// Title is optional. If black, fill it if possible.
 		if ( !$widget_options[$widget_id]['title'] && isset($_POST['widget-rss'][$number]['title']) ) {
 			$rss = fetch_feed($widget_options[$widget_id]['url']);
 			if ( is_wp_error($rss) ) {
@@ -1093,8 +1094,6 @@ function wp_dashboard_plugins_output( $rss, $args = array() ) {
 
 		$title = esc_html( $item->get_title() );
 
-		$description = esc_html( strip_tags( @html_entity_decode( $item->get_description(), ENT_QUOTES, get_option( 'blog_charset' ) ) ) );
-
 		$ilink = wp_nonce_url('plugin-install.php?tab=plugin-information&plugin=' . $slug, 'install-plugin_' . $slug) . '&amp;TB_iframe=true&amp;width=600&amp;height=800';
 		echo "<li class='dashboard-news-plugin'><span>" . __( 'Popular Plugin' ) . ":</span> <a href='$link' class='dashboard-news-plugin-link'>$title</a>&nbsp;<span>(<a href='$ilink' class='thickbox' title='$title'>" . __( 'Install' ) . "</a>)</span></li>";
 
@@ -1281,8 +1280,10 @@ function wp_welcome_panel() {
 	<p class="about-description"><?php _e( 'We&#8217;ve assembled some links to get you started:' ); ?></p>
 	<div class="welcome-panel-column-container">
 	<div class="welcome-panel-column">
-		<h4><?php _e( 'Get Started' ); ?></h4>
-		<a class="button button-primary button-hero load-customize hide-if-no-customize" href="<?php echo wp_customize_url(); ?>"><?php _e( 'Customize Your Site' ); ?></a>
+		<?php if ( current_user_can( 'customize' ) ): ?>
+			<h4><?php _e( 'Get Started' ); ?></h4>
+			<a class="button button-primary button-hero load-customize hide-if-no-customize" href="<?php echo wp_customize_url(); ?>"><?php _e( 'Customize Your Site' ); ?></a>
+		<?php endif; ?>
 		<a class="button button-primary button-hero hide-if-customize" href="<?php echo admin_url( 'themes.php' ); ?>"><?php _e( 'Customize Your Site' ); ?></a>
 		<?php if ( current_user_can( 'install_themes' ) || ( current_user_can( 'switch_themes' ) && count( wp_get_themes( array( 'allowed' => true ) ) ) > 1 ) ) : ?>
 			<p class="hide-if-no-customize"><?php printf( __( 'or, <a href="%s">change your theme completely</a>' ), admin_url( 'themes.php' ) ); ?></p>

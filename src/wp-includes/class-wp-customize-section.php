@@ -177,7 +177,10 @@ class WP_Customize_Section {
 		}
 		?>
 		<li id="accordion-section-<?php echo esc_attr( $this->id ); ?>" class="<?php echo esc_attr( $classes ); ?>">
-			<h3 class="accordion-section-title" tabindex="0"><?php echo esc_html( $this->title ); ?></h3>
+			<h3 class="accordion-section-title" tabindex="0">
+				<?php echo esc_html( $this->title ); ?>
+				<span class="screen-reader-text"><?php _e( 'Press return or enter to expand' ); ?></span>
+			</h3>
 			<ul class="accordion-section-content">
 				<?php if ( ! empty( $this->description ) ) : ?>
 				<li><p class="description customize-section-description"><?php echo $this->description; ?></p></li>
@@ -218,10 +221,11 @@ class WP_Customize_Panel extends WP_Customize_Section {
 	 * Any supplied $args override class property defaults.
 	 *
 	 * @since 4.0.0
+	 * @access public
 	 *
 	 * @param WP_Customize_Manager $manager Customizer bootstrap instance.
 	 * @param string               $id      An specific ID of the section.
-	 * @param array                $args    Section arguments.
+	 * @param array                $args    Optional. Section arguments. Default empty array.
 	 */
 	public function __construct( $manager, $id, $args = array() ) {
 		parent::__construct( $manager, $id, $args );
@@ -235,18 +239,22 @@ class WP_Customize_Panel extends WP_Customize_Section {
 	 * Render the panel, and the sections that have been added to it.
 	 *
 	 * @since 4.0.0
+	 * @access protected
 	 */
 	protected function render() {
 		?>
 		<li id="accordion-section-<?php echo esc_attr( $this->id ); ?>" class="control-section control-panel accordion-section">
-			<h3 class="accordion-section-title" tabindex="0"><?php echo esc_html( $this->title ); ?></h3>
-			<span class="control-panel-back" tabindex="0"><span class="screen-reader-text">Back to Customize</span></span>
+			<h3 class="accordion-section-title" tabindex="0">
+				<?php echo esc_html( $this->title ); ?>
+				<span class="screen-reader-text"><?php _e( 'Press return or enter to open panel' ); ?></span>
+			</h3>
+			<span class="control-panel-back" tabindex="-1"><span class="screen-reader-text"><?php _e( 'Back' ); ?></span></span>
 			<ul class="accordion-sub-container control-panel-content">
 				<li class="accordion-section control-section<?php if ( empty( $this->description ) ) echo ' cannot-expand'; ?>">
 					<div class="accordion-section-title" tabindex="0">
 						<span class="preview-notice"><?php
-							/* translators: %s is the panel title in the Customize/Live Preview pane */
-							echo sprintf( 'You are customizing %s', '<strong class="panel-title">' . esc_html( $this->title ) . '</strong>' );
+							/* translators: %s is the site/panel title in the Customize pane */
+							echo sprintf( __( 'You are customizing %s' ), '<strong class="panel-title">' . esc_html( $this->title ) . '</strong>' );
 						?></span>
 					</div>
 					<?php if ( ! empty( $this->description ) ) : ?>

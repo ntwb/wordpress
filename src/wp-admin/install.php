@@ -98,7 +98,7 @@ function display_setup_form( $error = null ) {
 ?>
 <p class="message"><?php echo $error; ?></p>
 <?php } ?>
-<form id="setup" method="post" action="install.php?step=2">
+<form id="setup" method="post" action="install.php?step=2" novalidate="novalidate">
 	<table class="form-table">
 		<tr>
 			<th scope="row"><label for="weblog_title"><?php _e( 'Site Title' ); ?></label></th>
@@ -134,7 +134,7 @@ function display_setup_form( $error = null ) {
 		<?php endif; ?>
 		<tr>
 			<th scope="row"><label for="admin_email"><?php _e( 'Your E-mail' ); ?></label></th>
-			<td><input name="admin_email" type="text" id="admin_email" size="25" value="<?php echo esc_attr( $admin_email ); ?>" />
+			<td><input name="admin_email" type="email" id="admin_email" size="25" value="<?php echo esc_attr( $admin_email ); ?>" />
 			<p><?php _e( 'Double-check your email address before continuing.' ); ?></p></td>
 		</tr>
 		<tr>
@@ -179,10 +179,10 @@ if ( ! is_string( $wpdb->base_prefix ) || '' === $wpdb->base_prefix ) {
 switch($step) {
 	case 0: // Step 0
 
-		if ( empty( $_GET['language'] ) && ( $body = wp_get_available_translations() ) ) {
+		if ( empty( $_GET['language'] ) && ( $languages = wp_get_available_translations_from_api() ) ) {
 			display_header( 'language-chooser' );
 			echo '<form id="setup" method="post" action="?step=1">';
-			wp_install_language_form( $body );
+			wp_install_language_form( $languages );
 			echo '</form>';
 			break;
 		}
@@ -222,7 +222,8 @@ switch($step) {
 		$admin_password_check = isset($_POST['admin_password2']) ? wp_unslash( $_POST['admin_password2'] ) : '';
 		$admin_email  = isset( $_POST['admin_email']  ) ?trim( wp_unslash( $_POST['admin_email'] ) ) : '';
 		$public       = isset( $_POST['blog_public']  ) ? (int) $_POST['blog_public'] : 0;
-		// check e-mail address
+
+		// Check e-mail address.
 		$error = false;
 		if ( empty( $user_name ) ) {
 			// TODO: poka-yoke
@@ -281,5 +282,6 @@ if ( !wp_is_mobile() ) {
 <script type="text/javascript">var t = document.getElementById('weblog_title'); if (t){ t.focus(); }</script>
 <?php } ?>
 <?php wp_print_scripts( 'user-profile' ); ?>
+<?php wp_print_scripts( 'language-chooser' ); ?>
 </body>
 </html>

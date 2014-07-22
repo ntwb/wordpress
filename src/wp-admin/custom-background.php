@@ -59,45 +59,52 @@ class Custom_Background {
 	}
 
 	/**
-	 * Make private properties readable for backwards compatibility
+	 * Make private properties readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property name.
+	 * @return mixed Property.
 	 */
 	public function __get( $name ) {
 		return $this->$name;
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility
+	 * Make private properties setable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param string $value
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name  Property to set.
+	 * @param mixed  $value Property value.
+	 * @return mixed Newly-set property.
 	 */
 	public function __set( $name, $value ) {
 		return $this->$name = $value;
 	}
 
 	/**
-	 * Make private properties checkable for backwards compatibility
+	 * Make private properties checkable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to check if set.
+	 * @return bool Whether the property is set.
 	 */
 	public function __isset( $name ) {
 		return isset( $this->$name );
 	}
 
 	/**
-	 * Make private properties unsetable for backwards compatibility
+	 * Make private properties unsetable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to unset.
 	 */
 	public function __unset( $name ) {
 		unset( $this->$name );
@@ -249,7 +256,8 @@ class Custom_Background {
 
 		if ( get_background_image() ) {
 			$background_image_thumb = esc_url( set_url_scheme( get_theme_mod( 'background_image_thumb', str_replace( '%', '%%', get_background_image() ) ) ) );
-			// background-image URL must be single quote, see below
+
+			// Background-image URL must be single quote, see below.
 			$background_styles .= ' background-image: url(\'' . $background_image_thumb . '\');'
 				. ' background-repeat: ' . get_theme_mod( 'background_repeat', get_theme_support( 'custom-background', 'default-repeat' ) ) . ';'
 				. ' background-position: top ' . get_theme_mod( 'background_position_x', get_theme_support( 'custom-background', 'default-position-x' ) );

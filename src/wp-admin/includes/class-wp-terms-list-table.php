@@ -116,7 +116,7 @@ class WP_Terms_List_Table extends WP_List_Table {
 		return parent::current_action();
 	}
 
-	protected function get_columns() {
+	public function get_columns() {
 		$columns = array(
 			'cb'          => '<input type="checkbox" />',
 			'name'        => _x( 'Name', 'term name' ),
@@ -144,7 +144,7 @@ class WP_Terms_List_Table extends WP_List_Table {
 		);
 	}
 
-	protected function display_rows_or_placeholder() {
+	public function display_rows_or_placeholder() {
 		$taxonomy = $this->screen->taxonomy;
 
 		$args = wp_parse_args( $this->callback_args, array(
@@ -155,12 +155,13 @@ class WP_Terms_List_Table extends WP_List_Table {
 		) );
 
 		$page = $args['page'];
-		// set variable because $args['number'] can be subsequently overridden
+
+		// Set variable because $args['number'] can be subsequently overridden.
 		$number = $args['number'];
 
 		$args['offset'] = $offset = ( $page - 1 ) * $number;
 
-		// convert it to table rows
+		// Convert it to table rows.
 		$count = 0;
 
 		if ( is_taxonomy_hierarchical( $taxonomy ) && ! isset( $args['orderby'] ) ) {
@@ -240,7 +241,7 @@ class WP_Terms_List_Table extends WP_List_Table {
 		}
 	}
 
-	protected function single_row( $tag, $level = 0 ) {
+	public function single_row( $tag, $level = 0 ) {
 		global $taxonomy;
  		$tag = sanitize_term( $tag, $taxonomy );
 

@@ -40,8 +40,11 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 			$args['include'] = $wpdb->get_col( "SELECT ID FROM $wpdb->users WHERE user_login IN ('$logins')" );
 		}
 
-		// If the network is large and a search is not being performed, show only the latest users with no paging in order
-		// to avoid expensive count queries.
+		/*
+		 * If the network is large and a search is not being performed,
+		 * show only the latest users with no paging in order to avoid
+		 * expensive count queries.
+		 */
 		if ( !$usersearch && wp_is_large_network( 'users' ) ) {
 			if ( !isset($_REQUEST['orderby']) )
 				$_GET['orderby'] = $_REQUEST['orderby'] = 'id';
@@ -108,7 +111,7 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 			$this->view_switcher( $mode );
 	}
 
-	protected function get_columns() {
+	public function get_columns() {
 		$users_columns = array(
 			'cb'         => '<input type="checkbox" />',
 			'username'   => __( 'Username' ),
@@ -139,7 +142,7 @@ class WP_MS_Users_List_Table extends WP_List_Table {
 		);
 	}
 
-	protected function display_rows() {
+	public function display_rows() {
 		global $mode;
 
 		$alt = '';

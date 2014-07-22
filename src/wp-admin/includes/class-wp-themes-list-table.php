@@ -73,7 +73,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 
 				return;
 			}
-			// else, fallthrough. install_themes doesn't help if you can't enable it.
+			// Else, fallthrough. install_themes doesn't help if you can't enable it.
 		} else {
 			if ( current_user_can( 'install_themes' ) ) {
 				printf( __( 'You only have one theme installed right now. Live a little! You can choose from over 1,000 free themes in the WordPress.org Theme Directory at any time: just click on the <a href="%s">Install Themes</a> tab above.' ), admin_url( 'theme-install.php' ) );
@@ -110,11 +110,11 @@ class WP_Themes_List_Table extends WP_List_Table {
 <?php
 	}
 
-	protected function get_columns() {
+	public function get_columns() {
 		return array();
 	}
 
-	protected function display_rows_or_placeholder() {
+	public function display_rows_or_placeholder() {
 		if ( $this->has_items() ) {
 			$this->display_rows();
 		} else {
@@ -124,7 +124,7 @@ class WP_Themes_List_Table extends WP_List_Table {
 		}
 	}
 
-	protected function display_rows() {
+	public function display_rows() {
 		$themes = $this->items;
 
 		foreach ( $themes as $theme ):
@@ -149,9 +149,10 @@ class WP_Themes_List_Table extends WP_List_Table {
 			$actions['preview'] = '<a href="' . $preview_link . '" class="hide-if-customize" title="'
 				. esc_attr( sprintf( __( 'Preview &#8220;%s&#8221;' ), $title ) ) . '">' . __( 'Preview' ) . '</a>';
 
-			if ( current_user_can( 'edit_theme_options' ) )
+			if ( current_user_can( 'edit_theme_options' ) && current_user_can( 'customize' ) ) {
 				$actions['preview'] .= '<a href="' . wp_customize_url( $stylesheet ) . '" class="load-customize hide-if-no-customize">'
 					. __( 'Live Preview' ) . '</a>';
+			}
 
 			if ( ! is_multisite() && current_user_can( 'delete_themes' ) )
 				$actions['delete'] = '<a class="submitdelete deletion" href="' . wp_nonce_url( 'themes.php?action=delete&amp;stylesheet=' . urlencode( $stylesheet ), 'delete-theme_' . $stylesheet )
@@ -243,13 +244,13 @@ class WP_Themes_List_Table extends WP_List_Table {
 	 * Send required variables to JavaScript land
 	 *
 	 * @since 3.4.0
-	 * @access private
+	 * @access public
 	 *
 	 * @uses $this->features Array of all feature search terms.
 	 * @uses get_pagenum()
 	 * @uses _pagination_args['total_pages']
 	 */
-	private function _js_vars( $extra_args = array() ) {
+	public function _js_vars( $extra_args = array() ) {
 		$search_string = isset( $_REQUEST['s'] ) ? esc_attr( wp_unslash( $_REQUEST['s'] ) ) : '';
 
 		$args = array(

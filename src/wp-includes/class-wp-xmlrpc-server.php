@@ -66,6 +66,7 @@ class wp_xmlrpc_server extends IXR_Server {
 			'wp.deleteCategory'		=> 'this:wp_deleteCategory',
 			'wp.suggestCategories'	=> 'this:wp_suggestCategories',
 			'wp.uploadFile'			=> 'this:mw_newMediaObject',	// Alias
+			'wp.deleteFile'			=> 'this:wp_deletePost',		// Alias
 			'wp.getCommentCount'	=> 'this:wp_getCommentCount',
 			'wp.getPostStatusList'	=> 'this:wp_getPostStatusList',
 			'wp.getPageStatusList'	=> 'this:wp_getPageStatusList',
@@ -78,7 +79,6 @@ class wp_xmlrpc_server extends IXR_Server {
 			'wp.editComment'		=> 'this:wp_editComment',
 			'wp.newComment'			=> 'this:wp_newComment',
 			'wp.getCommentStatusList' => 'this:wp_getCommentStatusList',
-			'wp.deleteMediaItem'	=> 'this:wp_deletePost',		// Alias
 			'wp.getMediaItem'		=> 'this:wp_getMediaItem',
 			'wp.getMediaLibrary'	=> 'this:wp_getMediaLibrary',
 			'wp.getPostFormats'     => 'this:wp_getPostFormats',
@@ -142,12 +142,14 @@ class wp_xmlrpc_server extends IXR_Server {
 	}
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility
+	 * Make private/protected methods readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param array $arguments
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param callable $name      Method to call.
+	 * @param array    $arguments Arguments to pass when calling.
+	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
 		return call_user_func_array( array( $this, $name ), $arguments );
@@ -1103,13 +1105,13 @@ class wp_xmlrpc_server extends IXR_Server {
 			return $this->error;
 
 		// convert the date field back to IXR form
-		if ( isset( $content_struct['post_date'] ) ) {
+		if ( isset( $content_struct['post_date'] ) && ! is_a( $content_struct['post_date'], 'IXR_Date' ) ) {
 			$content_struct['post_date'] = $this->_convert_date( $content_struct['post_date'] );
 		}
 
 		// ignore the existing GMT date if it is empty or a non-GMT date was supplied in $content_struct,
 		// since _insert_post will ignore the non-GMT date if the GMT date is set
-		if ( isset( $content_struct['post_date_gmt'] ) ) {
+		if ( isset( $content_struct['post_date_gmt'] ) && ! is_a( $content_struct['post_date_gmt'], 'IXR_Date' ) ) {
 			if ( $content_struct['post_date_gmt'] == '0000-00-00 00:00:00' || isset( $content_struct['post_date'] ) ) {
 				unset( $content_struct['post_date_gmt'] );
 			} else {

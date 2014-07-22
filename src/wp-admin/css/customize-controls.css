@@ -50,20 +50,10 @@ body {
 	border-bottom: 1px solid #eeeeee;
 }
 
-#customize-info.open .accordion-section-title,
-#customize-info .accordion-section-title:hover,
-#customize-info .accordion-section-title:focus {
-	color: #555555;
-}
-
 #customize-info.open .accordion-section-title:after,
 #customize-info .accordion-section-title:hover:after,
 #customize-info .accordion-section-title:focus:after {
 	color: #555555;
-}
-
-#customize-info.open .accordion-section-title {
-	border-color: transparent;
 }
 
 #customize-info .preview-notice {
@@ -103,6 +93,9 @@ body {
 	background: white;
 }
 
+#customize-info.open .accordion-section-title,
+#customize-info .accordion-section-title:hover,
+#customize-info .accordion-section-title:focus,
 #customize-theme-controls .control-section:hover > .accordion-section-title,
 #customize-theme-controls .control-section .accordion-section-title:hover,
 #customize-theme-controls .control-section.open .accordion-section-title,
@@ -125,6 +118,7 @@ body {
 	color: #555555;
 }
 
+#customize-info.open,
 #customize-theme-controls .control-section.open {
 	border-bottom: 1px solid #eeeeee;
 }
@@ -170,6 +164,22 @@ body {
 	width: 100%;
 }
 
+.customize-controls-close {
+	display: block;
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 45px;
+	height: 45px;
+	padding-right: 2px;
+	background: #eee;
+	border-right: 1px solid #ddd;
+	color: #444;
+	cursor: pointer;
+	-webkit-transition: color ease-in .1s;
+	transition: color ease-in .1s;
+}
+
 .control-panel-back {
 	display: block;
 	position: fixed;
@@ -190,11 +200,23 @@ body {
 	display: none;
 }
 
+.customize-controls-close:focus,
+.customize-controls-close:hover,
 .control-panel-back:focus,
 .control-panel-back:hover {
 	background-color: #0074a2;
 	color: #fff;
 	outline: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.customize-controls-close:before {
+	font: normal 32px/1 dashicons;
+	content: "\f335";
+	position: relative;
+	top: 8px;
+	left: 8px;
 }
 
 .control-panel-back:before {
@@ -215,17 +237,6 @@ body {
 
 .current-panel > .accordion-section-title {
 	height: 22px;
-}
-
-#customize-header-actions a.back {
-	position: relative;
-	left: 0;
-	-webkit-transition: left ease-in-out .18s;
-	transition: left ease-in-out .18s;
-}
-
-.in-sub-panel #customize-header-actions a.back {
-	left: -120px;
 }
 
 .wp-full-overlay-sidebar .wp-full-overlay-header {

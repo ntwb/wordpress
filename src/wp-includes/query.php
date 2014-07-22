@@ -2200,6 +2200,97 @@ class WP_Query {
 	}
 
 	/**
+	 * If the passed orderby value is allowed, convert the alias to a
+	 * properly-prefixed orderby value.
+	 *
+	 * @since 4.0.0
+	 * @access protected
+	 *
+	 * @global wpdb $wpdb WordPress database access abstraction object.
+	 *
+	 * @param string $orderby Alias for the field to order by.
+	 * @return string|bool Table-prefixed value to used in the ORDER clause. False otherwise.
+	 */
+	protected function parse_orderby( $orderby ) {
+		global $wpdb;
+
+		// Used to filter values.
+		$allowed_keys = array(
+			'post_name', 'post_author', 'post_date', 'post_title', 'post_modified',
+			'post_parent', 'post_type', 'name', 'author', 'date', 'title', 'modified',
+			'parent', 'type', 'ID', 'menu_order', 'comment_count', 'rand',
+		);
+
+		$meta_key = $this->get( 'meta_key' );
+		if ( ! empty( $meta_key ) ) {
+			$allowed_keys[] = $meta_key;
+			$allowed_keys[] = 'meta_value';
+			$allowed_keys[] = 'meta_value_num';
+		}
+
+		if ( ! in_array( $orderby, $allowed_keys ) ) {
+			return false;
+		}
+
+		switch ( $orderby ) {
+			case 'post_name':
+			case 'post_author':
+			case 'post_date':
+			case 'post_title':
+			case 'post_modified':
+			case 'post_parent':
+			case 'post_type':
+			case 'ID':
+			case 'menu_order':
+			case 'comment_count':
+				$orderby = "$wpdb->posts.{$orderby}";
+				break;
+			case 'rand':
+				$orderby = 'RAND()';
+				break;
+			case $meta_key:
+			case 'meta_value':
+				$type = $this->get( 'meta_type' );
+				if ( ! empty( $type ) ) {
+					$meta_type = $this->meta_query->get_cast_for_type( $type );
+					$orderby = "CAST($wpdb->postmeta.meta_value AS {$meta_type})";
+				} else {
+					$orderby = "$wpdb->postmeta.meta_value";
+				}
+				break;
+			case 'meta_value_num':
+				$orderby = "$wpdb->postmeta.meta_value+0";
+				break;
+			default:
+				$orderby = "$wpdb->posts.post_" . $orderby;
+				break;
+		}
+
+		return $orderby;
+	}
+
+	/**
+	 * Parse an 'order' query variable and cast it to ASC or DESC as necessary.
+	 *
+	 * @since 4.0.0
+	 * @access protected
+	 *
+	 * @param string $order The 'order' query variable.
+	 * @return string The sanitized 'order' query variable.
+	 */
+	protected function parse_order( $order ) {
+		if ( ! is_string( $order ) || empty( $order ) ) {
+			return 'DESC';
+		}
+
+		if ( 'ASC' === strtoupper( $order ) ) {
+			return 'ASC';
+		} else {
+			return 'DESC';
+		}
+	}
+
+	/**
 	 * Sets the 404 property and saves whether query is feed.
 	 *
 	 * @since 2.0.0
@@ -2702,12 +2793,23 @@ class WP_Query {
 
 		$where .= $search . $whichauthor . $whichmimetype;
 
-		if ( empty($q['order']) || ((strtoupper($q['order']) != 'ASC') && (strtoupper($q['order']) != 'DESC')) )
+		if ( ! isset( $q['order'] ) ) {
 			$q['order'] = 'DESC';
+		} else {
+			$q['order'] = $this->parse_order( $q['order'] );
+		}
 
-		// Order by
-		if ( empty($q['orderby']) ) {
-			$orderby = "$wpdb->posts.post_date " . $q['order'];
+		// Order by.
+		if ( empty( $q['orderby'] ) ) {
+			/*
+			 * Boolean false or empty array blanks out ORDER BY,
+			 * while leaving the value unset or otherwise empty sets the default.
+			 */
+			if ( isset( $q['orderby'] ) && ( is_array( $q['orderby'] ) || false === $q['orderby'] ) ) {
+				$orderby = '';
+			} else {
+				$orderby = "$wpdb->posts.post_date " . $q['order'];
+			}
 		} elseif ( 'none' == $q['orderby'] ) {
 			$orderby = '';
 		} elseif ( $q['orderby'] == 'post__in' && ! empty( $post__in ) ) {
@@ -2715,59 +2817,41 @@ class WP_Query {
 		} elseif ( $q['orderby'] == 'post_parent__in' && ! empty( $post_parent__in ) ) {
 			$orderby = "FIELD( {$wpdb->posts}.post_parent, $post_parent__in )";
 		} else {
-			// Used to filter values
-			$allowed_keys = array( 'name', 'author', 'date', 'title', 'modified', 'menu_order', 'parent', 'ID', 'rand', 'comment_count', 'type' );
-			if ( !empty($q['meta_key']) ) {
-				$allowed_keys[] = $q['meta_key'];
-				$allowed_keys[] = 'meta_value';
-				$allowed_keys[] = 'meta_value_num';
-			}
-			$q['orderby'] = urldecode($q['orderby']);
-			$q['orderby'] = addslashes_gpc($q['orderby']);
-
 			$orderby_array = array();
-			foreach ( explode( ' ', $q['orderby'] ) as $i => $orderby ) {
-				// Only allow certain values for safety
-				if ( ! in_array($orderby, $allowed_keys) )
-					continue;
+			if ( is_array( $q['orderby'] ) ) {
+				foreach ( $q['orderby'] as $_orderby => $order ) {
+					$orderby = addslashes_gpc( urldecode( $_orderby ) );
+					$parsed  = $this->parse_orderby( $orderby );
 
-				switch ( $orderby ) {
-					case 'menu_order':
-						$orderby = "$wpdb->posts.menu_order";
-						break;
-					case 'ID':
-						$orderby = "$wpdb->posts.ID";
-						break;
-					case 'rand':
-						$orderby = 'RAND()';
-						break;
-					case $q['meta_key']:
-					case 'meta_value':
-						if ( isset( $q['meta_type'] ) ) {
-							$meta_type = $this->meta_query->get_cast_for_type( $q['meta_type'] );
-							$orderby = "CAST($wpdb->postmeta.meta_value AS {$meta_type})";
-						} else {
-							$orderby = "$wpdb->postmeta.meta_value";
-						}
-						break;
-					case 'meta_value_num':
-						$orderby = "$wpdb->postmeta.meta_value+0";
-						break;
-					case 'comment_count':
-						$orderby = "$wpdb->posts.comment_count";
-						break;
-					default:
-						$orderby = "$wpdb->posts.post_" . $orderby;
+					if ( ! $parsed ) {
+						continue;
+					}
+
+					$orderby_array[] = $parsed . ' ' . $this->parse_order( $order );
 				}
+				$orderby = implode( ', ', $orderby_array );
 
-				$orderby_array[] = $orderby;
+			} else {
+				$q['orderby'] = urldecode( $q['orderby'] );
+				$q['orderby'] = addslashes_gpc( $q['orderby'] );
+
+				foreach ( explode( ' ', $q['orderby'] ) as $i => $orderby ) {
+					$parsed = $this->parse_orderby( $orderby );
+					// Only allow certain values for safety.
+					if ( ! $parsed ) {
+						continue;
+					}
+
+					$orderby_array[] = $parsed;
+				}
+				$orderby = implode( ' ' . $q['order'] . ', ', $orderby_array );
+
+				if ( empty( $orderby ) ) {
+					$orderby = "$wpdb->posts.post_date ".$q['order'];
+				} else {
+					$orderby .= " {$q['order']}";
+				}
 			}
-			$orderby = implode( ' ' . $q['order'] . ', ', $orderby_array );
-
-			if ( empty( $orderby ) )
-				$orderby = "$wpdb->posts.post_date ".$q['order'];
-			else
-				$orderby .= " {$q['order']}";
 		}
 
 		// Order search results by relevance only when another "orderby" is not specified in the query.
@@ -2973,7 +3057,7 @@ class WP_Query {
 		}
 
 		// Comments feeds
-		if ( $this->is_comment_feed && ( $this->is_archive || ( $this->is_search && ! empty( $q['s'] ) ) || !$this->is_singular ) ) {
+		if ( $this->is_comment_feed && ! $this->is_singular ) {
 			if ( $this->is_archive || $this->is_search ) {
 				$cjoin = "JOIN $wpdb->posts ON ($wpdb->comments.comment_post_ID = $wpdb->posts.ID) $join ";
 				$cwhere = "WHERE comment_approved = '1' $where";
@@ -3848,45 +3932,52 @@ class WP_Query {
 	}
 
 	/**
-	 * Make private properties readable for backwards compatibility
+	 * Make private properties readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to get
+	 * @return mixed Property.
 	 */
 	public function __get( $name ) {
 		return $this->$name;
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility
+	 * Make private properties setable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to check if set.
+	 * @return bool Whether the property is set.
 	 */
 	public function __isset( $name ) {
 		return isset( $this->$name );
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility
+	 * Make private properties setable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to unset.
 	 */
 	public function __unset( $name ) {
 		unset( $this->$name );
 	}
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility
+	 * Make private/protected methods readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param array $arguments
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param callable $name      Method to call.
+	 * @param array    $arguments Arguments to pass when calling.
+	 * @return mixed|bool Return value of the callback, otherwise false.
 	 */
 	public function __call( $name, $arguments ) {
 		return call_user_func_array( array( $this, $name ), $arguments );
@@ -4227,7 +4318,7 @@ class WP_Query {
 	 *
 	 * @since 3.1.0
 	 *
-	 * @param mixed $page Page ID, title, slug, or array of such.
+	 * @param mixed $page Page ID, title, slug, path, or array of such.
 	 * @return bool
 	 */
 	public function is_page( $page = '' ) {
@@ -4241,12 +4332,24 @@ class WP_Query {
 
 		$page = (array) $page;
 
-		if ( in_array( $page_obj->ID, $page ) )
+		if ( in_array( $page_obj->ID, $page ) ) {
 			return true;
-		elseif ( in_array( $page_obj->post_title, $page ) )
+		} elseif ( in_array( $page_obj->post_title, $page ) ) {
 			return true;
-		else if ( in_array( $page_obj->post_name, $page ) )
+		} else if ( in_array( $page_obj->post_name, $page ) ) {
 			return true;
+		} else {
+			foreach ( $page as $pagepath ) {
+				if ( ! strpos( $pagepath, '/' ) ) {
+					continue;
+				}
+				$pagepath_obj = get_page_by_path( $pagepath );
+
+				if ( $pagepath_obj && ( $pagepath_obj->ID == $page_obj->ID ) ) {
+					return true;
+				}
+			}
+		}
 
 		return false;
 	}
@@ -4308,7 +4411,7 @@ class WP_Query {
 	 *
 	 * @since 3.1.0
 	 *
-	 * @param mixed $post Post ID, title, slug, or array of such.
+	 * @param mixed $post Post ID, title, slug, path, or array of such.
 	 * @return bool
 	 */
 	public function is_single( $post = '' ) {
@@ -4322,13 +4425,24 @@ class WP_Query {
 
 		$post = (array) $post;
 
-		if ( in_array( $post_obj->ID, $post ) )
+		if ( in_array( $post_obj->ID, $post ) ) {
 			return true;
-		elseif ( in_array( $post_obj->post_title, $post ) )
+		} elseif ( in_array( $post_obj->post_title, $post ) ) {
 			return true;
-		elseif ( in_array( $post_obj->post_name, $post ) )
+		} elseif ( in_array( $post_obj->post_name, $post ) ) {
 			return true;
+		} else {
+			foreach ( $post as $postpath ) {
+				if ( ! strpos( $postpath, '/' ) ) {
+					continue;
+				}
+				$postpath_obj = get_page_by_path( $postpath, OBJECT, $post_obj->post_type );
 
+				if ( $postpath_obj && ( $postpath_obj->ID == $post_obj->ID ) ) {
+					return true;
+				}
+			}
+		}
 		return false;
 	}
 

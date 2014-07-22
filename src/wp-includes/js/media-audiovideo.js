@@ -14,17 +14,6 @@
 	 */
 	wp.media.mixin = {
 		mejsSettings: baseSettings,
-		/**
-		 * Pauses every instance of MediaElementPlayer
-		 */
-		pauseAllPlayers: function() {
-			var p;
-			if ( window.mejs && window.mejs.players ) {
-				for ( p in window.mejs.players ) {
-					window.mejs.players[p].pause();
-				}
-			}
-		},
 
 		removeAllPlayers: function() {
 			var p;
@@ -35,112 +24,6 @@
 					this.removePlayer( window.mejs.players[p] );
 				}
 			}
-		},
-
-		/**
-		 * Pauses the current object's instances of MediaElementPlayer
-		 */
-		pausePlayers: function() {
-			_.each( this.players, function (player) {
-				player.pause();
-			} );
-		},
-
-		/**
-		 * Utility to identify the user's browser
-		 */
-		ua: {
-			is : function( browser ) {
-				var passes = false, ua = window.navigator.userAgent;
-
-				switch ( browser ) {
-					case 'oldie':
-						passes = ua.match(/MSIE [6-8]/gi) !== null;
-					break;
-					case 'ie':
-						passes = /MSIE /.test( ua ) || ( /Trident\//.test( ua ) && /rv:\d/.test( ua ) ); // IE11
-					break;
-					case 'ff':
-						passes = ua.match(/firefox/gi) !== null;
-					break;
-					case 'opera':
-						passes = ua.match(/OPR/) !== null;
-					break;
-					case 'safari':
-						passes = ua.match(/safari/gi) !== null && ua.match(/chrome/gi) === null;
-					break;
-					case 'chrome':
-						passes = ua.match(/safari/gi) !== null && ua.match(/chrome/gi) !== null;
-					break;
-				}
-
-				return passes;
-			}
-		},
-
-		/**
-		 * Specify compatibility for native playback by browser
-		 */
-		compat :{
-			'opera' : {
-				audio: ['ogg', 'wav'],
-				video: ['ogg', 'webm']
-			},
-			'chrome' : {
-				audio: ['ogg', 'mpeg'],
-				video: ['ogg', 'webm', 'mp4', 'm4v', 'mpeg']
-			},
-			'ff' : {
-				audio: ['ogg', 'mpeg'],
-				video: ['ogg', 'webm']
-			},
-			'safari' : {
-				audio: ['mpeg', 'wav'],
-				video: ['mp4', 'm4v', 'mpeg', 'x-ms-wmv', 'quicktime']
-			},
-			'ie' : {
-				audio: ['mpeg'],
-				video: ['mp4', 'm4v', 'mpeg']
-			}
-		},
-
-		/**
-		 * Determine if the passed media contains a <source> that provides
-		 *  native playback in the user's browser
-		 *
-		 * @param {jQuery} media
-		 * @returns {Boolean}
-		 */
-		isCompatible: function( media ) {
-			if ( ! media.find( 'source' ).length ) {
-				return false;
-			}
-
-			var ua = this.ua, test = false, found = false, sources;
-
-			if ( ua.is( 'oldIE' ) ) {
-				return false;
-			}
-
-			sources = media.find( 'source' );
-
-			_.find( this.compat, function( supports, browser ) {
-				if ( ua.is( browser ) ) {
-					found = true;
-					_.each( sources, function( elem ) {
-						var audio = new RegExp( 'audio\/(' + supports.audio.join('|') + ')', 'gi' ),
-							video = new RegExp( 'video\/(' + supports.video.join('|') + ')', 'gi' );
-
-						if ( elem.type.match( video ) !== null || elem.type.match( audio ) !== null ) {
-							test = true;
-						}
-					} );
-				}
-
-				return test || found;
-			} );
-
-			return test;
 		},
 
 		/**
@@ -692,10 +575,23 @@
 
 		renderSelectPosterImageToolbar: function() {
 			this.setPrimaryButton( l10n.videoSelectPosterImageTitle, function( controller, state ) {
-				var attachment = state.get( 'selection' ).single();
+				var urls = [], attachment = state.get( 'selection' ).single();
 
 				controller.media.set( 'poster', attachment.get( 'url' ) );
 				state.trigger( 'set-poster-image', controller.media.toJSON() );
+
+				_.each( wp.media.view.settings.embedExts, function (ext) {
+					if ( controller.media.get( ext ) ) {
+						urls.push( controller.media.get( ext ) );
+					}
+				} );
+
+				wp.ajax.send( 'set-attachment-thumbnail', {
+					data : {
+						urls: urls,
+						thumbnail_id: attachment.get( 'id' )
+					}
+				} );
 			} );
 		},
 

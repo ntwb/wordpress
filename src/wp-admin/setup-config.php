@@ -86,10 +86,10 @@ function setup_config_display_header( $body_classes = array() ) {
 switch($step) {
 	case -1:
 
-		if ( empty( $_GET['language'] ) && ( $body = wp_get_available_translations() ) ) {
+		if ( empty( $_GET['language'] ) && ( $languages = wp_get_available_translations_from_api() ) ) {
 			setup_config_display_header( 'language-chooser' );
 			echo '<form id="setup" method="post" action="?step=0">';
-			wp_install_language_form( $body );
+			wp_install_language_form( $languages );
 			echo '</form>';
 			break;
 		}
@@ -152,7 +152,7 @@ switch($step) {
 		</tr>
 		<tr>
 			<th scope="row"><label for="pwd"><?php _e( 'Password' ); ?></label></th>
-			<td><input name="pwd" id="pwd" type="text" size="25" value="<?php echo htmlspecialchars( _x( 'password', 'example password' ), ENT_QUOTES ); ?>" /></td>
+			<td><input name="pwd" id="pwd" type="text" size="25" value="<?php echo htmlspecialchars( _x( 'password', 'example password' ), ENT_QUOTES ); ?>" autocomplete="off" /></td>
 			<td><?php _e( '&hellip;and your MySQL password.' ); ?></td>
 		</tr>
 		<tr>
@@ -186,10 +186,14 @@ switch($step) {
 	if ( isset( $_REQUEST['noapi'] ) ) {
 		$step_1 .= '&amp;noapi';
 	}
+
 	if ( $loaded_language ) {
 		$step_1 .= '&amp;language=' . $loaded_language;
 		$install .= '?language=' . $loaded_language;
+	} else {
+		$install .= '?language=en_US';
 	}
+
 	$tryagain_link = '</p><p class="step"><a href="' . $step_1 . '" onclick="javascript:history.go(-1);return false;" class="button button-large">' . __( 'Try again' ) . '</a>';
 
 	if ( empty( $prefix ) )
@@ -213,8 +217,10 @@ switch($step) {
 	unset( $wpdb );
 	require_wp_db();
 
-	// The wpdb constructor bails when WP_SETUP_CONFIG is set, so we must
-	// fire this manually. We'll fail here if the values are no good.
+	/*
+	 * The wpdb constructor bails when WP_SETUP_CONFIG is set, so we must
+	 * fire this manually. We'll fail here if the values are no good.
+	 */
 	$wpdb->db_connect();
 
 	if ( ! empty( $wpdb->error ) )
@@ -294,8 +300,10 @@ el.select();
 </script>
 <?php
 	else :
-		// If this file doesn't exist, then we are using the wp-config-sample.php
-		// file one level up, which is for the develop repo.
+		/*
+		 * If this file doesn't exist, then we are using the wp-config-sample.php
+		 * file one level up, which is for the develop repo.
+		 */
 		if ( file_exists( ABSPATH . 'wp-config-sample.php' ) )
 			$path_to_wp_config = ABSPATH . 'wp-config.php';
 		else
@@ -317,5 +325,6 @@ el.select();
 	break;
 }
 ?>
+<?php wp_print_scripts( 'language-chooser' ); ?>
 </body>
 </html>

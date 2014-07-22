@@ -221,12 +221,14 @@ class WP_Comment_Query {
 	public $date_query = false;
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility
+	 * Make private/protected methods readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param array $arguments
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param callable $name      Method to call.
+	 * @param array    $arguments Arguments to pass when calling.
+	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
 		return call_user_func_array( array( $this, $name ), $arguments );
@@ -245,6 +247,7 @@ class WP_Comment_Query {
 
 		$defaults = array(
 			'author_email' => '',
+			'fields' => '',
 			'ID' => '',
 			'karma' => '',
 			'number' => '',
@@ -368,8 +371,16 @@ class WP_Comment_Query {
 		if ( $this->query_vars['count'] ) {
 			$fields = 'COUNT(*)';
 		} else {
-			$fields = '*';
+			switch ( strtolower( $this->query_vars['fields'] ) ) {
+				case 'ids':
+					$fields = "$wpdb->comments.comment_ID";
+					break;
+				default:
+					$fields = "*";
+					break;
+			}
 		}
+
 		$join = '';
 		$where = $approved;
 
@@ -460,6 +471,12 @@ class WP_Comment_Query {
 		if ( $this->query_vars['count'] ) {
 			return $wpdb->get_var( $query );
 		}
+
+		if ( 'ids' == $this->query_vars['fields'] ) {
+			$this->comments = $wpdb->get_col( $query );
+			return array_map( 'intval', $this->comments );
+		}
+
 		$results = $wpdb->get_results( $query );
 		/**
 		 * Filter the comment query results.

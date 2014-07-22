@@ -148,7 +148,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 			_e( 'No comments found.' );
 	}
 
-	public function get_views() {
+	protected function get_views() {
 		global $post_id, $comment_status, $comment_type;
 
 		$status_links = array();
@@ -201,7 +201,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		return $status_links;
 	}
 
-	public function get_bulk_actions() {
+	protected function get_bulk_actions() {
 		global $comment_status;
 
 		$actions = array();
@@ -225,7 +225,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		return $actions;
 	}
 
-	public function extra_tablenav( $which ) {
+	protected function extra_tablenav( $which ) {
 		global $comment_status, $comment_type;
 ?>
 		<div class="alignleft actions">
@@ -301,7 +301,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		return $columns;
 	}
 
-	public function get_sortable_columns() {
+	protected function get_sortable_columns() {
 		return array(
 			'author'   => 'comment_author',
 			'response' => 'comment_post_ID'
@@ -424,7 +424,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		}
 
 		if ( $user_can ) {
-			// preorder it: Approve | Reply | Quick Edit | Edit | Spam | Trash
+			// Preorder it: Approve | Reply | Quick Edit | Edit | Spam | Trash.
 			$actions = array(
 				'approve' => '', 'unapprove' => '',
 				'reply' => '',
@@ -434,7 +434,8 @@ class WP_Comments_List_Table extends WP_List_Table {
 				'trash' => '', 'untrash' => '', 'delete' => ''
 			);
 
-			if ( $comment_status && 'all' != $comment_status ) { // not looking at all comments
+			// Not looking at all comments.
+			if ( $comment_status && 'all' != $comment_status ) {
 				if ( 'approved' == $the_comment_status )
 					$actions['unapprove'] = "<a href='$unapprove_url' data-wp-lists='delete:the-comment-list:comment-$comment->comment_ID:e7e7d3:action=dim-comment&amp;new=unapproved' class='vim-u vim-destructive' title='" . esc_attr__( 'Unapprove this comment' ) . "'>" . __( 'Unapprove' ) . '</a>';
 				else if ( 'unapproved' == $the_comment_status )
@@ -582,7 +583,7 @@ class WP_Comments_List_Table extends WP_List_Table {
  */
 class WP_Post_Comments_List_Table extends WP_Comments_List_Table {
 
-	public function get_column_info() {
+	protected function get_column_info() {
 		$this->_column_headers = array(
 			array(
 			'author'   => __( 'Author' ),
@@ -595,7 +596,7 @@ class WP_Post_Comments_List_Table extends WP_Comments_List_Table {
 		return $this->_column_headers;
 	}
 
-	public function get_table_classes() {
+	protected function get_table_classes() {
 		$classes = parent::get_table_classes();
 		$classes[] = 'comments-box';
 		return $classes;

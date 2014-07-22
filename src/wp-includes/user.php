@@ -840,57 +840,66 @@ class WP_User_Query {
 	}
 
 	/**
-	 * Make private properties readable for backwards compatibility
+	 * Make private properties readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to get
+	 * @return mixed Property.
 	 */
 	public function __get( $name ) {
 		return $this->$name;
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility
+	 * Make private properties setable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param string $value
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name  Property to set.
+	 * @param mixed  $value Property value.
+	 * @return mixed Newly-set property.
 	 */
 	public function __set( $name, $value ) {
 		return $this->$name = $value;
 	}
 
 	/**
-	 * Make private properties checkable for backwards compatibility
+	 * Make private properties checkable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to check if set.
+	 * @return bool Whether the property is set.
 	 */
 	public function __isset( $name ) {
 		return isset( $this->$name );
 	}
 
 	/**
-	 * Make private properties unsetable for backwards compatibility
+	 * Make private properties unsetable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to unset.
 	 */
 	public function __unset( $name ) {
 		unset( $this->$name );
 	}
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility
+	 * Make private/protected methods readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param array $arguments
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param callable $name      Method to call.
+	 * @param array    $arguments Arguments to pass when calling.
+	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
 		return call_user_func_array( array( $this, $name ), $arguments );
@@ -1252,34 +1261,49 @@ function setup_userdata($for_user_id = '') {
  * used, either 'include' or 'exclude', but not both.
  *
  * The available arguments are as follows:
- * <ol>
- * <li>show_option_all - Text to show all and whether HTML option exists.</li>
- * <li>show_option_none - Text for show none and whether HTML option exists.</li>
- * <li>option_none_value - Value to use when no option is selected.</li>
- * <li>hide_if_only_one_author - Don't create the dropdown if there is only one user.</li>
- * <li>orderby - SQL order by clause for what order the users appear. Default is 'display_name'.</li>
- * <li>order - Default is 'ASC'. Can also be 'DESC'.</li>
- * <li>include - User IDs to include.</li>
- * <li>exclude - User IDs to exclude.</li>
- * <li>multi - Default is 'false'. Whether to skip the ID attribute on the 'select' element. A 'true' value is overridden when id argument is set.</li>
- * <li>show - Default is 'display_name'. User table column to display. If the selected item is empty then the user_login will be displayed in parentheses</li>
- * <li>echo - Default is '1'. Whether to display or retrieve content.</li>
- * <li>selected - Which User ID is selected.</li>
- * <li>include_selected - Always include the selected user ID in the dropdown. Default is false.</li>
- * <li>name - Default is 'user'. Name attribute of select element.</li>
- * <li>id - Default is the value of the 'name' parameter. ID attribute of select element.</li>
- * <li>class - Class attribute of select element.</li>
- * <li>blog_id - ID of blog (Multisite only). Defaults to ID of current blog.</li>
- * <li>who - Which users to query. Currently only 'authors' is supported. Default is all users.</li>
- * </ol>
  *
  * @since 2.3.0
  *
  * @global wpdb $wpdb WordPress database object for queries.
  *
- * @todo Hash-notate arguments array.
+ * @param array|string $args {
+ *     Optional. Array or string of arguments to generate a drop-down of users.
+ *     {@see WP_User_Query::prepare_query() for additional available arguments.
  *
- * @param string|array $args Optional. Array of user arguments.
+ *     @type string       $show_option_all         Text to show as the drop-down default (all).
+ *                                                 Default empty.
+ *     @type string       $show_option_none        Text to show as the drop-down default when no
+ *                                                 users were found. Default empty.
+ *     @type int|string   $option_none_value       Value to use for $show_option_non when no users
+ *                                                 were found. Default -1.
+ *     @type string       $hide_if_only_one_author Whether to skip generating the drop-down
+ *                                                 if only one user was found. Default empty.
+ *     @type string       $orderby                 Field to order found users by. Accepts user fields.
+ *                                                 Default 'display_name'.
+ *     @type string       $order                   Whether to order users in ascending or descending
+ *                                                 order. Accepts 'ASC' (ascending) or 'DESC' (descending).
+ *                                                 Default 'ASC'.
+ *     @type array|string $include                 Array or comma-separated list of user IDs to include.
+ *                                                 Default empty.
+ *     @type array|string $exclude                 Array or comma-separated list of user IDs to exclude.
+ *                                                 Default empty.
+ *     @type bool|int     $multi                   Whether to skip the ID attribute on the 'select' element.
+ *                                                 Accepts 1|true or 0|false. Default 0|false.
+ *     @type string       $show                    User table column to display. If the selected item is empty
+ *                                                 then the 'user_login' will be displayed in parentheses.
+ *                                                 Accepts user fields. Default 'display_name'.
+ *     @type int|bool     $echo                    Whether to echo or return the drop-down. Accepts 1|true (echo)
+ *                                                 or 0|false (return). Default 1|true.
+ *     @type int          $selected                Which user ID should be selected. Default 0.
+ *     @type bool         $include_selected        Whether to always include the selected user ID in the drop-
+ *                                                 down. Default false.
+ *     @type string       $name                    Name attribute of select element. Default 'user'.
+ *     @type string       $id                      ID attribute of the select element. Default is the value of $name.
+ *     @type string       $class                   Class attribute of the select element. Default empty.
+ *     @type int          $blog_id                 ID of blog (Multisite only). Default is ID of the current blog.
+ *     @type string       $who                     Which type of users to query. Accepts only an empty string or
+ *                                                 'authors'. Default empty.
+ * }
  * @return string|null Null on display. String of HTML content on retrieve.
  */
 function wp_dropdown_users( $args = '' ) {
@@ -1564,36 +1588,37 @@ function validate_username( $username ) {
  * by the field name. An example using 'description' would have the filter
  * called, 'pre_user_description' that can be hooked into.
  *
- * The $userdata array can contain the following fields:
- * 'ID' - An integer that will be used for updating an existing user.
- * 'user_pass' - A string that contains the plain text password for the user.
- * 'user_login' - A string that contains the user's username for logging in.
- * 'user_nicename' - A string that contains a URL-friendly name for the user.
- *		The default is the user's username.
- * 'user_url' - A string containing the user's URL for the user's web site.
- * 'user_email' - A string containing the user's email address.
- * 'display_name' - A string that will be shown on the site. Defaults to user's
- *		username. It is likely that you will want to change this, for appearance.
- * 'nickname' - The user's nickname, defaults to the user's username.
- * 'first_name' - The user's first name.
- * 'last_name' - The user's last name.
- * 'description' - A string containing content about the user.
- * 'rich_editing' - A string for whether to enable the rich editor. False
- *		if not empty.
- * 'user_registered' - The date the user registered. Format is 'Y-m-d H:i:s'.
- * 'role' - A string used to set the user's role.
- * 'jabber' - User's Jabber account.
- * 'aim' - User's AOL IM account.
- * 'yim' - User's Yahoo IM account.
- *
  * @since 2.0.0
  *
  * @global wpdb $wpdb WordPress database object for queries.
  *
- * @todo Hash-notate arguments array.
+ * @param array $userdata {
+ *     An array, object, or WP_User object of user data arguments.
  *
- * @param mixed $userdata An array of user data or a user object of type stdClass or WP_User.
- * @return int|WP_Error The newly created user's ID or a WP_Error object if the user could not be created.
+ *     @type int         $ID              User ID. If supplied, the user will be updated.
+ *     @type string      $user_pass       The plain-text user password.
+ *     @type string      $user_login      The user's login username.
+ *     @type string      $user_nicename   The URL-friendly user name.
+ *     @type string      $user_url        The user URL.
+ *     @type string      $user_email      The user email address.
+ *     @type string      $display_name    The user's display name.
+ *                                        Default is the the user's username.
+ *     @type string      $nickname        The user's nickname. Default
+ *                                        Default is the the user's username.
+ *     @type string      $first_name      The user's first name. For new users, will be used
+ *                                        to build $display_name if unspecified.
+ *     @type stirng      $last_name       The user's last name. For new users, will be used
+ *                                        to build $display_name if unspecified.
+ *     @type string|bool $rich_editing    Whether to enable the rich-editor for the user. False
+ *                                        if not empty.
+ *     @type string      $date_registered Date the user registered. Format is 'Y-m-d H:i:s'.
+ *     @type string      $role            User's role.
+ *     @type string      $jabber          User's Jabber account username.
+ *     @type string      $aim             User's AIM account username.
+ *     @type string      $yim             User's Yahoo! messenger username.
+ * }
+ * @return int|WP_Error The newly created user's ID or a WP_Error object if the user could not
+ *                      be created.
  */
 function wp_insert_user( $userdata ) {
 	global $wpdb;
@@ -1888,7 +1913,15 @@ function wp_update_user($userdata) {
 	if ( $current_user->ID == $ID ) {
 		if ( isset($plaintext_pass) ) {
 			wp_clear_auth_cookie();
-			wp_set_auth_cookie($ID);
+
+			// Here we calculate the expiration length of the current auth cookie and compare it to the default expiration.
+			// If it's greater than this, then we know the user checked 'Remember Me' when they logged in.
+			$logged_in_cookie    = wp_parse_auth_cookie( '', 'logged_in' );
+			/** This filter is documented in wp-includes/pluggable.php */
+			$default_cookie_life = apply_filters( 'auth_cookie_expiration', ( 2 * DAY_IN_SECONDS ), $ID, false );
+			$remember            = ( ( $logged_in_cookie['expiration'] - time() ) > $default_cookie_life );
+
+			wp_set_auth_cookie( $ID, $remember );
 		}
 	}
 
@@ -2139,4 +2172,63 @@ function register_new_user( $user_login, $user_email ) {
 	wp_new_user_notification( $user_id, $user_pass );
 
 	return $user_id;
+}
+
+/**
+ * Retrieve the current session token from the logged_in cookie.
+ *
+ * @since 4.0.0
+ *
+ * @return string Token.
+ */
+function wp_get_session_token() {
+	$cookie = wp_parse_auth_cookie( '', 'logged_in' );
+	return ! empty( $cookie['token'] ) ? $cookie['token'] : '';
+}
+
+/**
+ * Retrieve a list of sessions for the current user.
+ *
+ * @since 4.0.0
+ * @return array Array of sessions.
+ */
+function wp_get_all_sessions() {
+	$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+	return $manager->get_all_sessions();
+}
+
+/**
+ * Remove the current session token from the database.
+ *
+ * @since 4.0.0
+ */
+function wp_destroy_current_session() {
+	$token = wp_get_session_token();
+	if ( $token ) {
+		$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+		$manager->destroy_token( $token );
+	}
+}
+
+/**
+ * Remove all but the current session token for the current user for the database.
+ *
+ * @since 4.0.0
+ */
+function wp_destroy_other_sessions() {
+	$token = wp_get_session_token();
+	if ( $token ) {
+		$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+		$manager->destroy_other_tokens( $token );
+	}
+}
+
+/**
+ * Remove all session tokens for the current user from the database.
+ *
+ * @since 4.0.0
+ */
+function wp_destroy_all_sessions() {
+	$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
+	$manager->destroy_all_tokens();
 }

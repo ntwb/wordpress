@@ -46,7 +46,7 @@ class WP_oEmbed {
 			'http://i*.photobucket.com/albums/*'                  => array( 'http://photobucket.com/oembed',                      false ),
 			'http://gi*.photobucket.com/groups/*'                 => array( 'http://photobucket.com/oembed',                      false ),
 			'#https?://(www\.)?scribd\.com/doc/.*#i'              => array( 'http://www.scribd.com/services/oembed',              true  ),
-			'http://wordpress.tv/*'                               => array( 'http://wordpress.tv/oembed/',                        false ),
+			'#https?://wordpress.tv/.*#i'                         => array( 'http://wordpress.tv/oembed/',                        true ),
 			'#https?://(.+\.)?polldaddy\.com/.*#i'                => array( 'http://polldaddy.com/oembed/',                       true  ),
 			'#https?://poll\.fm/.*#i'                             => array( 'http://polldaddy.com/oembed/',                       true  ),
 			'#https?://(www\.)?funnyordie\.com/videos/.*#i'       => array( 'http://www.funnyordie.com/oembed',                   true  ),
@@ -88,53 +88,61 @@ class WP_oEmbed {
 		 *
 		 * Supported providers:
 		 *
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * |   Provider   |        Flavor        |  SSL  |       Since        |
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * | Blip         | blip.tv              |       | 2.9.0              |
-		 * | Dailymotion  | dailymotion.com      |  Yes  | 2.9.0              |
-		 * | Flickr       | flickr.com           |  Yes  | 2.9.0              |
-		 * | Hulu         | hulu.com             |  Yes  | 2.9.0              |
-		 * | Photobucket  | photobucket.com      |       | 2.9.0              |
-		 * | Qik          | qik.com              |       | 2.9.0 (deprecated) |
-		 * | Revision3    | revision3.com        |       | 2.9.0              |
-		 * | Scribd       | scribd.com           |  Yes  | 2.9.0              |
-		 * | Viddler      | viddler.com          |       | 2.9.0 (deprecated) |
-		 * | Vimeo        | vimeo.com            |  Yes  | 2.9.0              |
-		 * | WordPress.tv | wordpress.tv         |       | 2.9.0              |
-		 * | YouTube      | youtube.com/watch    |  Both | 2.9.0              |
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * | Funny or Die | funnyordie.com       |  Yes  | 3.0.0              |
-		 * | Polldaddy    | polldaddy.com        |  Yes  | 3.0.0              |
-		 * | SmugMug      | smugmug.com          |  Yes  | 3.0.0              |
-		 * | YouTube      | youtu.be             |  Both | 3.0.0              |
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * | Twitter      | twitter.com          |  Yes  | 3.4.0              |
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * | Instagram    | instagram.com        |       | 3.5.0              |
-		 * | Instagram    | instagr.am           |       | 3.5.0              |
-		 * | Slideshare   | slideshare.net       |  Yes  | 3.5.0              |
-		 * | SoundCloud   | soundcloud.com       |  Yes  | 3.5.0              |
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * | Dailymotion  | dai.ly               |       | 3.6.0              |
-		 * | Flickr       | flic.kr              |  Yes  | 3.6.0              |
-		 * | Rdio         | rdio.com             |  Yes  | 3.6.0              |
-		 * | Rdio         | rd.io                |  Yes  | 3.6.0              |
-		 * | Spotify      | spotify.com          |  Yes  | 3.6.0              |
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * | Imgur        | imgur.com            |  Yes  | 3.9.0              |
-		 * | Meetup.com   | meetup.com           |  Yes  | 3.9.0              |
-		 * | Meetup.com   | meetu.ps             |  Yes  | 3.9.0              |
-		 * | ------------ | -------------------- | ----- | ------------------ |
-		 * | Animoto      | animoto.com          |  Yes  | 4.0.0              |
-		 * | Animoto      | video214.com         |  Yes  | 4.0.0              |
-		 * | CollegeHumor | collegehumor.com     |  Yes  | 4.0.0              |
-		 * | Issuu        | issuu.com            |  Yes  | 4.0.0              |
-		 * | Mixcloud     | mixcloud.com         |  Yes  | 4.0.0              |
-		 * | Polldaddy    | poll.fm              |  Yes  | 4.0.0              |
-		 * | TED          | ted.com              |  Yes  | 4.0.0              |
-		 * | YouTube      | youtube.com/playlist |  Both | 4.0.0              |
-		 * | ------------ | -------------------- | ----- | ------------------ |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * |   Provider   |        Flavor        |  SSL  |   Since   |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * | Blip         | blip.tv              |       | 2.9.0     |
+		 * | Dailymotion  | dailymotion.com      |  Yes  | 2.9.0     |
+		 * | Flickr       | flickr.com           |  Yes  | 2.9.0     |
+		 * | Hulu         | hulu.com             |  Yes  | 2.9.0     |
+		 * | Photobucket  | photobucket.com      |       | 2.9.0     |
+		 * | Revision3    | revision3.com        |       | 2.9.0     |
+		 * | Scribd       | scribd.com           |  Yes  | 2.9.0     |
+		 * | Vimeo        | vimeo.com            |  Yes  | 2.9.0     |
+		 * | WordPress.tv | wordpress.tv         |  Yes  | 2.9.0     |
+		 * | YouTube      | youtube.com/watch    |  Yes  | 2.9.0     |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * | Funny or Die | funnyordie.com       |  Yes  | 3.0.0     |
+		 * | Polldaddy    | polldaddy.com        |  Yes  | 3.0.0     |
+		 * | SmugMug      | smugmug.com          |  Yes  | 3.0.0     |
+		 * | YouTube      | youtu.be             |  Yes  | 3.0.0     |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * | Twitter      | twitter.com          |  Yes  | 3.4.0     |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * | Instagram    | instagram.com        |       | 3.5.0     |
+		 * | Instagram    | instagr.am           |       | 3.5.0     |
+		 * | Slideshare   | slideshare.net       |  Yes  | 3.5.0     |
+		 * | SoundCloud   | soundcloud.com       |  Yes  | 3.5.0     |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * | Dailymotion  | dai.ly               |       | 3.6.0     |
+		 * | Flickr       | flic.kr              |  Yes  | 3.6.0     |
+		 * | Rdio         | rdio.com             |  Yes  | 3.6.0     |
+		 * | Rdio         | rd.io                |  Yes  | 3.6.0     |
+		 * | Spotify      | spotify.com          |  Yes  | 3.6.0     |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * | Imgur        | imgur.com            |  Yes  | 3.9.0     |
+		 * | Meetup.com   | meetup.com           |  Yes  | 3.9.0     |
+		 * | Meetup.com   | meetu.ps             |  Yes  | 3.9.0     |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 * | Animoto      | animoto.com          |  Yes  | 4.0.0     |
+		 * | Animoto      | video214.com         |  Yes  | 4.0.0     |
+		 * | CollegeHumor | collegehumor.com     |  Yes  | 4.0.0     |
+		 * | Issuu        | issuu.com            |  Yes  | 4.0.0     |
+		 * | Mixcloud     | mixcloud.com         |  Yes  | 4.0.0     |
+		 * | Polldaddy    | poll.fm              |  Yes  | 4.0.0     |
+		 * | TED          | ted.com              |  Yes  | 4.0.0     |
+		 * | YouTube      | youtube.com/playlist |  Yes  | 4.0.0     |
+		 * | ------------ | -------------------- | ----- | --------- |
+		 *
+		 * No longer supported providers:
+		 *
+		 * | ------------ | -------------------- | ----- | --------- | --------- |
+		 * |   Provider   |        Flavor        |  SSL  |   Since   |  Removed  |
+		 * | ------------ | -------------------- | ----- | --------- | --------- |
+		 * | Qik          | qik.com              |  Yes  | 2.9.0     | 3.9.0     |
+		 * | ------------ | -------------------- | ----- | --------- | --------- |
+		 * | Viddler      | viddler.com          |  Yes  | 2.9.0     | 4.0.0     |
+		 * | ------------ | -------------------- | ----- | --------- | --------- |
 		 *
 		 * @see wp_oembed_add_provider()
 		 *
@@ -149,12 +157,14 @@ class WP_oEmbed {
 	}
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility
+	 * Make private/protected methods readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param array $arguments
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param callable $name      Method to call.
+	 * @param array    $arguments Arguments to pass when calling.
+	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
 		return call_user_func_array( array( $this, $name ), $arguments );
@@ -163,12 +173,14 @@ class WP_oEmbed {
 	/**
 	 * Takes a URL and returns the corresponding oEmbed provider's URL, if there is one.
 	 *
+	 * @since 4.0.0
+	 * @access public
+	 *
 	 * @see WP_oEmbed::discover()
 	 *
-	 * @param string $url  The URL to the content.
-	 * @param array  $args Optional arguments.
+	 * @param string        $url  The URL to the content.
+	 * @param string|array  $args Optional provider arguments.
 	 * @return bool|string False on failure, otherwise the oEmbed provider URL.
-	 * @since 4.0.0
 	 */
 	public function get_provider( $url, $args = '' ) {
 
@@ -198,6 +210,24 @@ class WP_oEmbed {
 		return $provider;
 	}
 
+	/**
+	 * Add an oEmbed provider just-in-time when wp_oembed_add_provider() is called
+	 * before the 'plugins_loaded' hook.
+	 *
+	 * The just-in-time addition is for the benefit of the 'oembed_providers' filter.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 * @static
+	 *
+	 * @see wp_oembed_add_provider()
+	 *
+	 * @param string $format   Format of URL that this provider can handle. You can use
+	 *                         asterisks as wildcards.
+	 * @param string $provider The URL to the oEmbed provider..
+	 * @param bool   $regex    Optional. Whether the $format parameter is in a regex format.
+	 *                         Default false.
+	 */
 	public static function _add_provider_early( $format, $provider, $regex = false ) {
 		if ( empty( self::$early_providers['add'] ) ) {
 			self::$early_providers['add'] = array();
@@ -206,6 +236,21 @@ class WP_oEmbed {
 		self::$early_providers['add'][ $format ] = array( $provider, $regex );
 	}
 
+	/**
+	 * Remove an oEmbed provider just-in-time when wp_oembed_remove_provider() is called
+	 * before the 'plugins_loaded' hook.
+	 *
+	 * The just-in-time removal is for the benefit of the 'oembed_providers' filter.
+	 *
+	 * @since 4.0.0
+	 * @access public
+	 * @static
+	 *
+	 * @see wp_oembed_remove_provider()
+	 *
+	 * @param string $format The format of URL that this provider can handle. You can use
+	 *                       asterisks as wildcards.
+	 */
 	public static function _remove_provider_early( $format ) {
 		if ( empty( self::$early_providers['remove'] ) ) {
 			self::$early_providers['remove'] = array();

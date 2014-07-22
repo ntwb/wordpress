@@ -61,8 +61,10 @@ function wp_install( $blog_title, $user_name, $user_email, $public, $deprecated 
 	if ( ! $public )
 		update_option('default_pingback_flag', 0);
 
-	// Create default user. If the user already exists, the user tables are
-	// being shared among blogs. Just set the role in that case.
+	/*
+	 * Create default user. If the user already exists, the user tables are
+	 * being shared among blogs. Just set the role in that case.
+	 */
 	$user_id = username_exists($user_name);
 	$user_password = trim($user_password);
 	$email_password = false;
@@ -625,8 +627,10 @@ function upgrade_130() {
 
 	$active_plugins = __get_option('active_plugins');
 
-	// If plugins are not stored in an array, they're stored in the old
-	// newline separated format. Convert to new format.
+	/*
+	 * If plugins are not stored in an array, they're stored in the old
+	 * newline separated format. Convert to new format.
+	 */
 	if ( !is_array( $active_plugins ) ) {
 		$active_plugins = explode("\n", trim($active_plugins));
 		update_option('active_plugins', $active_plugins);
@@ -716,14 +720,16 @@ function upgrade_160() {
 		$wpdb->query("ALTER TABLE $wpdb->users DROP $old");
 	$wpdb->show_errors();
 
-	// populate comment_count field of posts table
+	// Populate comment_count field of posts table.
 	$comments = $wpdb->get_results( "SELECT comment_post_ID, COUNT(*) as c FROM $wpdb->comments WHERE comment_approved = '1' GROUP BY comment_post_ID" );
 	if ( is_array( $comments ) )
 		foreach ($comments as $comment)
 			$wpdb->update( $wpdb->posts, array('comment_count' => $comment->c), array('ID' => $comment->comment_post_ID) );
 
-	// Some alpha versions used a post status of object instead of attachment and put
-	// the mime type in post_type instead of post_mime_type.
+	/*
+	 * Some alpha versions used a post status of object instead of attachment
+	 * and put the mime type in post_type instead of post_mime_type.
+	 */
 	if ( $wp_current_db_version > 2541 && $wp_current_db_version <= 3091 ) {
 		$objects = $wpdb->get_results("SELECT ID, post_type FROM $wpdb->posts WHERE post_status = 'object'");
 		foreach ($objects as $object) {
@@ -880,8 +886,10 @@ function upgrade_230() {
 
 	// < 3570 we used linkcategories. >= 3570 we used categories and link2cat.
 	if ( $wp_current_db_version < 3570 ) {
-		// Create link_category terms for link categories. Create a map of link cat IDs
-		// to link_category terms.
+		/*
+		 * Create link_category terms for link categories. Create a map of link
+		 * cat IDs to link_category terms.
+		 */
 		$link_cat_id_map = array();
 		$default_link_cat = 0;
 		$tt_ids = array();
@@ -989,7 +997,7 @@ function upgrade_230_old_tables() {
  * @since 2.2.0
  */
 function upgrade_old_slugs() {
-	// upgrade people who were using the Redirect Old Slugs plugin
+	// Upgrade people who were using the Redirect Old Slugs plugin.
 	global $wpdb;
 	$wpdb->query("UPDATE $wpdb->postmeta SET meta_key = '_wp_old_slug' WHERE meta_key = 'old_slug'");
 }
@@ -1304,11 +1312,13 @@ function upgrade_380() {
 function upgrade_network() {
 	global $wp_current_db_version, $wpdb;
 
-	// Always
+	// Always.
 	if ( is_main_network() ) {
-		// Deletes all expired transients.
-		// The multi-table delete syntax is used to delete the transient record from table a,
-		// and the corresponding transient_timeout record from table b.
+		/*
+		 * Deletes all expired transients. The multi-table delete syntax is used
+		 * to delete the transient record from table a, and the corresponding
+		 * transient_timeout record from table b.
+		 */
 		$time = time();
 		$sql = "DELETE a, b FROM $wpdb->sitemeta a, $wpdb->sitemeta b
 			WHERE a.meta_key LIKE %s
@@ -1318,7 +1328,7 @@ function upgrade_network() {
 		$wpdb->query( $wpdb->prepare( $sql, $wpdb->esc_like( '_site_transient_' ) . '%', $wpdb->esc_like ( '_site_transient_timeout_' ) . '%', $time ) );
 	}
 
-	// 2.8
+	// 2.8.
 	if ( $wp_current_db_version < 11549 ) {
 		$wpmu_sitewide_plugins = get_site_option( 'wpmu_sitewide_plugins' );
 		$active_sitewide_plugins = get_site_option( 'active_sitewide_plugins' );
@@ -1415,9 +1425,11 @@ function maybe_create_table($table_name, $create_ddl) {
 	if ( $wpdb->get_var( $query ) == $table_name ) {
 		return true;
 	}
-	//didn't find it try to create it.
+
+	// Didn't find it try to create it..
 	$wpdb->query($create_ddl);
-	// we cannot directly tell that whether this succeeded!
+
+	// We cannot directly tell that whether this succeeded!
 	if ( $wpdb->get_var( $query ) == $table_name ) {
 		return true;
 	}
@@ -1478,9 +1490,11 @@ function maybe_add_column($table_name, $column_name, $create_ddl) {
 			return true;
 		}
 	}
-	//didn't find it try to create it.
+
+	// Didn't find it try to create it.
 	$wpdb->query($create_ddl);
-	// we cannot directly tell that whether this succeeded!
+
+	// We cannot directly tell that whether this succeeded!
 	foreach ($wpdb->get_col("DESC $table_name", 0) as $column ) {
 		if ($column == $column_name) {
 			return true;
@@ -1551,12 +1565,16 @@ function __get_option($setting) {
 function deslash($content) {
 	// Note: \\\ inside a regex denotes a single backslash.
 
-	// Replace one or more backslashes followed by a single quote with
-	// a single quote.
+	/*
+	 * Replace one or more backslashes followed by a single quote with
+	 * a single quote.
+	 */
 	$content = preg_replace("/\\\+'/", "'", $content);
 
-	// Replace one or more backslashes followed by a double quote with
-	// a double quote.
+	/*
+	 * Replace one or more backslashes followed by a double quote with
+	 * a double quote.
+	 */
 	$content = preg_replace('/\\\+"/', '"', $content);
 
 	// Replace one or more backslashes with one backslash.
@@ -1655,24 +1673,27 @@ function dbDelta( $queries = '', $execute = true ) {
 		if ( ! $tablefields )
 			continue;
 
-		// Clear the field and index arrays
+		// Clear the field and index arrays.
 		$cfields = $indices = array();
-		// Get all of the field names in the query from between the parens
+
+		// Get all of the field names in the query from between the parentheses.
 		preg_match("|\((.*)\)|ms", $qry, $match2);
 		$qryline = trim($match2[1]);
 
-		// Separate field lines into an array
+		// Separate field lines into an array.
 		$flds = explode("\n", $qryline);
 
+		// todo: Remove this?
 		//echo "<hr/><pre>\n".print_r(strtolower($table), true).":\n".print_r($cqueries, true)."</pre><hr/>";
 
-		// For every field line specified in the query
+		// For every field line specified in the query.
 		foreach ($flds as $fld) {
-			// Extract the field name
+
+			// Extract the field name.
 			preg_match("|^([^ ]*)|", trim($fld), $fvals);
 			$fieldname = trim( $fvals[1], '`' );
 
-			// Verify the found field name
+			// Verify the found field name.
 			$validfield = true;
 			switch (strtolower($fieldname)) {
 			case '':
@@ -1687,17 +1708,19 @@ function dbDelta( $queries = '', $execute = true ) {
 			}
 			$fld = trim($fld);
 
-			// If it's a valid field, add it to the field array
+			// If it's a valid field, add it to the field array.
 			if ($validfield) {
 				$cfields[strtolower($fieldname)] = trim($fld, ", \n");
 			}
 		}
 
-		// For every field in the table
+		// For every field in the table.
 		foreach ($tablefields as $tablefield) {
-			// If the table field exists in the field array...
+
+			// If the table field exists in the field array ...
 			if (array_key_exists(strtolower($tablefield->Field), $cfields)) {
-				// Get the field type from the query
+
+				// Get the field type from the query.
 				preg_match("|".$tablefield->Field." ([^ ]*( unsigned)?)|i", $cfields[strtolower($tablefield->Field)], $matches);
 				$fieldtype = $matches[1];
 
@@ -1709,6 +1732,7 @@ function dbDelta( $queries = '', $execute = true ) {
 				}
 
 				// Get the default value from the array
+					// todo: Remove this?
 					//echo "{$cfields[strtolower($tablefield->Field)]}<br>";
 				if (preg_match("| DEFAULT '(.*?)'|i", $cfields[strtolower($tablefield->Field)], $matches)) {
 					$default_value = $matches[1];
@@ -1719,39 +1743,40 @@ function dbDelta( $queries = '', $execute = true ) {
 					}
 				}
 
-				// Remove the field from the array (so it's not added)
+				// Remove the field from the array (so it's not added).
 				unset($cfields[strtolower($tablefield->Field)]);
 			} else {
 				// This field exists in the table, but not in the creation queries?
 			}
 		}
 
-		// For every remaining field specified for the table
+		// For every remaining field specified for the table.
 		foreach ($cfields as $fieldname => $fielddef) {
-			// Push a query line into $cqueries that adds the field to that table
+			// Push a query line into $cqueries that adds the field to that table.
 			$cqueries[] = "ALTER TABLE {$table} ADD COLUMN $fielddef";
 			$for_update[$table.'.'.$fieldname] = 'Added column '.$table.'.'.$fieldname;
 		}
 
-		// Index stuff goes here
-		// Fetch the table index structure from the database
+		// Index stuff goes here. Fetch the table index structure from the database.
 		$tableindices = $wpdb->get_results("SHOW INDEX FROM {$table};");
 
 		if ($tableindices) {
-			// Clear the index array
+			// Clear the index array.
 			unset($index_ary);
 
-			// For every index in the table
+			// For every index in the table.
 			foreach ($tableindices as $tableindex) {
-				// Add the index to the index data array
+
+				// Add the index to the index data array.
 				$keyname = $tableindex->Key_name;
 				$index_ary[$keyname]['columns'][] = array('fieldname' => $tableindex->Column_name, 'subpart' => $tableindex->Sub_part);
 				$index_ary[$keyname]['unique'] = ($tableindex->Non_unique == 0)?true:false;
 			}
 
-			// For each actual index in the index array
+			// For each actual index in the index array.
 			foreach ($index_ary as $index_name => $index_data) {
-				// Build a create string to compare to the query
+
+				// Build a create string to compare to the query.
 				$index_string = '';
 				if ($index_name == 'PRIMARY') {
 					$index_string .= 'PRIMARY ';
@@ -1763,39 +1788,44 @@ function dbDelta( $queries = '', $execute = true ) {
 					$index_string .= $index_name;
 				}
 				$index_columns = '';
-				// For each column in the index
+
+				// For each column in the index.
 				foreach ($index_data['columns'] as $column_data) {
 					if ($index_columns != '') $index_columns .= ',';
-					// Add the field to the column list string
+
+					// Add the field to the column list string.
 					$index_columns .= $column_data['fieldname'];
 					if ($column_data['subpart'] != '') {
 						$index_columns .= '('.$column_data['subpart'].')';
 					}
 				}
-				// Add the column list to the index create string
+				// Add the column list to the index create string.
 				$index_string .= ' ('.$index_columns.')';
 				if (!(($aindex = array_search($index_string, $indices)) === false)) {
 					unset($indices[$aindex]);
+					// todo: Remove this?
 					//echo "<pre style=\"border:1px solid #ccc;margin-top:5px;\">{$table}:<br />Found index:".$index_string."</pre>\n";
 				}
+				// todo: Remove this?
 				//else echo "<pre style=\"border:1px solid #ccc;margin-top:5px;\">{$table}:<br /><b>Did not find index:</b>".$index_string."<br />".print_r($indices, true)."</pre>\n";
 			}
 		}
 
-		// For every remaining index specified for the table
+		// For every remaining index specified for the table.
 		foreach ( (array) $indices as $index ) {
-			// Push a query line into $cqueries that adds the index to that table
+			// Push a query line into $cqueries that adds the index to that table.
 			$cqueries[] = "ALTER TABLE {$table} ADD $index";
 			$for_update[] = 'Added index ' . $table . ' ' . $index;
 		}
 
-		// Remove the original table creation query from processing
+		// Remove the original table creation query from processing.
 		unset( $cqueries[ $table ], $for_update[ $table ] );
 	}
 
 	$allqueries = array_merge($cqueries, $iqueries);
 	if ($execute) {
 		foreach ($allqueries as $query) {
+			// todo: Remove this?
 			//echo "<pre style=\"border:1px solid #ccc;margin-top:5px;\">".print_r($query, true)."</pre>\n";
 			$wpdb->query($query);
 		}
@@ -1847,9 +1877,10 @@ function make_site_theme_from_oldschool($theme_name, $template) {
 	if (! file_exists("$home_path/index.php"))
 		return false;
 
-	// Copy files from the old locations to the site theme.
-	// TODO: This does not copy arbitrary include dependencies. Only the
-	// standard WP files are copied.
+	/*
+	 * Copy files from the old locations to the site theme.
+	 * TODO: This does not copy arbitrary include dependencies. Only the standard WP files are copied.
+	 */
 	$files = array('index.php' => 'index.php', 'wp-layout.css' => 'style.css', 'wp-comments.php' => 'comments.php', 'wp-comments-popup.php' => 'comments-popup.php');
 
 	foreach ($files as $oldfile => $newfile) {
@@ -1858,12 +1889,15 @@ function make_site_theme_from_oldschool($theme_name, $template) {
 		else
 			$oldpath = ABSPATH;
 
-		if ($oldfile == 'index.php') { // Check to make sure it's not a new index
+		// Check to make sure it's not a new index.
+		if ($oldfile == 'index.php') {
 			$index = implode('', file("$oldpath/$oldfile"));
 			if (strpos($index, 'WP_USE_THEMES') !== false) {
 				if (! @copy(WP_CONTENT_DIR . '/themes/' . WP_DEFAULT_THEME . '/index.php', "$site_dir/$newfile"))
 					return false;
-				continue; // Don't copy anything
+
+				// Don't copy anything.
+				continue;
 				}
 		}
 
@@ -2159,33 +2193,39 @@ CREATE TABLE $wpdb->sitecategories (
 }
 endif;
 
-function wp_install_language_form( $body ) {
+function wp_install_language_form( $languages ) {
 	echo "<fieldset>\n";
 	echo "<legend class='screen-reader-text'>Select a default language</legend>\n";
-	echo '<input type="radio" checked="checked" class="screen-reader-input" name="language" id="language_default" value="">';
-	echo '<label for="language_default">English (United States)</label>';
+	echo '<input type="radio" checked="checked" class="screen-reader-input language-chooser-input" name="language" id="language_default" value="">';
+	echo '<label for="language_default" lang="en">English (United States)</label>';
 	echo "\n";
 
 	if ( defined( 'WPLANG' ) && ( '' !== WPLANG ) && ( 'en_US' !== WPLANG ) ) {
-		if ( isset( $body['languages'][WPLANG] ) ) {
-			$language = $body['languages'][WPLANG];
+		if ( isset( $languages[ WPLANG ] ) ) {
+			$language = $languages[ WPLANG ];
 			echo '<input type="radio" name="language" checked="checked" class="' . esc_attr( $language['language'] ) . ' screen-reader-input" id="language_wplang" value="' . esc_attr( $language['language'] ) . '">';
-			echo '<label for="language_wplang">' . esc_html( $language['native_name'] ) . "</label>\n";
+			echo '<label for="language_wplang" lang="' . esc_attr( $language['iso'][1] ) . '">' . esc_html( $language['native_name'] ) . "</label>\n";
 		}
 	}
 
-	foreach ( $body['languages'] as $language ) {
-		echo '<input type="radio" name="language" class="' . esc_attr( $language['language'] ) . ' screen-reader-input" id="language_'. esc_attr( $language['language'] ) .'" value="' . esc_attr( $language['language'] ) . '">';
-		echo '<label for="language_' . esc_attr( $language['language'] ) . '">' . esc_html( $language['native_name'] ) . "</label>\n";
+	foreach ( $languages as $language ) {
+		echo '<input type="radio" name="language" class="' . esc_attr( $language['language'] ) . ' screen-reader-input language-chooser-input" id="language_'. esc_attr( $language['language'] ) .'" value="' . esc_attr( $language['language'] ) . '">';
+		echo '<label for="language_' . esc_attr( $language['language'] ) . '" lang="' . esc_attr( $language['iso'][1] ) . '">' . esc_html( $language['native_name'] ) . "</label>\n";
 	}
 	echo "</fieldset>\n";
-	echo '<p class="step"><input type="submit" class="button button-primary button-hero" value="&raquo;" /></p>';
+	echo '<p class="step"><span class="spinner"></span><input type="submit" class="button button-primary button-hero" value="&raquo;" /></p>';
 }
 
 /**
- * @todo rename, move
+ * Get available translations from the WordPress.org API.
+ *
+ * @since 4.0.0
+ *
+ * @see wp_remote_post()
+ *
+ * @return array Array of translations, each an array of data.
  */
-function wp_get_available_translations() {
+function wp_get_available_translations_from_api() {
 	$url = 'http://api.wordpress.org/translations/core/1.0/';
 	if ( wp_http_supports( array( 'ssl' ) ) ) {
 		$url = set_url_scheme( $url, 'https' );
@@ -2199,67 +2239,85 @@ function wp_get_available_translations() {
 	$response = wp_remote_post( $url, $options );
 	$body = wp_remote_retrieve_body( $response );
 	if ( $body && $body = json_decode( $body, true ) ) {
-		$languages = array();
-		// Key the language array with the language code
-		foreach ( $body['languages'] as $language ) {
-			$languages[$language['language']] = $language;
+		$translations = array();
+		// Key the array with the language code for now
+		foreach ( $body['translations'] as $translation ) {
+			$translations[ $translation['language'] ] = $translation;
 		}
-		$body['languages'] = $languages;
-		return $body;
+		return $translations;
 	}
 	return false;
 }
 
-function wp_install_download_language_pack( $language ) {
-	// Check if the language is already installed.
-	$available_languages = get_available_languages();
-	if ( in_array( $language->language, $available_languages ) ) {
-		return $language->language;
+/**
+ * Download a language pack.
+ *
+ * @since 4.0.0
+ *
+ * @see wp_get_available_translations_from_api()
+ *
+ * @param string $download Language code to download.
+ * @return string|bool Returns the language code if successfully downloaded
+ *                     (or already installed), or false on failure.
+ */
+function wp_install_download_language_pack( $download ) {
+	// Check if the translation is already installed.
+	if ( in_array( $download, get_available_languages() ) ) {
+		return $download;
 	}
 
-	// Confirm the language is one we can download.
-	$body = wp_get_available_translations();
-	$loading_language = false;
-	if ( $body ) {
-		foreach ( $body['languages'] as $language ) {
-			if ( $language['language'] === $_REQUEST['language'] ) {
-				$loading_language = $_REQUEST['language'];
-				break;
-			}
+	// Confirm the translation is one we can download.
+	$translations = wp_get_available_translations_from_api();
+	if ( ! $translations ) {
+		return false;
+	}
+	foreach ( $translations as $translation ) {
+		if ( $translation['language'] === $download ) {
+			$translation_to_load = true;
+			break;
 		}
 	}
 
-	if ( ! $loading_language ) {
+	if ( empty( $translation_to_load ) ) {
 		return false;
 	}
-	$language = (object) $language;
+	$translation = (object) $translation;
 
 	require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
 	$skin = new Automatic_Upgrader_Skin;
 	$upgrader = new Language_Pack_Upgrader( $skin );
-	$options = array( 'clear_update_cache' => false );
-	$language->type = 'core';
+	$translation->type = 'core';
 	/**
 	 * @todo failures (such as non-direct FS)
 	 */
-	$upgrader->upgrade( $language, array( 'clear_update_cache' => false ) );
-	return $language->language;
+	$upgrader->upgrade( $translation, array( 'clear_update_cache' => false ) );
+	return $translation->language;
 }
 
-function wp_install_load_language( $request ) {
-	$loading_language = '';
-	if ( ! empty( $request ) ) {
-		$available_languages = get_available_languages();
-		if ( in_array( $request, $available_languages ) ) {
-			$loading_language = $request;
+/**
+ * Load a translation during the install process.
+ *
+ * @since 4.0.0
+ *
+ * @see load_textdomain()
+ *
+ * @param string $translation Translation to load.
+ * @return string|bool Returns the language code if successfully loaded,
+ *                     or false on failure.
+ */
+function wp_install_load_language( $translation ) {
+	if ( ! empty( $translation ) ) {
+		if ( in_array( $translation, get_available_languages() ) ) {
+			$translation_to_load = $translation;
 		}
 	}
 
-	if ( $loading_language ) {
-		load_textdomain( 'default', WP_LANG_DIR . "/{$loading_language}.mo" );
-		load_textdomain( 'default', WP_LANG_DIR . "/admin-{$loading_language}.mo" );
-		return $loading_language;
+	if ( empty( $translation_to_load ) ) {
+		return false;
 	}
 
-	return false;
+	unload_textdomain( 'default' ); // Start over.
+	load_textdomain( 'default', WP_LANG_DIR . "/{$translation_to_load}.mo" );
+	load_textdomain( 'default', WP_LANG_DIR . "/admin-{$translation_to_load}.mo" );
+	return $translation_to_load;
 }

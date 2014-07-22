@@ -81,45 +81,52 @@ class Custom_Image_Header {
 	}
 
 	/**
-	 * Make private properties readable for backwards compatibility
+	 * Make private properties readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to get.
+	 * @return mixed Property.
 	 */
 	public function __get( $name ) {
 		return $this->$name;
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility
+	 * Make private properties setable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param string $value
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name  Property to set.
+	 * @param mixed  $value Property value.
+	 * @return mixed Newly-set property.
 	 */
 	public function __set( $name, $value ) {
 		return $this->$name = $value;
 	}
 
 	/**
-	 * Make private properties checkable for backwards compatibility
+	 * Make private properties checkable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to check if set.
+	 * @return bool Whether the property is set.
 	 */
 	public function __isset( $name ) {
 		return isset( $this->$name );
 	}
 
 	/**
-	 * Make private properties unsetable for backwards compatibility
+	 * Make private properties unsetable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to unset.
 	 */
 	public function __unset( $name ) {
 		unset( $this->$name );
@@ -927,7 +934,7 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		$url = $object['guid'];
 		$this->set_header_image( compact( 'url', 'attachment_id', 'width', 'height' ) );
 
-		// cleanup
+		// Cleanup.
 		$medium = str_replace( basename( $original ), 'midsize-' . basename( $original ), $original );
 		if ( file_exists( $medium ) ) {
 			/**

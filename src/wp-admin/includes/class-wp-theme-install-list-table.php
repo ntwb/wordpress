@@ -92,7 +92,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 				break;
 
 			case 'featured':
-			//case 'popular':
+			// case 'popular':
 			case 'new':
 			case 'updated':
 				$args['browse'] = $tab;
@@ -176,7 +176,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		parent::tablenav( 'bottom' );
 	}
 
-	protected function display_rows() {
+	public function display_rows() {
 		$themes = $this->items;
 		foreach ( $themes as $theme ) {
 				?>
@@ -207,7 +207,7 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 	 *     public 'description' => string 'A basic magazine style layout with a fully customizable layout through a backend interface. Designed by <a href="http://bavotasan.com">c.bavota</a> of <a href="http://tinkerpriestmedia.com">Tinker Priest Media</a>.'
 	 *     public 'download_link' => string 'http://wordpress.org/themes/download/magazine-basic.1.1.zip'
 	 */
-	protected function single_row( $theme ) {
+	public function single_row( $theme ) {
 		global $themes_allowedtags;
 
 		if ( empty( $theme ) )
@@ -343,8 +343,6 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 		$name   = wp_kses( $theme->name,   $themes_allowedtags );
 		$author = wp_kses( $theme->author, $themes_allowedtags );
 
-		$num_ratings = sprintf( _n( '(based on %s rating)', '(based on %s ratings)', $theme->num_ratings ), number_format_i18n( $theme->num_ratings ) );
-
 		$install_url = add_query_arg( array(
 			'action' => 'install-theme',
 			'theme'  => $theme->slug,
@@ -396,12 +394,12 @@ class WP_Theme_Install_List_Table extends WP_Themes_List_Table {
 	 * Send required variables to JavaScript land
 	 *
 	 * @since 3.4.0
-	 * @access private
+	 * @access public
 	 *
 	 * @uses $tab Global; current tab within Themes->Install screen
 	 * @uses $type Global; type of search.
 	 */
-	private function _js_vars( $extra_args = array() ) {
+	public function _js_vars( $extra_args = array() ) {
 		global $tab, $type;
 		parent::_js_vars( compact( 'tab', 'type' ) );
 	}

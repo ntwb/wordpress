@@ -345,6 +345,7 @@ function wp_default_scripts( &$scripts ) {
 	) );
 
 	$scripts->add( 'user-profile', "/wp-admin/js/user-profile$suffix.js", array( 'jquery', 'password-strength-meter' ), false, 1 );
+	$scripts->add( 'language-chooser', "/wp-admin/js/language-chooser$suffix.js", array( 'jquery' ), false, 1 );
 
 	$scripts->add( 'user-suggest', "/wp-admin/js/user-suggest$suffix.js", array( 'jquery-ui-autocomplete' ), false, 1 );
 
@@ -381,6 +382,7 @@ function wp_default_scripts( &$scripts ) {
 	did_action( 'init' ) && $scripts->localize( 'customize-controls', '_wpCustomizeControlsL10n', array(
 		'activate'  => __( 'Save &amp; Activate' ),
 		'save'      => __( 'Save &amp; Publish' ),
+		'saveAlert' => __( 'The changes you made will be lost if you navigate away from this page.' ),
 		'saved'     => __( 'Saved' ),
 		'cancel'    => __( 'Cancel' ),
 		'close'     => __( 'Close' ),
@@ -456,6 +458,8 @@ function wp_default_scripts( &$scripts ) {
 			'saveAlert' => __('The changes you made will be lost if you navigate away from this page.'),
 			'savingText' => __('Saving Draft&#8230;'),
 		) );
+
+		$scripts->add( 'editor-expand', "/wp-admin/js/editor-expand$suffix.js", array( 'jquery' ), false, 1 );
 
 		$scripts->add( 'link', "/wp-admin/js/link$suffix.js", array( 'wp-lists', 'postbox' ), false, 1 );
 

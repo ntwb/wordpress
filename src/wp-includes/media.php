@@ -1463,6 +1463,9 @@ function wp_get_attachment_id3_keys( $attachment, $context = 'display' ) {
 		$fields['genre']            = __( 'Genre' );
 		$fields['year']             = __( 'Year' );
 		$fields['length_formatted'] = _x( 'Length', 'video or audio' );
+	} elseif ( 'js' === $context ) {
+		$fields['bitrate']          = __( 'Bitrate' );
+		$fields['bitrate_mode']     = __( 'Bitrate Mode' );
 	}
 
 	/**
@@ -2278,14 +2281,17 @@ function wp_embed_handler_googlevideo( $matches, $attr, $url, $rawattr ) {
 }
 
 /**
- * The YouTube embed handler callback. Catches URLs that can be parsed but aren't supported by oEmbed.
+ * YouTube embed handler callback.
+ *
+ * Catches URLs that can be parsed but aren't supported by oEmbed.
  *
  * @since 4.0.0
  *
- * @param array $matches The regex matches from the provided regex when calling {@link wp_embed_register_handler()}.
- * @param array $attr Embed attributes.
- * @param string $url The original URL that was matched by the regex.
- * @param array $rawattr The original unmodified attributes.
+ * @param array  $matches The regex matches from the provided regex when calling
+ *                        {@link wp_embed_register_handler()}.
+ * @param array  $attr    Embed attributes.
+ * @param string $url     The original URL that was matched by the regex.
+ * @param array  $rawattr The original unmodified attributes.
  * @return string The embed HTML.
  */
 function wp_embed_handler_youtube( $matches, $attr, $url, $rawattr ) {
@@ -2295,6 +2301,8 @@ function wp_embed_handler_youtube( $matches, $attr, $url, $rawattr ) {
 	 * Filter the YoutTube embed output.
 	 *
 	 * @since 4.0.0
+	 *
+	 * @see wp_embed_handler_youtube()
 	 *
 	 * @param string $embed   YouTube embed output.
 	 * @param array  $attr    An array of embed attributes.
@@ -2716,7 +2724,7 @@ function wp_prepare_attachment_for_js( $attachment ) {
 			$response['fileLength'] = $meta['length_formatted'];
 
 		$response['meta'] = array();
-		foreach ( wp_get_attachment_id3_keys( $attachment ) as $key => $label ) {
+		foreach ( wp_get_attachment_id3_keys( $attachment, 'js' ) as $key => $label ) {
 			if ( ! empty( $meta[ $key ] ) ) {
 				$response['meta'][ $key ] = $meta[ $key ];
 			}
@@ -2764,7 +2772,7 @@ function wp_enqueue_media( $args = array() ) {
 	if ( did_action( 'wp_enqueue_media' ) )
 		return;
 
-	global $content_width, $wpdb;
+	global $content_width, $wpdb, $wp_locale;
 
 	$defaults = array(
 		'post' => null,
@@ -2817,6 +2825,15 @@ function wp_enqueue_media( $args = array() ) {
 		AND post_mime_type LIKE 'video%'
 		LIMIT 1
 	" );
+	$months = $wpdb->get_results( $wpdb->prepare( "
+		SELECT DISTINCT YEAR( post_date ) AS year, MONTH( post_date ) AS month
+		FROM $wpdb->posts
+		WHERE post_type = %s
+		ORDER BY post_date DESC
+	", 'attachment' ) );
+	foreach ( $months as $month_year ) {
+		$month_year->text = sprintf( __( '%1$s %2$d' ), $wp_locale->get_month( $month_year->month ), $month_year->year );
+	}
 
 	$settings = array(
 		'tabs'      => $tabs,
@@ -2838,6 +2855,7 @@ function wp_enqueue_media( $args = array() ) {
 		'embedExts'    => $exts,
 		'embedMimes'   => $ext_mimes,
 		'contentWidth' => $content_width,
+		'months'       => $months,
 	);
 
 	$post = null;
@@ -2888,18 +2906,26 @@ function wp_enqueue_media( $args = array() ) {
 		'uploadImagesTitle' => __( 'Upload Images' ),
 
 		// Library
-		'mediaLibraryTitle'  => __( 'Media Library' ),
-		'insertMediaTitle'   => __( 'Insert Media' ),
-		'createNewGallery'   => __( 'Create a new gallery' ),
-		'createNewPlaylist'   => __( 'Create a new playlist' ),
-		'createNewVideoPlaylist'   => __( 'Create a new video playlist' ),
-		'returnToLibrary'    => __( '&#8592; Return to library' ),
-		'allMediaItems'      => __( 'All media items' ),
-		'allMediaTypes'      => __( 'All media types' ),
-		'noItemsFound'       => __( 'No items found.' ),
-		'insertIntoPost'     => $hier ? __( 'Insert into page' ) : __( 'Insert into post' ),
-		'uploadedToThisPost' => $hier ? __( 'Uploaded to this page' ) : __( 'Uploaded to this post' ),
-		'warnDelete' =>      __( "You are about to permanently delete this item.\n  'Cancel' to stop, 'OK' to delete." ),
+		'mediaLibraryTitle'      => __( 'Media Library' ),
+		'insertMediaTitle'       => __( 'Insert Media' ),
+		'createNewGallery'       => __( 'Create a new gallery' ),
+		'createNewPlaylist'      => __( 'Create a new playlist' ),
+		'createNewVideoPlaylist' => __( 'Create a new video playlist' ),
+		'returnToLibrary'        => __( '&#8592; Return to library' ),
+		'allMediaItems'          => __( 'All media items' ),
+		'allMediaTypes'          => __( 'All media types' ),
+		'allDates'               => __( 'All dates' ),
+		'noItemsFound'           => __( 'No items found.' ),
+		'insertIntoPost'         => $hier ? __( 'Insert into page' ) : __( 'Insert into post' ),
+		'uploadedToThisPost'     => $hier ? __( 'Uploaded to this page' ) : __( 'Uploaded to this post' ),
+		'warnDelete'             => __( "You are about to permanently delete this item.\n  'Cancel' to stop, 'OK' to delete." ),
+		'warnBulkDelete'         => __( "You are about to permanently delete these items.\n  'Cancel' to stop, 'OK' to delete." ),
+		'bulkActions'            => __( 'Bulk Actions' ),
+		'deletePermanently'      => __( 'Delete Permanently' ),
+		'apply'                  => __( 'Apply' ),
+
+		// Library Details
+		'attachmentDetails'  => __( 'Attachment Details' ),
 
 		// From URL
 		'insertFromUrlTitle' => __( 'Insert from URL' ),
@@ -2967,6 +2993,10 @@ function wp_enqueue_media( $args = array() ) {
  		'updateVideoPlaylist'      => __( 'Update video playlist' ),
  		'addToVideoPlaylist'       => __( 'Add to video playlist' ),
  		'addToVideoPlaylistTitle'  => __( 'Add to Video Playlist' ),
+
+ 		// Media Library
+ 		'editMetadata' => __( 'Edit Metadata' ),
+ 		'noMedia'      => __( 'No media found. Try a different search.' ),
 	);
 
 	/**
@@ -3217,4 +3247,56 @@ function wp_maybe_generate_attachment_metadata( $attachment ) {
 			delete_transient( $regeneration_lock );
 		}
 	}
+}
+
+/**
+ * Try to convert an attachment URL into a post ID.
+ *
+ * @since 4.0.0
+ *
+ * @global wpdb $wpdb WordPress database access abstraction object.
+ *
+ * @param string $url The URL to resolve.
+ * @return int The found post ID.
+ */
+function attachment_url_to_postid( $url ) {
+	global $wpdb;
+
+	$dir = wp_upload_dir();
+	$path = ltrim( $url, $dir['baseurl'] . '/' );
+
+	$sql = $wpdb->prepare(
+		"SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value = %s",
+		$path
+	);
+	$post_id = $wpdb->get_var( $sql );
+	if ( ! empty( $post_id ) ) {
+		return (int) $post_id;
+	}
+}
+
+/**
+ * Return the URls for CSS files used in an <iframe>-sandbox'd TinyMCE media view
+ *
+ * @since 4.0.0
+ *
+ * @global $wp_version
+ * @return array The relevant CSS file URLs.
+ */
+function wp_media_mce_styles() {
+ 	$version = 'ver=' . $GLOBALS['wp_version'];
+ 	$tinymce = includes_url( "js/tinymce/skins/lightgray/content.min.css?$version" );
+	$dashicons = includes_url( "css/dashicons.css?$version" );
+ 	$skin = includes_url( "js/tinymce/skins/wordpress/wp-content.css?$version" );
+ 	$mediaelement = includes_url( "js/mediaelement/mediaelementplayer.min.css?$version" );
+ 	$wpmediaelement = includes_url( "js/mediaelement/wp-mediaelement.css?$version" );
+
+ 	$mce_styles = array( $tinymce, $dashicons, $skin, $mediaelement, $wpmediaelement );
+ 	$editor_styles = get_editor_stylesheets();
+	if ( ! empty( $editor_styles ) ) {
+		foreach ( $editor_styles as $style ) {
+			$mce_styles[] = $style;
+		}
+	}
+	return $mce_styles;
 }

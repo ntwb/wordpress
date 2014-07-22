@@ -14,7 +14,17 @@ body {
 	font-size: 13px;
 	line-height: 19px;
 	color: #333;
-	margin: 10px;
+	margin: 9px 10px;
+}
+
+body.wp-autoresize {
+	max-width: 100%;
+	overflow: visible !important;
+	/* The padding ensures margins of the children are contained in the body. */
+	padding-top: 1px !important;
+	padding-bottom: 1px !important;
+	padding-left: 0 !important;
+	padding-right: 0 !important;
 }
 
 /* When font-weight is different than the default browser style,
@@ -35,7 +45,8 @@ html.wp-fullscreen body {
 }
 
 .aligncenter,
-dl.aligncenter {
+dl.aligncenter,
+.html5-captions .wp-caption.aligncenter {
 	display: block;
 	margin-left: auto;
 	margin-right: auto;
@@ -183,7 +194,6 @@ video,
 embed {
 	display: -moz-inline-stack;
 	display: inline-block;
-	max-width: 100%;
 }
 
 audio {
@@ -241,8 +251,8 @@ audio {
 	user-select: text;
 }
 
-.wpview-wrap.wpview-selection-before:before,
-.wpview-wrap.wpview-selection-after:before {
+.has-focus .wpview-wrap.wpview-selection-before:before,
+.has-focus .wpview-wrap.wpview-selection-after:before {
 	content: '';
 	margin: 0;
 	padding: 0;
@@ -252,18 +262,19 @@ audio {
 	bottom: -2px;
 	width: 1px;
 	background-color: black;
+	background-color: currentcolor;
 	-webkit-transition: opacity 0.15s ease-out;
 	-moz-transition: opacity 0.15s ease-out;
 	transition: opacity 0.15s ease-out;
 	opacity: 1;
 }
 
-.wpview-wrap.wpview-selection-after:before {
+.has-focus .wpview-wrap.wpview-selection-after:before {
 	left: auto;
 	right: -3px;
 }
 
-.wpview-wrap.wpview-cursor-hide:before {
+.has-focus .wpview-wrap.wpview-cursor-hide:before {
 	opacity: 0;
 }
 
@@ -309,6 +320,52 @@ audio {
 
 .wpview-wrap[data-mce-selected] .toolbar {
 	display: block;
+}
+
+.wpview-wrap .loading-placeholder {
+	border: 1px dashed #ccc;
+	padding: 10px;
+}
+
+.wpview-wrap[data-mce-selected] .loading-placeholder {
+	border-color: transparent;
+}
+
+/* A little "loading" animation, not showing in IE < 10 */
+.wpview-wrap .wpview-loading {
+	width: 60px;
+	height: 5px;
+	overflow: hidden;
+	background-color: transparent;
+	margin: 10px auto 0;
+}
+
+.wpview-wrap .wpview-loading ins {
+	background-color: #333;
+	margin: 0 0 0 -60px;
+	width: 60px;
+	height: 5px;
+	display: block;
+	-webkit-animation: wpview-loading 1.3s infinite 1s linear;
+	animation: wpview-loading 1.3s infinite 1s linear;
+}
+
+@-webkit-keyframes wpview-loading {
+	0% {
+		margin-left: -60px;
+	}
+	100% {
+		margin-left: 60px;
+	}
+}
+
+@keyframes wpview-loading {
+	0% {
+		margin-left: -60px;
+	}
+	100% {
+		margin-left: 60px;
+	}
 }
 
 #wp-image-toolbar {
@@ -360,7 +417,8 @@ audio {
 	border-color: transparent;
 }
 
-.wpview-error .dashicons {
+.wpview-error .dashicons,
+.loading-placeholder .dashicons {
 	display: block;
 	margin: 0 auto;
 	width: 32px;

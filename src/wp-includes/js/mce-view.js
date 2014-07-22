@@ -1,4 +1,4 @@
-/* global tinymce, MediaElementPlayer, WPPlaylistView */
+/* global tinymce */
 /**
  * Note: this API is "experimental" meaning that it will probably change
  * in the next few releases based on feedback from 3.9.0.
@@ -36,7 +36,16 @@ window.wp = window.wp || {};
 
 	_.extend( wp.mce.View.prototype, {
 		initialize: function() {},
-		getHtml: function() {},
+		getHtml: function() {
+			return '';
+		},
+		loadingPlaceholder: function() {
+			return '' +
+				'<div class="loading-placeholder">' +
+					'<div class="dashicons dashicons-admin-media"></div>' +
+					'<div class="wpview-loading"><ins></ins></div>' +
+				'</div>';
+		},
 		render: function() {
 			this.setContent(
 				'<p class="wpview-selection-before">\u00a0</p>' +
@@ -46,52 +55,129 @@ window.wp = window.wp || {};
 						'<div class="dashicons dashicons-no-alt remove"></div>' +
 					'</div>' +
 					'<div class="wpview-content wpview-type-' + this.type + '">' +
-						this.getHtml() +
+						( this.getHtml() || this.loadingPlaceholder() ) +
 					'</div>' +
 					( this.overlay ? '<div class="wpview-overlay"></div>' : '' ) +
 				'</div>' +
 				'<p class="wpview-selection-after">\u00a0</p>',
-				function( self, editor, node ) {
-					$( self ).trigger( 'ready', [ editor, node ] );
-				},
 				'wrap'
 			);
+
+			$( this ).trigger( 'ready' );
 		},
 		unbind: function() {},
-		setContent: function( html, callback, option ) {
+		getEditors: function( callback ) {
+			var editors = [];
+
 			_.each( tinymce.editors, function( editor ) {
-				var self = this;
 				if ( editor.plugins.wpview ) {
-					$( editor.getBody() )
-					.find( '[data-wpview-text="' + this.encodedText + '"]' )
-					.each( function ( i, element ) {
-						var contentWrap = $( element ).find( '.wpview-content' ),
-							wrap = element;
+					if ( callback ) {
+						callback( editor );
+					}
 
-						if ( contentWrap.length && option !== 'wrap' ) {
-							element = contentWrap = contentWrap[0];
-						}
-
-						if ( _.isString( html ) ) {
-							if ( option === 'replace' ) {
-								element = editor.dom.replace( editor.dom.createFragment( html ), wrap );
-							} else {
-								editor.dom.setHTML( element, html );
-							}
-						} else {
-							if ( option === 'replace' ) {
-								element = editor.dom.replace( html, wrap );
-							} else {
-								element.appendChild( html );
-							}
-						}
-
-						if ( _.isFunction( callback ) ) {
-							callback( self, editor, $( element ).find( '.wpview-content' )[0] );
-						}
-					} );
+					editors.push( editor );
 				}
 			}, this );
+
+			return editors;
+		},
+		getNodes: function( callback ) {
+			var nodes = [],
+				self = this;
+
+			this.getEditors( function( editor ) {
+				$( editor.getBody() )
+				.find( '[data-wpview-text="' + self.encodedText + '"]' )
+				.each( function ( i, node ) {
+					if ( callback ) {
+						callback( editor, node, $( node ).find( '.wpview-content' ).get( 0 ) );
+					}
+
+					nodes.push( node );
+				} );
+			} );
+
+			return nodes;
+		},
+		setContent: function( html, option ) {
+			this.getNodes( function ( editor, node, content ) {
+				var el = ( option === 'wrap' || option === 'replace' ) ? node : content,
+					insert = html;
+
+				if ( _.isString( insert ) ) {
+					insert = editor.dom.createFragment( insert );
+				}
+
+				if ( option === 'replace' ) {
+					editor.dom.replace( insert, el );
+				} else {
+					el.innerHTML = '';
+					el.appendChild( insert );
+				}
+			} );
+		},
+		/* jshint scripturl: true */
+		setIframes: function ( html ) {
+			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver;
+
+			if ( html.indexOf( '<script' ) !== -1 ) {
+				this.getNodes( function ( editor, node, content ) {
+					var dom = editor.dom,
+						iframe, iframeDoc, i, resize;
+
+					content.innerHTML = '';
+
+					iframe = dom.add( content, 'iframe', {
+						src: tinymce.Env.ie ? 'javascript:""' : '',
+						frameBorder: '0',
+						allowTransparency: 'true',
+						scrolling: 'no',
+						'class': 'wpview-sandbox',
+						style: {
+							width: '100%',
+							display: 'block'
+						}
+					} );
+
+					iframeDoc = iframe.contentWindow.document;
+
+					iframeDoc.open();
+					iframeDoc.write(
+						'<!DOCTYPE html>' +
+						'<html>' +
+							'<head>' +
+								'<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />' +
+							'</head>' +
+							'<body data-context="iframe-sandbox" style="padding: 0; margin: 0;" class="' + editor.getBody().className + '">' +
+								html +
+							'</body>' +
+						'</html>'
+					);
+					iframeDoc.close();
+
+					resize = function() {
+						// Make sure the iframe still exists.
+						iframe.contentWindow && $( iframe ).height( $( iframeDoc.body ).height() );
+					};
+
+					if ( MutationObserver ) {
+						new MutationObserver( _.debounce( function() {
+							resize();
+						}, 100 ) )
+						.observe( iframeDoc.body, {
+							attributes: true,
+							childList: true,
+							subtree: true
+						} );
+					} else {
+						for ( i = 1; i < 6; i++ ) {
+							setTimeout( resize, i * 700 );
+						}
+					}
+				});
+			} else {
+				this.setContent( html );
+			}
 		},
 		setError: function( message, dashicon ) {
 			this.setContent(
@@ -359,7 +445,7 @@ window.wp = window.wp || {};
 
 				// Don't render errors while still fetching attachments
 				if ( this.dfd && 'pending' === this.dfd.state() && ! this.attachments.length ) {
-					return;
+					return '';
 				}
 
 				if ( this.attachments.length ) {
@@ -408,77 +494,91 @@ window.wp = window.wp || {};
 	 * @mixin
 	 */
 	wp.mce.av = {
-		loaded: false,
-
-		View: _.extend( {}, wp.media.mixin, {
+		View: {
 			overlay: true,
 
+			action: 'parse-media-shortcode',
+
 			initialize: function( options ) {
-				this.players = [];
+				var self = this;
+
 				this.shortcode = options.shortcode;
-				_.bindAll( this, 'setPlayer', 'pausePlayers' );
-				$( this ).on( 'ready', this.setPlayer );
-				$( this ).on( 'ready', function( event, editor ) {
-					editor.on( 'hide', this.pausePlayers );
-				} );
-				$( document ).on( 'media:edit', this.pausePlayers );
+
+				_.bindAll( this, 'setIframes', 'setNodes', 'fetch', 'stopPlayers' );
+				$( this ).on( 'ready', this.setNodes );
+
+				$( document ).on( 'media:edit', this.stopPlayers );
+
+				this.fetch();
+
+				this.getEditors( function( editor ) {
+					editor.on( 'hide', self.stopPlayers );
+				});
 			},
 
-			/**
-			 * Creates the player instance for the current node
-			 *
-			 * @global MediaElementPlayer
-			 *
-			 * @param {Event} event
-			 * @param {Object} editor
-			 * @param {HTMLElement} node
-			 */
-			setPlayer: function( event, editor, node ) {
-				var self = this,
-					media;
-
-				media = $( node ).find( '.wp-' +  this.shortcode.tag + '-shortcode' );
-
-				if ( ! this.isCompatible( media ) ) {
-					media.closest( '.wpview-wrap' ).addClass( 'wont-play' );
-					media.replaceWith( '<p>' + media.find( 'source' ).eq(0).prop( 'src' ) + '</p>' );
-					return;
-				} else {
-					media.closest( '.wpview-wrap' ).removeClass( 'wont-play' );
-					if ( this.ua.is( 'ff' ) ) {
-						media.prop( 'preload', 'metadata' );
-					} else {
-						media.prop( 'preload', 'none' );
-					}
+			setNodes: function () {
+				if ( this.parsed ) {
+					this.setIframes( this.parsed );
 				}
-
-				media = wp.media.view.MediaDetails.prepareSrc( media.get(0) );
-
-				setTimeout( function() {
-					wp.mce.av.loaded = true;
-					self.players.push( new MediaElementPlayer( media, self.mejsSettings ) );
-				}, wp.mce.av.loaded ? 10 : 500 );
 			},
 
-			/**
-			 * Pass data to the View's Underscore template and return the compiled output
-			 *
-			 * @returns {string}
-			 */
-			getHtml: function() {
-				var attrs = this.shortcode.attrs.named;
-				attrs.content = this.shortcode.content;
+			fetch: function () {
+				var self = this;
 
-				return this.template({ model: _.defaults(
-					attrs,
-					wp.media[ this.shortcode.tag ].defaults )
+				wp.ajax.send( this.action, {
+					data: {
+						post_ID: $( '#post_ID' ).val() || 0,
+						type: this.shortcode.tag,
+						shortcode: this.shortcode.string()
+					}
+				} )
+				.done( function( response ) {
+					if ( response ) {
+						self.parsed = response;
+						self.setIframes( response );
+					}
+				} )
+				.fail( function( response ) {
+					if ( response && response.message ) {
+						if ( ( response.type === 'not-embeddable' && self.type === 'embed' ) ||
+							response.type === 'not-ssl' ) {
+
+							self.setError( response.message, 'admin-media' );
+						} else {
+							self.setContent( '<p>' + self.original + '</p>', 'replace' );
+						}
+					} else if ( response && response.statusText ) {
+						self.setError( response.statusText, 'admin-media' );
+					}
+				} );
+			},
+
+			stopPlayers: function( remove ) {
+				var rem = remove === 'remove';
+
+				this.getNodes( function( editor, node, content ) {
+					var p, win,
+						iframe = $( 'iframe.wpview-sandbox', content ).get(0);
+
+					if ( iframe && ( win = iframe.contentWindow ) && win.mejs ) {
+						// Sometimes ME.js may show a "Download File" placeholder and player.remove() doesn't exist there.
+						try {
+							for ( p in win.mejs.players ) {
+								win.mejs.players[p].pause();
+
+								if ( rem ) {
+									win.mejs.players[p].remove();
+								}
+							}
+						} catch( er ) {}
+					}
 				});
 			},
 
 			unbind: function() {
-				this.unsetPlayers();
+				this.stopPlayers( 'remove' );
 			}
-		} ),
+		},
 
 		/**
 		 * Called when a TinyMCE view is clicked for editing.
@@ -526,10 +626,7 @@ window.wp = window.wp || {};
 	 * @mixes wp.mce.av
 	 */
 	wp.mce.views.register( 'video', _.extend( {}, wp.mce.av, {
-		state: 'video-details',
-		View: _.extend( {}, wp.mce.av.View, {
-			template: media.template( 'editor-video' )
-		} )
+		state: 'video-details'
 	} ) );
 
 	/**
@@ -538,10 +635,7 @@ window.wp = window.wp || {};
 	 * @mixes wp.mce.av
 	 */
 	wp.mce.views.register( 'audio', _.extend( {}, wp.mce.av, {
-		state: 'audio-details',
-		View: _.extend( {}, wp.mce.av.View, {
-			template: media.template( 'editor-audio' )
-		} )
+		state: 'audio-details'
 	} ) );
 
 	/**
@@ -550,277 +644,34 @@ window.wp = window.wp || {};
 	 * @mixes wp.mce.av
 	 */
 	wp.mce.views.register( 'playlist', _.extend( {}, wp.mce.av, {
-		state: ['playlist-edit', 'video-playlist-edit'],
-		View: _.extend( {}, wp.media.mixin, {
-			template:  media.template( 'editor-playlist' ),
-			overlay: true,
-
-			initialize: function( options ) {
-				this.players = [];
-				this.data = {};
-				this.attachments = [];
-				this.shortcode = options.shortcode;
-
-				$( this ).on( 'ready', function( event, editor ) {
-					editor.on( 'hide', this.pausePlayers );
-				} );
-				$( document ).on( 'media:edit', this.pausePlayers );
-
-				this.fetch();
-
-				$( this ).on( 'ready', this.setPlaylist );
-			},
-
-			/**
-			 * Asynchronously fetch the shortcode's attachments
-			 */
-			fetch: function() {
-				this.attachments = wp.media.playlist.attachments( this.shortcode );
-				this.dfd = this.attachments.more().done( _.bind( this.render, this ) );
-			},
-
-			setPlaylist: function( event, editor, element ) {
-				if ( ! this.data.tracks ) {
-					return;
-				}
-
-				this.players.push( new WPPlaylistView( {
-					el: $( element ).find( '.wp-playlist' ).get( 0 ),
-					metadata: this.data
-				} ).player );
-			},
-
-			/**
-			 * Set the data that will be used to compile the Underscore template,
-			 *  compile the template, and then return it.
-			 *
-			 * @returns {string}
-			 */
-			getHtml: function() {
-				var data = this.shortcode.attrs.named,
-					model = wp.media.playlist,
-					options,
-					attachments,
-					tracks = [];
-
-				// Don't render errors while still fetching attachments
-				if ( this.dfd && 'pending' === this.dfd.state() && ! this.attachments.length ) {
-					return;
-				}
-
-				_.each( model.defaults, function( value, key ) {
-					data[ key ] = model.coerce( data, key );
-				});
-
-				options = {
-					type: data.type,
-					style: data.style,
-					tracklist: data.tracklist,
-					tracknumbers: data.tracknumbers,
-					images: data.images,
-					artists: data.artists
-				};
-
-				if ( ! this.attachments.length ) {
-					return this.template( options );
-				}
-
-				attachments = this.attachments.toJSON();
-
-				_.each( attachments, function( attachment ) {
-					var size = {}, resize = {}, track = {
-						src : attachment.url,
-						type : attachment.mime,
-						title : attachment.title,
-						caption : attachment.caption,
-						description : attachment.description,
-						meta : attachment.meta
-					};
-
-					if ( 'video' === data.type ) {
-						size.width = attachment.width;
-						size.height = attachment.height;
-						if ( media.view.settings.contentWidth ) {
-							resize.width = media.view.settings.contentWidth - 22;
-							resize.height = Math.ceil( ( size.height * resize.width ) / size.width );
-							if ( ! options.width ) {
-								options.width = resize.width;
-								options.height = resize.height;
-							}
-						} else {
-							if ( ! options.width ) {
-								options.width = attachment.width;
-								options.height = attachment.height;
-							}
-						}
-						track.dimensions = {
-							original : size,
-							resized : _.isEmpty( resize ) ? size : resize
-						};
-					} else {
-						options.width = 400;
-					}
-
-					track.image = attachment.image;
-					track.thumb = attachment.thumb;
-
-					tracks.push( track );
-				} );
-
-				options.tracks = tracks;
-				this.data = options;
-
-				return this.template( options );
-			},
-
-			unbind: function() {
-				this.unsetPlayers();
-			}
-		} )
+		state: [ 'playlist-edit', 'video-playlist-edit' ]
 	} ) );
 
 	/**
 	 * TinyMCE handler for the embed shortcode
 	 */
-	wp.mce.embedView = _.extend( {}, wp.media.mixin, {
-		overlay: true,
-		initialize: function( options ) {
-			this.players = [];
-			this.content = options.content;
-			this.fetching = false;
-			this.parsed = false;
-			this.original = options.url || options.shortcode.string();
+	wp.mce.embedMixin = {
+		View: _.extend( {}, wp.mce.av.View, {
+			overlay: true,
+			action: 'parse-embed',
+			initialize: function( options ) {
+				this.content = options.content;
+				this.original = options.url || options.shortcode.string();
 
-			if ( options.url ) {
-				this.shortcode = '[embed]' + options.url + '[/embed]';
-			} else {
-				this.shortcode = options.shortcode.string();
-			}
-
-			_.bindAll( this, 'setHtml', 'setNode', 'fetch' );
-			$( this ).on( 'ready', this.setNode );
-		},
-		unbind: function() {
-			var self = this;
-			_.each( this.players, function ( player ) {
-				player.pause();
-				self.removePlayer( player );
-			} );
-			this.players = [];
-		},
-		setNode: function () {
-			if ( this.parsed ) {
-				this.setHtml( this.parsed );
-				this.parseMediaShortcodes();
-			} else if ( ! this.fetching ) {
-				this.fetch();
-			}
-		},
-		fetch: function () {
-			var self = this;
-
-			this.fetching = true;
-
-			wp.ajax.send( 'parse-embed', {
-				data: {
-					post_ID: $( '#post_ID' ).val() || 0,
-					shortcode: this.shortcode
-				}
-			} )
-			.always( function() {
-				self.fetching = false;
-			} )
-			.done( function( response ) {
-				if ( response ) {
-					self.parsed = response;
-					self.setHtml( response );
-				}
-			} )
-			.fail( function( response ) {
-				if ( response && response.message ) {
-					if ( ( response.type === 'not-embeddable' && self.type === 'embed' ) ||
-						response.type === 'not-ssl' ) {
-
-						self.setError( response.message, 'admin-media' );
-					} else {
-						self.setContent( '<p>' + self.original + '</p>', null, 'replace' );
-					}
-				} else if ( response && response.statusText ) {
-					self.setError( response.statusText, 'admin-media' );
-				}
-			} );
-		},
-		/* jshint scripturl: true */
-		setHtml: function ( content ) {
-			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
-				iframe, iframeDoc, i, resize,
-				dom = tinymce.DOM;
-
-			if ( content.indexOf( '<script' ) !== -1 ) {
-				iframe = dom.create( 'iframe', {
-					src: tinymce.Env.ie ? 'javascript:""' : '',
-					frameBorder: '0',
-					allowTransparency: 'true',
-					style: {
-						width: '100%',
-						display: 'block'
-					}
-				} );
-
-				this.setContent( iframe );
-				iframeDoc = iframe.contentWindow.document;
-
-				iframeDoc.open();
-				iframeDoc.write(
-					'<!DOCTYPE html>' +
-					'<html>' +
-						'<head>' +
-							'<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />' +
-						'</head>' +
-						'<body>' +
-							content +
-						'</body>' +
-					'</html>'
-				);
-				iframeDoc.close();
-
-				resize = function() {
-					$( iframe ).height( $( iframeDoc ).height() );
-				};
-
-				if ( MutationObserver ) {
-					new MutationObserver( _.debounce( function() {
-						resize();
-					}, 100 ) )
-					.observe( iframeDoc.body, {
-						attributes: true,
-						childList: true,
-						subtree: true
+				if ( options.url ) {
+					this.shortcode = media.embed.shortcode( {
+						url: options.url
 					} );
 				} else {
-					for ( i = 1; i < 6; i++ ) {
-						setTimeout( resize, i * 700 );
-					}
+					this.shortcode = options.shortcode;
 				}
-			} else {
-				this.setContent( content );
+
+				_.bindAll( this, 'setIframes', 'setNodes', 'fetch' );
+				$( this ).on( 'ready', this.setNodes );
+
+				this.fetch();
 			}
-
-			this.parseMediaShortcodes();
-		},
-		parseMediaShortcodes: function () {
-			var self = this;
-			$( '.wp-audio-shortcode, .wp-video-shortcode', this.node ).each( function ( i, element ) {
-				self.players.push( new MediaElementPlayer( element, self.mejsSettings ) );
-			} );
-		},
-		getHtml: function() {
-			return '';
-		}
-	} );
-
-	wp.mce.embedMixin = {
-		View: wp.mce.embedView,
+		} ),
 		edit: function( node ) {
 			var embed = media.embed,
 				self = this,

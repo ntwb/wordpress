@@ -170,7 +170,6 @@ function wp_image_editor($post_id, $msg = false) {
 		</div>
 
 		<input type="hidden" id="imgedit-sizer-<?php echo $post_id; ?>" value="<?php echo $sizer; ?>" />
-		<input type="hidden" id="imgedit-minthumb-<?php echo $post_id; ?>" value="<?php echo ( get_option('thumbnail_size_w') . ':' . get_option('thumbnail_size_h') ); ?>" />
 		<input type="hidden" id="imgedit-history-<?php echo $post_id; ?>" value="" />
 		<input type="hidden" id="imgedit-undone-<?php echo $post_id; ?>" value="0" />
 		<input type="hidden" id="imgedit-selection-<?php echo $post_id; ?>" value="" />
@@ -411,7 +410,7 @@ function image_edit_apply_changes( $image, $changes ) {
 	if ( !is_array($changes) )
 		return $image;
 
-	// expand change operations
+	// Expand change operations.
 	foreach ( $changes as $key => $obj ) {
 		if ( isset($obj->r) ) {
 			$obj->type = 'rotate';
@@ -429,7 +428,7 @@ function image_edit_apply_changes( $image, $changes ) {
 		$changes[$key] = $obj;
 	}
 
-	// combine operations
+	// Combine operations.
 	if ( count($changes) > 1 ) {
 		$filtered = array($changes[0]);
 		for ( $i = 0, $j = 1; $j < count($changes); $j++ ) {
@@ -453,7 +452,7 @@ function image_edit_apply_changes( $image, $changes ) {
 		unset($filtered);
 	}
 
-	// image resource before applying the changes
+	// Image resource before applying the changes.
 	if ( $image instanceof WP_Image_Editor ) {
 
 		/**
@@ -540,7 +539,7 @@ function stream_preview_image( $post_id ) {
 	if ( $changes )
 		$img = image_edit_apply_changes( $img, $changes );
 
-	// scale the image
+	// Scale the image.
 	$size = $img->get_size();
 	$w = $size['width'];
 	$h = $size['height'];
@@ -576,7 +575,8 @@ function wp_restore_image($post_id) {
 
 		if ( $parts['basename'] != $data['file'] ) {
 			if ( defined('IMAGE_EDIT_OVERWRITE') && IMAGE_EDIT_OVERWRITE ) {
-				// delete only if it's edited image
+
+				// Delete only if it's edited image.
 				if ( preg_match('/-e[0-9]{13}\./', $parts['basename']) ) {
 
 					/** This filter is documented in wp-admin/custom-header.php */
@@ -601,7 +601,8 @@ function wp_restore_image($post_id) {
 			$data = $backup_sizes["$default_size-orig"];
 			if ( isset($meta['sizes'][$default_size]) && $meta['sizes'][$default_size]['file'] != $data['file'] ) {
 				if ( defined('IMAGE_EDIT_OVERWRITE') && IMAGE_EDIT_OVERWRITE ) {
-					// delete only if it's edited image
+
+					// Delete only if it's edited image
 					if ( preg_match('/-e[0-9]{13}-/', $meta['sizes'][$default_size]['file']) ) {
 						/** This filter is documented in wp-admin/custom-header.php */
 						$delpath = apply_filters( 'wp_delete_file', path_join($parts['dirname'], $meta['sizes'][$default_size]['file']) );
@@ -661,10 +662,10 @@ function wp_save_image( $post_id ) {
 		$sX = $size['width'];
 		$sY = $size['height'];
 
-		// check if it has roughly the same w / h ratio
+		// Check if it has roughly the same w / h ratio.
 		$diff = round($sX / $sY, 2) - round($fwidth / $fheight, 2);
 		if ( -0.1 < $diff && $diff < 0.1 ) {
-			// scale the full size image
+			// Scale the full size image.
 			if ( $img->resize( $fwidth, $fheight ) )
 				$scaled = true;
 		}
@@ -693,7 +694,7 @@ function wp_save_image( $post_id ) {
 	if ( !is_array($backup_sizes) )
 		$backup_sizes = array();
 
-	// generate new filename
+	// Generate new filename.
 	$path = get_attached_file($post_id);
 	$path_parts = pathinfo( $path );
 	$filename = $path_parts['filename'];
@@ -719,7 +720,7 @@ function wp_save_image( $post_id ) {
 		}
 	}
 
-	// save the full-size file, also needed to create sub-sizes
+	// Save the full-size file, also needed to create sub-sizes.
 	if ( !wp_save_image_file($new_path, $img, $post->post_mime_type, $post_id) ) {
 		$return->error = esc_js( __('Unable to save the image.') );
 		return $return;

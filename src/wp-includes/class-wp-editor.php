@@ -316,7 +316,7 @@ final class _WP_Editors {
 					 * @param array  $plugins   An array of teenyMCE plugins.
 					 * @param string $editor_id Unique editor identifier, e.g. 'content'.
 					 */
-					self::$plugins = $plugins = apply_filters( 'teeny_mce_plugins', array( 'fullscreen', 'image', 'wordpress', 'wpeditimage', 'wplink' ), $editor_id );
+					self::$plugins = $plugins = apply_filters( 'teeny_mce_plugins', array( 'colorpicker', 'lists', 'fullscreen', 'image', 'wordpress', 'wpeditimage', 'wplink' ), $editor_id );
 				} else {
 
 					/**
@@ -340,13 +340,16 @@ final class _WP_Editors {
 
 					$plugins = array(
 						'charmap',
+						'colorpicker',
 						'hr',
+						'lists',
 						'media',
 						'paste',
 						'tabfocus',
 						'textcolor',
 						'fullscreen',
 						'wordpress',
+						'wpautoresize',
 						'wpeditimage',
 						'wpgallery',
 						'wplink',
@@ -502,47 +505,17 @@ final class _WP_Editors {
 				$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
 				$version = 'ver=' . $GLOBALS['wp_version'];
 				$dashicons = includes_url( "css/dashicons$suffix.css?$version" );
-				$mediaelement = includes_url( "js/mediaelement/mediaelementplayer.min.css?$version" );
-				$wpmediaelement = includes_url( "js/mediaelement/wp-mediaelement.css?$version" );
 
 				// WordPress default stylesheet and dashicons
 				$mce_css = array(
 					$dashicons,
-					$mediaelement,
-					$wpmediaelement,
 					self::$baseurl . '/skins/wordpress/wp-content.css?' . $version
 				);
 
-				// load editor_style.css if the current theme supports it
-				if ( ! empty( $GLOBALS['editor_styles'] ) && is_array( $GLOBALS['editor_styles'] ) ) {
-					$editor_styles = $GLOBALS['editor_styles'];
-
-					$editor_styles = array_unique( array_filter( $editor_styles ) );
-					$style_uri = get_stylesheet_directory_uri();
-					$style_dir = get_stylesheet_directory();
-
-					// Support externally referenced styles (like, say, fonts).
-					foreach ( $editor_styles as $key => $file ) {
-						if ( preg_match( '~^(https?:)?//~', $file ) ) {
-							$mce_css[] = esc_url_raw( $file );
-							unset( $editor_styles[ $key ] );
-						}
-					}
-
-					// Look in a parent theme first, that way child theme CSS overrides.
-					if ( is_child_theme() ) {
-						$template_uri = get_template_directory_uri();
-						$template_dir = get_template_directory();
-
-						foreach ( $editor_styles as $key => $file ) {
-							if ( $file && file_exists( "$template_dir/$file" ) )
-								$mce_css[] = "$template_uri/$file";
-						}
-					}
-
-					foreach ( $editor_styles as $file ) {
-						if ( $file && file_exists( "$style_dir/$file" ) )
-							$mce_css[] = "$style_uri/$file";
+				$editor_styles = get_editor_stylesheets();
+				if ( ! empty( $editor_styles ) ) {
+					foreach ( $editor_styles as $style ) {
+						$mce_css[] = $style;
 					}
 				}
 

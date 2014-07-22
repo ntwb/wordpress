@@ -96,57 +96,66 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private properties readable for backwards compatibility
+	 * Make private properties readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to get.
+	 * @return mixed Property.
 	 */
 	public function __get( $name ) {
 		return $this->$name;
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility
+	 * Make private properties setable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param string $value
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name  Propert to set.
+	 * @param mixed  $value Property value.
+	 * @return mixed Newly-set property.
 	 */
 	public function __set( $name, $value ) {
 		return $this->$name = $value;
 	}
 
 	/**
-	 * Make private properties checkable for backwards compatibility
+	 * Make private properties checkable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to check if set.
+	 * @return bool Whether the property is set.
 	 */
 	public function __isset( $name ) {
 		return isset( $this->$name );
 	}
 
 	/**
-	 * Make private properties unsetable for backwards compatibility
+	 * Make private properties unsetable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param string $name Property to unset.
 	 */
 	public function __unset( $name ) {
 		unset( $this->$name );
 	}
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility
+	 * Make private/protected methods readable for backwards compatibility.
 	 *
 	 * @since 4.0.0
-	 * @param string $name
-	 * @param array $arguments
-	 * @return mixed
+	 * @access public
+	 *
+	 * @param callable $name      Method to call.
+	 * @param array    $arguments Arguments to pass when calling.
+	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
 		return call_user_func_array( array( $this, $name ), $arguments );
@@ -192,7 +201,7 @@ class WP_List_Table {
 		if ( !$args['total_pages'] && $args['per_page'] > 0 )
 			$args['total_pages'] = ceil( $args['total_items'] / $args['per_page'] );
 
-		// redirect if page number is invalid and headers are not already sent
+		// Redirect if page number is invalid and headers are not already sent.
 		if ( ! headers_sent() && ( ! defined( 'DOING_AJAX' ) || ! DOING_AJAX ) && $args['total_pages'] > 0 && $this->get_pagenum() > $args['total_pages'] ) {
 			wp_redirect( add_query_arg( 'paged', $args['total_pages'] ) );
 			exit;
@@ -333,9 +342,9 @@ class WP_List_Table {
 	 * Display the bulk actions dropdown.
 	 *
 	 * @since 3.1.0
-	 * @access public
+	 * @access protected
 	 */
-	public function bulk_actions() {
+	protected function bulk_actions() {
 		if ( is_null( $this->_actions ) ) {
 			$no_new_actions = $this->_actions = $this->get_bulk_actions();
 			/**
@@ -500,11 +509,9 @@ class WP_List_Table {
 				if ( $current_mode == $mode )
 					$classes[] = 'current';
 				printf(
-					"<a href='%s' class='%s'><img id='view-switch-$mode' src='%s' width='20' height='20' title='%s' alt='%s' /></a>\n",
+					"<a href='%s' class='%s' id='view-switch-$mode'><span class='screen-reader-text'>%s</span></a>\n",
 					esc_url( add_query_arg( 'mode', $mode ) ),
 					implode( ' ', $classes ),
-					esc_url( includes_url( 'images/blank.gif' ) ),
-					$title,
 					$title
 				);
 			}
@@ -538,11 +545,11 @@ class WP_List_Table {
 	 * Get the current page number
 	 *
 	 * @since 3.1.0
-	 * @access protected
+	 * @access public
 	 *
 	 * @return int
 	 */
-	protected function get_pagenum() {
+	public function get_pagenum() {
 		$pagenum = isset( $_REQUEST['paged'] ) ? absint( $_REQUEST['paged'] ) : 0;
 
 		if( isset( $this->_pagination_args['total_pages'] ) && $pagenum > $this->_pagination_args['total_pages'] )
@@ -675,12 +682,12 @@ class WP_List_Table {
 	 * 'internal-name' => 'Title'
 	 *
 	 * @since 3.1.0
-	 * @access protected
+	 * @access public
 	 * @abstract
 	 *
 	 * @return array
 	 */
-	protected function get_columns() {
+	public function get_columns() {
 		die( 'function WP_List_Table::get_columns() must be over-ridden in a sub-class.' );
 	}
 
@@ -764,11 +771,11 @@ class WP_List_Table {
 	 * Print column headers, accounting for hidden and sortable columns.
 	 *
 	 * @since 3.1.0
-	 * @access protected
+	 * @access public
 	 *
 	 * @param bool $with_id Whether to set the id attribute or not
 	 */
-	protected function print_column_headers( $with_id = true ) {
+	public function print_column_headers( $with_id = true ) {
 		list( $columns, $hidden, $sortable ) = $this->get_column_info();
 
 		$current_url = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] );
@@ -915,9 +922,9 @@ class WP_List_Table {
 	 * Generate the <tbody> part of the table
 	 *
 	 * @since 3.1.0
-	 * @access protected
+	 * @access public
 	 */
-	protected function display_rows_or_placeholder() {
+	public function display_rows_or_placeholder() {
 		if ( $this->has_items() ) {
 			$this->display_rows();
 		} else {
@@ -931,9 +938,9 @@ class WP_List_Table {
 	 * Generate the table rows
 	 *
 	 * @since 3.1.0
-	 * @access protected
+	 * @access public
 	 */
-	protected function display_rows() {
+	public function display_rows() {
 		foreach ( $this->items as $item )
 			$this->single_row( $item );
 	}
@@ -942,11 +949,11 @@ class WP_List_Table {
 	 * Generates content for a single row of the table
 	 *
 	 * @since 3.1.0
-	 * @access protected
+	 * @access public
 	 *
 	 * @param object $item The current item
 	 */
-	protected function single_row( $item ) {
+	public function single_row( $item ) {
 		static $row_class = '';
 		$row_class = ( $row_class == '' ? ' class="alternate"' : '' );
 
@@ -1030,9 +1037,9 @@ class WP_List_Table {
 	/**
 	 * Send required variables to JavaScript land
 	 *
-	 * @access private
+	 * @access public
 	 */
-	private function _js_vars() {
+	public function _js_vars() {
 		$args = array(
 			'class'  => get_class( $this ),
 			'screen' => array(

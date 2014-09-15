@@ -128,11 +128,10 @@ function install_dashboard() {
 	?>
 	<p><?php printf( __( 'Plugins extend and expand the functionality of WordPress. You may automatically install plugins from the <a href="%1$s">WordPress Plugin Directory</a> or upload a plugin in .zip format via <a href="%2$s">this page</a>.' ), 'https://wordpress.org/plugins/', self_admin_url( 'plugin-install.php?tab=upload' ) ); ?></p>
 
-	<h4><?php _e('Search') ?></h4>
-	<?php install_search_form( false ); ?>
+	<?php display_plugins_table(); ?>
 
-	<h4><?php _e('Popular tags') ?></h4>
-	<p class="install-help"><?php _e('You may also browse based on the most popular tags in the Plugin Directory:') ?></p>
+	<h3><?php _e( 'Popular tags' ) ?></h3>
+	<p><?php _e( 'You may also browse based on the most popular tags in the Plugin Directory:' ) ?></p>
 	<?php
 
 	$api_tags = install_popular_tags();
@@ -153,7 +152,7 @@ function install_dashboard() {
 	}
 	echo '</p><br class="clear" />';
 }
-add_action('install_plugins_dashboard', 'install_dashboard');
+add_action( 'install_plugins_featured', 'install_dashboard' );
 
 /**
  * Display search form for searching plugins.
@@ -164,15 +163,14 @@ function install_search_form( $type_selector = true ) {
 	$type = isset($_REQUEST['type']) ? wp_unslash( $_REQUEST['type'] ) : 'term';
 	$term = isset($_REQUEST['s']) ? wp_unslash( $_REQUEST['s'] ) : '';
 	$input_attrs = '';
-	$button_type = 'button';
+	$button_type = 'button screen-reader-text';
 
 	// assume no $type_selector means it's a simplified search form
 	if ( ! $type_selector ) {
 		$input_attrs = 'class="wp-filter-search" placeholder="' . esc_attr__( 'Search Plugins' ) . '" ';
-		$button_type .= ' screen-reader-text';
 	}
 
-	?><form class="search-plugins" method="get" action="">
+	?><form class="search-form search-plugins" method="get" action="">
 		<input type="hidden" name="tab" value="search" />
 		<?php if ( $type_selector ) : ?>
 		<select name="type" id="typeselector">
@@ -196,7 +194,7 @@ function install_search_form( $type_selector = true ) {
  */
 function install_plugins_upload( $page = 1 ) {
 ?>
-	<h4><?php _e('Install a plugin in .zip format'); ?></h4>
+<div class="upload-plugin">
 	<p class="install-help"><?php _e('If you have a plugin in a .zip format, you may install it by uploading it here.'); ?></p>
 	<form method="post" enctype="multipart/form-data" class="wp-upload-form" action="<?php echo self_admin_url('update.php?action=upload-plugin'); ?>">
 		<?php wp_nonce_field( 'plugin-upload'); ?>
@@ -204,6 +202,7 @@ function install_plugins_upload( $page = 1 ) {
 		<input type="file" id="pluginzip" name="pluginzip" />
 		<?php submit_button( __( 'Install Now' ), 'button', 'install-plugin-submit', false ); ?>
 	</form>
+</div>
 <?php
 }
 add_action('install_plugins_upload', 'install_plugins_upload', 10, 1);
@@ -242,7 +241,6 @@ function display_plugins_table() {
 	$wp_list_table->display();
 }
 add_action( 'install_plugins_search',    'display_plugins_table' );
-add_action( 'install_plugins_featured',  'display_plugins_table' );
 add_action( 'install_plugins_popular',   'display_plugins_table' );
 add_action( 'install_plugins_new',       'display_plugins_table' );
 add_action( 'install_plugins_beta',      'display_plugins_table' );
@@ -337,7 +335,8 @@ function install_plugin_information() {
 		'a' => array( 'href' => array(), 'title' => array(), 'target' => array() ),
 		'abbr' => array( 'title' => array() ), 'acronym' => array( 'title' => array() ),
 		'code' => array(), 'pre' => array(), 'em' => array(), 'strong' => array(),
-		'div' => array(), 'p' => array(), 'ul' => array(), 'ol' => array(), 'li' => array(),
+		'div' => array( 'class' => array() ), 'span' => array( 'class' => array() ),
+		'p' => array(), 'ul' => array(), 'ol' => array(), 'li' => array(),
 		'h1' => array(), 'h2' => array(), 'h3' => array(), 'h4' => array(), 'h5' => array(), 'h6' => array(),
 		'img' => array( 'src' => array(), 'class' => array(), 'alt' => array() )
 	);
@@ -393,6 +392,7 @@ function install_plugin_information() {
 		<?php
 	}
 
+	echo '<div id="plugin-information-scrollable">';
 	echo "<div id='{$_tab}-title' class='{$_with_banner}'><div class='vignette'></div><h2>{$api->name}</h2></div>";
 	echo "<div id='{$_tab}-tabs' class='{$_with_banner}'>\n";
 
@@ -439,7 +439,7 @@ function install_plugin_information() {
 		<?php } if ( ! empty( $api->homepage ) ) { ?>
 			<li><a target="_blank" href="<?php echo esc_url( $api->homepage ); ?>"><?php _e( 'Plugin Homepage &#187;' ); ?></a></li>
 		<?php } if ( ! empty( $api->donate_link ) && empty( $api->contributors ) ) { ?>
-			<li><a target="_blank" href="<?php echo $api->donate_link ?>"><?php _e( 'Donate to this plugin &#187;' ); ?></a></li>
+			<li><a target="_blank" href="<?php echo esc_url( $api->donate_link ); ?>"><?php _e( 'Donate to this plugin &#187;' ); ?></a></li>
 		<?php } ?>
 		</ul>
 		<?php if ( ! empty( $api->rating ) ) { ?>
@@ -456,12 +456,12 @@ function install_plugin_information() {
 				<div class="counter-container">
 					<a href="<?php echo esc_url( self_admin_url( 'plugin-install.php?tab=plugin-information&amp;plugin=' . $api->slug . '&amp;section=reviews' ) ); ?>"
 					   title="<?php echo esc_attr( sprintf( _n( 'Click to see reviews that provided a rating of %d star', 'Click to see reviews that provided a rating of %d stars', $key ), $key ) ); ?>">
-						<span class="counter-label"><?php echo $key; ?> stars</span>
+						<span class="counter-label"><?php printf( _n( '%d star', '%d stars', $key ), $key ); ?></span>
 						<span class="counter-back">
 							<span class="counter-bar" style="width: <?php echo 92 * $_rating; ?>px;"></span>
 						</span>
 					</a>
-					<span class="counter-count"><?php echo $ratecount; ?></span>
+					<span class="counter-count"><?php echo number_format_i18n( $ratecount ); ?></span>
 				</div>
 				<?php
 			}
@@ -494,9 +494,9 @@ function install_plugin_information() {
 	<div id="section-holder" class="wrap">
 	<?php
 		if ( ! empty( $api->tested ) && version_compare( substr( $GLOBALS['wp_version'], 0, strlen( $api->tested ) ), $api->tested, '>' ) ) {
-			echo '<div class="updated"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been tested</strong> with your current version of WordPress.') . '</p></div>';
+			echo '<div class="error"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been tested</strong> with your current version of WordPress.') . '</p></div>';
 		} else if ( ! empty( $api->requires ) && version_compare( substr( $GLOBALS['wp_version'], 0, strlen( $api->requires ) ), $api->requires, '<' ) ) {
-			echo '<div class="updated"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been marked as compatible</strong> with your version of WordPress.') . '</p></div>';
+			echo '<div class="error"><p>' . __('<strong>Warning:</strong> This plugin has <strong>not been marked as compatible</strong> with your version of WordPress.') . '</p></div>';
 		}
 
 		foreach ( (array) $api->sections as $section_name => $content ) {
@@ -513,6 +513,7 @@ function install_plugin_information() {
 		}
 	echo "</div>\n";
 	echo "</div>\n";
+	echo "</div>\n"; // #plugin-information-scrollable
 	echo "<div id='$tab-footer'>\n";
 	if ( ! empty( $api->download_link ) && ( current_user_can( 'install_plugins' ) || current_user_can( 'update_plugins' ) ) ) {
 		$status = install_plugin_install_status( $api );

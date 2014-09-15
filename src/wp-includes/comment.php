@@ -735,7 +735,7 @@ function wp_set_comment_cookies($comment, $user) {
 	 * @param int $seconds Comment cookie lifetime. Default 30000000.
 	 */
 	$comment_cookie_lifetime = apply_filters( 'comment_cookie_lifetime', 30000000 );
-	$secure = is_https_url( home_url() );
+	$secure = ( 'https' === parse_url( home_url(), PHP_URL_SCHEME ) );
 	setcookie( 'comment_author_' . COOKIEHASH, $comment->comment_author, time() + $comment_cookie_lifetime, COOKIEPATH, COOKIE_DOMAIN, $secure );
 	setcookie( 'comment_author_email_' . COOKIEHASH, $comment->comment_author_email, time() + $comment_cookie_lifetime, COOKIEPATH, COOKIE_DOMAIN, $secure );
 	setcookie( 'comment_author_url_' . COOKIEHASH, esc_url($comment->comment_author_url), time() + $comment_cookie_lifetime, COOKIEPATH, COOKIE_DOMAIN, $secure );
@@ -2202,10 +2202,10 @@ function do_trackbacks($post_id) {
 	}
 
 	if ( empty($post->post_excerpt) ) {
-		/** This filter is documented in wp-admin/post-template.php */
+		/** This filter is documented in wp-includes/post-template.php */
 		$excerpt = apply_filters( 'the_content', $post->post_content, $post->ID );
 	} else {
-		/** This filter is documented in wp-admin/post-template.php */
+		/** This filter is documented in wp-includes/post-template.php */
 		$excerpt = apply_filters( 'the_excerpt', $post->post_excerpt );
 	}
 

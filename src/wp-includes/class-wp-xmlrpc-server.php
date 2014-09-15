@@ -911,8 +911,10 @@ class wp_xmlrpc_server extends IXR_Server {
 
 		// Pull the categories info together.
 		$categories = array();
-		foreach ( wp_get_post_categories( $page->ID ) as $cat_id ) {
-			$categories[] = get_cat_name( $cat_id );
+		if ( is_object_in_taxonomy( 'page', 'category' ) ) {
+			foreach ( wp_get_post_categories( $page->ID ) as $cat_id ) {
+				$categories[] = get_cat_name( $cat_id );
+			}
 		}
 
 		// Get the author info.
@@ -5759,7 +5761,7 @@ class wp_xmlrpc_server extends IXR_Server {
 		$urltest = parse_url($pagelinkedto);
 		if ( $post_ID = url_to_postid($pagelinkedto) ) {
 			$way = 'url_to_postid()';
-		} elseif ( preg_match('#p/[0-9]{1,}#', $urltest['path'], $match) ) {
+		} elseif ( isset( $urltest['path'] ) && preg_match('#p/[0-9]{1,}#', $urltest['path'], $match) ) {
 			// the path defines the post_ID (archives/p/XXXX)
 			$blah = explode('/', $match[0]);
 			$post_ID = (int) $blah[1];

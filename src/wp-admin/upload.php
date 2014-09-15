@@ -28,17 +28,22 @@ if ( 'grid' === $mode ) {
 		'adminUrl' => parse_url( self_admin_url(), PHP_URL_PATH ),
 	) );
 
-	add_screen_option( 'misc_screen_options', array( 'option' => 'manageuploadgridcolumnshidden', 'id' => 'grid' ) );
-	add_screen_option( 'title', array( 'label' => __( 'Name' ) ) );
-	add_screen_option( 'uploadedTo', array( 'label' => __( 'Uploaded To' ) ) );
-	add_screen_option( 'dateFormatted', array( 'label' => __( 'Date' ) ) );
-	add_screen_option( 'mime', array( 'label' => __( 'Mime-type' ) ) );
-
 	get_current_screen()->add_help_tab( array(
 		'id'		=> 'overview',
 		'title'		=> __( 'Overview' ),
 		'content'	=>
-			'<p>' . __( 'All the files you&#8217;ve uploaded are listed in the Media Library, with the most recent uploads listed first. You can use the Screen Options tab to customize the display of this screen.' ) . '</p>'
+			'<p>' . __( 'All the files you&#8217;ve uploaded are listed in the Media Library, with the most recent uploads listed first.' ) . '</p>' .
+			'<p>' . __( 'You can view your media in a simple visual grid or a list with columns. Switch between these views using the icons to the left above the media.' ) . '</p>' .
+			'<p>' . __( 'To delete media items, click the Bulk Select button at the top of the screen. Select any items you wish to delete, then click the Delete Selected button. Clicking the Cancel Selection button takes you back to viewing your media.' ) . '</p>'
+	) );
+
+	get_current_screen()->add_help_tab( array(
+		'id'		=> 'attachment-details',
+		'title'		=> __( 'Attachment Details' ),
+		'content'	=>
+			'<p>' . __( 'Clicking an item will display an Attachment Details dialog, which allows you to preview media and make quick edits. Any changes you make to the attachment details will be automatically saved.' ) . '</p>' .
+			'<p>' . __( 'Use the arrow buttons at the top of the dialog, or the left and right arrow keys on your keyboard, to navigate between media items quickly.' ) . '</p>' .
+			'<p>' . __( 'You can also delete individual items and access the extended edit screen from the details dialog.' ) . '</p>'
 	) );
 
 	get_current_screen()->set_help_sidebar(
@@ -52,7 +57,7 @@ if ( 'grid' === $mode ) {
 
 	require_once( ABSPATH . 'wp-admin/admin-header.php' );
 	?>
-	<div class="wrap">
+	<div class="wrap" id="wp-media-grid">
 		<h2>
 		<?php
 		echo esc_html( $title );
@@ -95,21 +100,6 @@ if ( $doaction ) {
 	}
 
 	switch ( $doaction ) {
-		case 'find_detached':
-			if ( !current_user_can('edit_posts') )
-				wp_die( __('You are not allowed to scan for lost attachments.') );
-
-			$lost = $wpdb->get_col( "
-				SELECT ID FROM $wpdb->posts
-				WHERE post_type = 'attachment' AND post_parent > '0'
-				AND post_parent NOT IN (
-					SELECT ID FROM $wpdb->posts
-					WHERE post_type NOT IN ( 'attachment', '" . join( "', '", get_post_types( array( 'public' => false ) ) ) . "' )
-				)
-			" );
-
-			$_REQUEST['detached'] = 1;
-			break;
 		case 'attach':
 			$parent_id = (int) $_REQUEST['found_post_id'];
 			if ( !$parent_id )
@@ -208,7 +198,8 @@ get_current_screen()->add_help_tab( array(
 'title'		=> __('Overview'),
 'content'	=>
 	'<p>' . __( 'All the files you&#8217;ve uploaded are listed in the Media Library, with the most recent uploads listed first. You can use the Screen Options tab to customize the display of this screen.' ) . '</p>' .
-	'<p>' . __( 'You can narrow the list by file type/status using the text link filters at the top of the screen. You also can refine the list by date using the dropdown menu above the media table.' ) . '</p>'
+	'<p>' . __( 'You can narrow the list by file type/status using the text link filters at the top of the screen. You also can refine the list by date using the dropdown menu above the media table.' ) . '</p>' .
+	'<p>' . __( 'You can view your media in a simple visual grid or a list with columns. Switch between these views using the icons to the left above the media.' ) . '</p>'
 ) );
 get_current_screen()->add_help_tab( array(
 'id'		=> 'actions-links',
@@ -286,11 +277,9 @@ if ( !empty($message) ) { ?>
 <div id="message" class="updated"><p><?php echo $message; ?></p></div>
 <?php } ?>
 
-<?php $wp_list_table->views(); ?>
-
 <form id="posts-filter" action="" method="get">
 
-<?php $wp_list_table->search_box( __( 'Search Media' ), 'media' ); ?>
+<?php $wp_list_table->views(); ?>
 
 <?php $wp_list_table->display(); ?>
 

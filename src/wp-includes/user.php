@@ -523,6 +523,19 @@ class WP_User_Query {
 			) );
 		}
 
+		/**
+		 * Fires before the WP_User_Query has been parsed.
+		 *
+		 * The passed WP_User_Query object contains the query variables, not
+		 * yet passed into SQL.
+		 *
+		 * @since 4.0.0
+		 *
+		 * @param WP_User_Query $this The current WP_User_Query instance,
+		 *                            passed by reference.
+		 */
+		do_action( 'pre_get_users', $this );
+
 		$qv =& $this->query_vars;
 
 		if ( is_array( $qv['fields'] ) ) {
@@ -833,7 +846,7 @@ class WP_User_Query {
 	 * @since 3.1.0
 	 * @access public
 	 *
-	 * @return array Array of total users.
+	 * @return int Number of total users.
 	 */
 	public function get_total() {
 		return $this->total_users;
@@ -845,7 +858,7 @@ class WP_User_Query {
 	 * @since 4.0.0
 	 * @access public
 	 *
-	 * @param string $name Property to get
+	 * @param string $name Property to get.
 	 * @return mixed Property.
 	 */
 	public function __get( $name ) {
@@ -853,7 +866,7 @@ class WP_User_Query {
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility.
+	 * Make private properties settable for backwards compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -880,7 +893,7 @@ class WP_User_Query {
 	}
 
 	/**
-	 * Make private properties unsetable for backwards compatibility.
+	 * Make private properties un-settable for backwards compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -2194,7 +2207,7 @@ function wp_get_session_token() {
  */
 function wp_get_all_sessions() {
 	$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
-	return $manager->get_all_sessions();
+	return $manager->get_all();
 }
 
 /**
@@ -2206,7 +2219,7 @@ function wp_destroy_current_session() {
 	$token = wp_get_session_token();
 	if ( $token ) {
 		$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
-		$manager->destroy_token( $token );
+		$manager->destroy( $token );
 	}
 }
 
@@ -2219,7 +2232,7 @@ function wp_destroy_other_sessions() {
 	$token = wp_get_session_token();
 	if ( $token ) {
 		$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
-		$manager->destroy_other_tokens( $token );
+		$manager->destroy_others( $token );
 	}
 }
 
@@ -2230,5 +2243,5 @@ function wp_destroy_other_sessions() {
  */
 function wp_destroy_all_sessions() {
 	$manager = WP_Session_Tokens::get_instance( get_current_user_id() );
-	$manager->destroy_all_tokens();
+	$manager->destroy_all();
 }

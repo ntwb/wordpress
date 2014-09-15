@@ -117,7 +117,7 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 <div class="wrap">
 	<h2><?php esc_html_e( 'Themes' ); ?>
-		<span class="wp-title-count theme-count"><?php echo count( $themes ); ?></span>
+		<span class="title-count theme-count"><?php echo count( $themes ); ?></span>
 	<?php if ( ! is_multisite() && current_user_can( 'install_themes' ) ) : ?>
 		<a href="<?php echo admin_url( 'theme-install.php' ); ?>" class="hide-if-no-js add-new-h2"><?php echo esc_html( _x( 'Add New', 'Add new theme' ) ); ?></a>
 	<?php endif; ?>
@@ -153,7 +153,7 @@ if ( ! $ct->errors() || ( 1 == count( $ct->errors()->get_error_codes() )
 	if ( is_array( $submenu ) && isset( $submenu['themes.php'] ) ) {
 		foreach ( (array) $submenu['themes.php'] as $item) {
 			$class = '';
-			if ( 'themes.php' == $item[2] || 'theme-editor.php' == $item[2] || 'customize.php' == $item[2] )
+			if ( 'themes.php' == $item[2] || 'theme-editor.php' == $item[2] || 0 === strpos( $item[2], 'customize.php' ) )
 				continue;
 			// 0 = name, 1 = capability, 2 = file
 			if ( ( strcmp($self, $item[2]) == 0 && empty($parent_file)) || ($parent_file && ($item[2] == $parent_file)) )

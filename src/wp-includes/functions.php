@@ -21,7 +21,7 @@ require( ABSPATH . WPINC . '/option.php' );
  * @param string $format    Format of the date to return.
  * @param string $date      Date string to convert.
  * @param bool   $translate Whether the return date should be translated. Default true.
- * @return string|int Formatted date string, or Unix timestamp.
+ * @return string|int|bool Formatted date string or Unix timestamp. False if $date is empty.
  */
 function mysql2date( $format, $date, $translate = true ) {
 	if ( empty( $date ) )
@@ -3404,11 +3404,11 @@ function apache_mod_loaded($mod, $default = false) {
 	if ( !$is_apache )
 		return false;
 
-	if ( function_exists('apache_get_modules') ) {
+	if ( function_exists( 'apache_get_modules' ) ) {
 		$mods = apache_get_modules();
 		if ( in_array($mod, $mods) )
 			return true;
-	} elseif ( function_exists('phpinfo') ) {
+	} elseif ( function_exists( 'phpinfo' ) && false === strpos( ini_get( 'disable_functions' ), 'phpinfo' ) ) {
 			ob_start();
 			phpinfo(8);
 			$phpinfo = ob_get_clean();
@@ -3499,19 +3499,6 @@ function is_ssl() {
 		return true;
 	}
 	return false;
-}
-
-/**
- * Determine if the scheme of the given URL is https.
- *
- * @since 4.0.0
- * 
- * @param string $url The URL.
- * @return bool True if the given URL uses https, false if not (or if the URL
- *              is not valid).
- */
-function is_https_url( $url ) {
-	return ( 'https' === parse_url( $url, PHP_URL_SCHEME ) );
 }
 
 /**

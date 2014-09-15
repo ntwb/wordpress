@@ -429,7 +429,7 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 	 *
 	 * @param string       $taxonomy    Taxonomy slug.
 	 * @param array|string $object_type Object type or array of object types.
-	 * @param array|string $args        Array or string of taxonomy registration arguments.
+	 * @param array        $args        Array of taxonomy registration arguments.
 	 */
 	do_action( 'registered_taxonomy', $taxonomy, $object_type, $args );
 }
@@ -2957,6 +2957,7 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 
 	$parsed_args['slug'] = $slug;
 
+	$term_group = isset( $parsed_args['term_group'] ) ? $parsed_args['term_group'] : 0;
 	if ( $args['alias_of'] ) {
 		$alias = $wpdb->get_row( $wpdb->prepare( "SELECT term_id, term_group FROM $wpdb->terms WHERE slug = %s", $args['alias_of'] ) );
 		if ( $alias->term_group ) {

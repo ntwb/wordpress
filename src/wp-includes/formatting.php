@@ -147,7 +147,7 @@ function wptexturize($text, $reset = false) {
 		$dynamic_characters['apos'] = array_keys( $dynamic );
 		$dynamic_replacements['apos'] = array_values( $dynamic );
 		$dynamic = array();
-		
+
 		// Quoted Numbers like "42"
 		if ( '"' !== $opening_quote && '"' !== $closing_quote ) {
 			$dynamic[ '/(?<=\A|' . $spaces . ')"(\d[.,\d]*)"/' ] = $opening_quote . '$1' . $closing_quote;
@@ -167,11 +167,11 @@ function wptexturize($text, $reset = false) {
 		if ( '"' !== $closing_quote ) {
 			$dynamic[ '/"/' ] = $closing_quote;
 		}
-		
+
 		$dynamic_characters['quote'] = array_keys( $dynamic );
 		$dynamic_replacements['quote'] = array_values( $dynamic );
 		$dynamic = array();
-		
+
 		// Dashes and spaces
 		$dynamic[ '/---/' ] = $em_dash;
 		$dynamic[ '/(?<=' . $spaces . ')--(?=' . $spaces . ')/' ] = $em_dash;
@@ -219,7 +219,7 @@ function wptexturize($text, $reset = false) {
 		.		'[^\[\]<>]'	// Shortcodes do not contain other shortcodes.
 		.	'|'
 		.		'<[^>]+>' 	// HTML elements permitted. Prevents matching ] before >.
-		.	')+'
+		.	')++'
 		.	'\]'		// Find end of shortcode.
 		.	'\]?'		// Shortcodes may end with ]]
 		. ')/s';
@@ -227,27 +227,27 @@ function wptexturize($text, $reset = false) {
 	$textarr = preg_split( $regex, $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY );
 
 	foreach ( $textarr as &$curl ) {
-		// Only call _wptexturize_pushpop_element if $curl is a delimeter.
+		// Only call _wptexturize_pushpop_element if $curl is a delimiter.
 		$first = $curl[0];
 		if ( '<' === $first && '>' === substr( $curl, -1 ) ) {
-			// This is an HTML delimeter.
+			// This is an HTML delimiter.
 
 			if ( '<!--' !== substr( $curl, 0, 4 ) ) {
 				_wptexturize_pushpop_element( $curl, $no_texturize_tags_stack, $no_texturize_tags );
 			}
 
 		} elseif ( '' === trim( $curl ) ) {
-			// This is a newline between delimeters.  Performance improves when we check this.
+			// This is a newline between delimiters.  Performance improves when we check this.
 
 			continue;
 
-		} elseif ( '[' === $first && 1 === preg_match( '/^\[(?:[^\[\]<>]|<[^>]+>)+\]$/', $curl ) ) {
-			// This is a shortcode delimeter.
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[(?:[^\[\]<>]|<[^>]+>)++\]$/', $curl ) ) {
+			// This is a shortcode delimiter.
 
 			_wptexturize_pushpop_element( $curl, $no_texturize_shortcodes_stack, $no_texturize_shortcodes );
 
-		} elseif ( '[' === $first && 1 === preg_match( '/^\[\[?(?:[^\[\]<>]|<[^>]+>)+\]\]?$/', $curl ) ) {
-			// This is an escaped shortcode delimeter.
+		} elseif ( '[' === $first && 1 === preg_match( '/^\[\[?(?:[^\[\]<>]|<[^>]+>)++\]\]?$/', $curl ) ) {
+			// This is an escaped shortcode delimiter.
 
 			// Do not texturize.
 			// Do not push to the shortcodes stack.
@@ -255,7 +255,7 @@ function wptexturize($text, $reset = false) {
 			continue;
 
 		} elseif ( empty( $no_texturize_shortcodes_stack ) && empty( $no_texturize_tags_stack ) ) {
-			// This is neither a delimeter, nor is this content inside of no_texturize pairs.  Do texturize.
+			// This is neither a delimiter, nor is this content inside of no_texturize pairs.  Do texturize.
 
 			$curl = str_replace( $static_characters, $static_replacements, $curl );
 
@@ -391,6 +391,12 @@ function wpautop($pee, $br = true) {
 	$pee = preg_replace('!(<' . $allblocks . '[^>]*>)!', "\n$1", $pee);
 	$pee = preg_replace('!(</' . $allblocks . '>)!', "$1\n\n", $pee);
 	$pee = str_replace(array("\r\n", "\r"), "\n", $pee); // cross-platform newlines
+
+	if ( strpos( $pee, '<option' ) !== false ) {
+		// no P/BR around option
+		$pee = preg_replace( '|\s*<option|', '<option', $pee );
+		$pee = preg_replace( '|</option>\s*|', '</option>', $pee );
+	}
 
 	if ( strpos( $pee, '</object>' ) !== false ) {
 		// no P/BR around param and embed
@@ -1048,9 +1054,10 @@ function sanitize_file_name( $filename ) {
 	 */
 	$special_chars = apply_filters( 'sanitize_file_name_chars', $special_chars, $filename_raw );
 	$filename = preg_replace( "#\x{00a0}#siu", ' ', $filename );
-	$filename = str_replace($special_chars, '', $filename);
-	$filename = preg_replace('/[\s-]+/', '-', $filename);
-	$filename = trim($filename, '.-_');
+	$filename = str_replace( $special_chars, '', $filename );
+	$filename = str_replace( array( '%20', '+' ), '-', $filename );
+	$filename = preg_replace( '/[\r\n\t -]+/', '-', $filename );
+	$filename = trim( $filename, '.-_' );
 
 	// Split the filename into a base and extension[s]
 	$parts = explode('.', $filename);
@@ -3354,8 +3361,12 @@ function sanitize_option($option, $value) {
 
 		case 'WPLANG':
 			$allowed = get_available_languages();
-			if ( ! in_array( $value, $allowed ) && ! empty( $value ) )
+			if ( ! is_multisite() && defined( 'WPLANG' ) && '' !== WPLANG && 'en_US' !== WPLANG ) {
+				$allowed[] = WPLANG;
+			}
+			if ( ! in_array( $value, $allowed ) && ! empty( $value ) ) {
 				$value = get_option( $option );
+			}
 			break;
 
 		case 'illegal_names':

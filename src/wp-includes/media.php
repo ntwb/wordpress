@@ -1399,7 +1399,7 @@ function wp_playlist_shortcode( $attr ) {
 	}
 	?></ol>
 	</noscript>
-	<script type="application/json"><?php echo json_encode( $data ) ?></script>
+	<script type="application/json" class="wp-playlist-script"><?php echo json_encode( $data ) ?></script>
 </div>
 	<?php
 	return ob_get_clean();
@@ -1758,7 +1758,7 @@ function wp_video_shortcode( $attr, $content = '' ) {
 		}
 	}
 
-	$yt_pattern = '#^https?://(:?www\.)?(:?youtube\.com/watch|youtu\.be/)#';
+	$yt_pattern = '#^https?://(?:www\.)?(?:youtube\.com/watch|youtu\.be/)#';
 
 	$primary = false;
 	if ( ! empty( $atts['src'] ) ) {
@@ -1874,7 +1874,14 @@ function wp_video_shortcode( $attr, $content = '' ) {
 	}
 	$html .= '</video>';
 
-	$output = sprintf( '<div style="width: %dpx; max-width: 100%%;" class="wp-video">%s</div>', $atts['width'], $html );
+	$width_rule = $height_rule = '';
+	if ( ! empty( $atts['width'] ) ) {
+		$width_rule = sprintf( 'width: %dpx; ', $atts['width'] );
+	}
+	if ( ! empty( $atts['height'] ) ) {
+		$height_rule = sprintf( 'height: %dpx; ', $atts['height'] );
+	}
+	$output = sprintf( '<div style="%s%s" class="wp-video">%s</div>', $width_rule, $height_rule, $html );
 
 	/**
 	 * Filter the output of the video shortcode.
@@ -2288,7 +2295,7 @@ function wp_embed_handler_googlevideo( $matches, $attr, $url, $rawattr ) {
  * @since 4.0.0
  *
  * @param array  $matches The regex matches from the provided regex when calling
- *                        {@link wp_embed_register_handler()}.
+ *                        {@see wp_embed_register_handler()}.
  * @param array  $attr    Embed attributes.
  * @param string $url     The original URL that was matched by the regex.
  * @param array  $rawattr The original unmodified attributes.
@@ -2535,6 +2542,12 @@ function wp_plupload_default_settings() {
 		),
 	);
 
+	// Currently only iOS Safari supports multiple files uploading but has a bug that prevents uploading of videos
+	// when enabled. See #29602.
+	if ( wp_is_mobile() ) {
+		$defaults['multi_selection'] = false;
+	}
+
 	/**
 	 * Filter the Plupload default settings.
 	 *
@@ -2628,6 +2641,7 @@ function wp_prepare_attachment_for_js( $attachment ) {
 			'edit'   => false
 		),
 		'editLink'   => false,
+		'meta'       => false,
 	);
 
 	$author = new WP_User( $attachment->post_author );
@@ -2635,8 +2649,16 @@ function wp_prepare_attachment_for_js( $attachment ) {
 
 	if ( $attachment->post_parent ) {
 		$post_parent = get_post( $attachment->post_parent );
-		$response['uploadedToLink'] = get_edit_post_link( $attachment->post_parent, 'raw' );
-		$response['uploadedToTitle'] = $post_parent->post_title ? $post_parent->post_title : __( '(No title)' );
+	} else {
+		$post_parent = false;
+	}
+
+	if ( $post_parent ) {
+		$parent_type = get_post_type_object( $post_parent->post_type );
+		if ( $parent_type && $parent_type->show_ui && current_user_can( 'edit_post', $attachment->post_parent ) ) {
+			$response['uploadedToLink'] = get_edit_post_link( $attachment->post_parent, 'raw' );
+		}
+		$response['uploadedToTitle'] = $post_parent->post_title ? $post_parent->post_title : __( '(no title)' );
 	}
 
 	$attached_file = get_attached_file( $attachment->ID );
@@ -2725,6 +2747,8 @@ function wp_prepare_attachment_for_js( $attachment ) {
 
 		$response['meta'] = array();
 		foreach ( wp_get_attachment_id3_keys( $attachment, 'js' ) as $key => $label ) {
+			$response['meta'][ $key ] = false;
+
 			if ( ! empty( $meta[ $key ] ) ) {
 				$response['meta'][ $key ] = $meta[ $key ];
 			}
@@ -2856,6 +2880,7 @@ function wp_enqueue_media( $args = array() ) {
 		'embedMimes'   => $ext_mimes,
 		'contentWidth' => $content_width,
 		'months'       => $months,
+		'mediaTrash'   => MEDIA_TRASH ? 1 : 0
 	);
 
 	$post = null;
@@ -2917,12 +2942,22 @@ function wp_enqueue_media( $args = array() ) {
 		'allDates'               => __( 'All dates' ),
 		'noItemsFound'           => __( 'No items found.' ),
 		'insertIntoPost'         => $hier ? __( 'Insert into page' ) : __( 'Insert into post' ),
+		'unattached'             => __( 'Unattached' ),
+		'trash'                  => __( 'Trash' ),
 		'uploadedToThisPost'     => $hier ? __( 'Uploaded to this page' ) : __( 'Uploaded to this post' ),
 		'warnDelete'             => __( "You are about to permanently delete this item.\n  'Cancel' to stop, 'OK' to delete." ),
 		'warnBulkDelete'         => __( "You are about to permanently delete these items.\n  'Cancel' to stop, 'OK' to delete." ),
-		'bulkActions'            => __( 'Bulk Actions' ),
+		'warnBulkTrash'          => __( "You are about to trash these items.\n  'Cancel' to stop, 'OK' to delete." ),
+		'bulkSelect'             => __( 'Bulk Select' ),
+		'cancelSelection'        => __( 'Cancel Selection' ),
+		'trashSelected'          => __( 'Trash Selected' ),
+		'untrashSelected'        => __( 'Untrash Selected' ),
+		'deleteSelected'         => __( 'Delete Selected' ),
 		'deletePermanently'      => __( 'Delete Permanently' ),
 		'apply'                  => __( 'Apply' ),
+		'filterByDate'           => __( 'Filter by date' ),
+		'filterByType'           => __( 'Filter by type' ),
+		'searchMediaLabel'       => __( 'Search Media' ),
 
 		// Library Details
 		'attachmentDetails'  => __( 'Attachment Details' ),
@@ -2996,7 +3031,7 @@ function wp_enqueue_media( $args = array() ) {
 
  		// Media Library
  		'editMetadata' => __( 'Edit Metadata' ),
- 		'noMedia'      => __( 'No media found. Try a different search.' ),
+ 		'noMedia'      => __( 'No media attachments found.' ),
 	);
 
 	/**
@@ -3021,9 +3056,11 @@ function wp_enqueue_media( $args = array() ) {
 
 	$strings['settings'] = $settings;
 
+	// Ensure we enqueue media-editor first, that way media-views is
+	// registered internally before we try to localize it. see #24724.
+	wp_enqueue_script( 'media-editor' );
 	wp_localize_script( 'media-views', '_wpMediaViewsL10n', $strings );
 
-	wp_enqueue_script( 'media-editor' );
 	wp_enqueue_script( 'media-audiovideo' );
 	wp_enqueue_style( 'media-views' );
 	if ( is_admin() ) {
@@ -3281,22 +3318,13 @@ function attachment_url_to_postid( $url ) {
  * @since 4.0.0
  *
  * @global $wp_version
+ *
  * @return array The relevant CSS file URLs.
  */
-function wp_media_mce_styles() {
+function wpview_media_sandbox_styles() {
  	$version = 'ver=' . $GLOBALS['wp_version'];
- 	$tinymce = includes_url( "js/tinymce/skins/lightgray/content.min.css?$version" );
-	$dashicons = includes_url( "css/dashicons.css?$version" );
- 	$skin = includes_url( "js/tinymce/skins/wordpress/wp-content.css?$version" );
  	$mediaelement = includes_url( "js/mediaelement/mediaelementplayer.min.css?$version" );
  	$wpmediaelement = includes_url( "js/mediaelement/wp-mediaelement.css?$version" );
 
- 	$mce_styles = array( $tinymce, $dashicons, $skin, $mediaelement, $wpmediaelement );
- 	$editor_styles = get_editor_stylesheets();
-	if ( ! empty( $editor_styles ) ) {
-		foreach ( $editor_styles as $style ) {
-			$mce_styles[] = $style;
-		}
-	}
-	return $mce_styles;
+	return array( $mediaelement, $wpmediaelement );
 }

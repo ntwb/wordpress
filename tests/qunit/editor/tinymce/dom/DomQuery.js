@@ -1,6 +1,13 @@
 (function() {
+	var $elm;
+
 	module("tinymce.dom.DomQuery", {
 		teardown: function() {
+			if ($elm) {
+				$elm.off();
+				$elm = null;
+			}
+
 			document.getElementById('view').innerHTML = '';
 		}
 	});
@@ -559,6 +566,8 @@
 			strictEqual($('<b></b><i></i><u></u>').filter(function(i, elm) {
 				return i != 2;
 			}).length, 2);
+			strictEqual($([document, window, document.createTextNode('x')]).filter('*').length, 0);
+			strictEqual($.filter('*', [document, window, document.createTextNode('x')]).length, 0);
 		});
 
 		test(prefix + 'each() collection', function() {
@@ -582,7 +591,9 @@
 		});
 
 		test(prefix + 'on()/off()/trigger()', function() {
-			var $elm = $('<b />'), lastArgs1, lastArgs2;
+			var lastArgs1, lastArgs2;
+
+			$elm = $('<b />')
 
 			// Single listener
 			$elm.on('click', function(e) {
@@ -945,7 +956,7 @@
 			strictEqual($result.length, 1);
 			strictEqual($result[0].tagName, 'I');
 		});
-		
+
 		test(prefix + 'children()', function() {
 			var $result, html;
 
@@ -983,7 +994,7 @@
 			strictEqual(innerMost.closest($(html[0].firstChild.firstChild)[0]).html().toLowerCase(), '<b>x</b>');
 		});
 
-		test(prefix + 'offset()', function() {			
+		test(prefix + 'offset()', function() {
 			var testElm = $('<b></b>').offset({top: 10, left: 20});
 			strictEqual(testElm[0].style.top, '10px');
 			strictEqual(testElm[0].style.left, '20px');

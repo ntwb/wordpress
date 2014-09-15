@@ -2,10 +2,11 @@
 /**
  * Base class for displaying a list of items in an ajaxified HTML table.
  *
- * @package WordPress
- * @subpackage List_Table
  * @since 3.1.0
  * @access private
+ *
+ * @package WordPress
+ * @subpackage List_Table
  */
 class WP_List_Table {
 
@@ -14,9 +15,9 @@ class WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @var array
-	 * @access protected
+	 * @access public
 	 */
-	protected $items;
+	public $items;
 
 	/**
 	 * Various information about the current table
@@ -64,10 +65,30 @@ class WP_List_Table {
 	private $_pagination;
 
 	/**
-	 * Constructor. The child class should call this constructor from its own constructor
+	 * Constructor.
 	 *
-	 * @param array $args An associative array with information about the current table
-	 * @access protected
+	 * The child class should call this constructor from its own constructor to override
+	 * the default $args.
+	 *
+	 * @since 3.1.0
+	 * @access public
+	 *
+	 * @param array|string $args {
+	 *     Array or string of arguments.
+	 *
+	 *     @type string $plural   Plural value used for labels and the objects being listed.
+	 *                            This affects things such as CSS class-names and nonces used
+	 *                            in the list table, e.g. 'posts'. Default empty.
+	 *     @type string $singular Singular label for an object being listed, e.g. 'post'.
+	 *                            Default empty
+	 *     @type bool   $ajax     Whether the list table supports AJAX. This includes loading
+	 *                            and sorting data, for example. If true, the class will call
+	 *                            the {@see _js_vars()} method in the footer to provide variables
+	 *                            to any scripts handling AJAX events. Default false.
+	 *     @type string $screen   String containing the hook name used to determine the current
+	 *                            screen. If left null, the current screen will be automatically set.
+	 *                            Default null.
+	 * }
 	 */
 	public function __construct( $args = array() ) {
 		$args = wp_parse_args( $args, array(
@@ -109,12 +130,12 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private properties setable for backwards compatibility.
+	 * Make private properties settable for backwards compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
 	 *
-	 * @param string $name  Propert to set.
+	 * @param string $name  Property to set.
 	 * @param mixed  $value Property value.
 	 * @return mixed Newly-set property.
 	 */
@@ -136,7 +157,7 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private properties unsetable for backwards compatibility.
+	 * Make private properties un-settable for backwards compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -343,8 +364,11 @@ class WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @access protected
+	 *
+	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
+	 *                      This is designated as optional for backwards-compatibility.
 	 */
-	protected function bulk_actions() {
+	protected function bulk_actions( $which = '' ) {
 		if ( is_null( $this->_actions ) ) {
 			$no_new_actions = $this->_actions = $this->get_bulk_actions();
 			/**
@@ -369,7 +393,8 @@ class WP_List_Table {
 		if ( empty( $this->_actions ) )
 			return;
 
-		echo "<select name='action$two'>\n";
+		echo "<label for='bulk-action-selector-" . esc_attr( $which ) . "' class='screen-reader-text'>" . __( 'Select bulk action' ) . "</label>";
+		echo "<select name='action$two' id='bulk-action-selector-" . esc_attr( $which ) . "'>\n";
 		echo "<option value='-1' selected='selected'>" . __( 'Bulk Actions' ) . "</option>\n";
 
 		foreach ( $this->_actions as $name => $title ) {
@@ -466,7 +491,8 @@ class WP_List_Table {
 
 		$m = isset( $_GET['m'] ) ? (int) $_GET['m'] : 0;
 ?>
-		<select name="m">
+		<label for="filter-by-date" class="screen-reader-text"><?php _e( 'Filter by date' ); ?></label>
+		<select name="m" id="filter-by-date">
 			<option<?php selected( $m, 0 ); ?> value="0"><?php _e( 'All dates' ); ?></option>
 <?php
 		foreach ( $months as $arc_row ) {
@@ -638,7 +664,8 @@ class WP_List_Table {
 		if ( 'bottom' == $which ) {
 			$html_current_page = $current;
 		} else {
-			$html_current_page = sprintf( "<input class='current-page' title='%s' type='text' name='paged' value='%s' size='%d' />",
+			$html_current_page = sprintf( "%s<input class='current-page' id='current-page-selector' title='%s' type='text' name='paged' value='%s' size='%d' />",
+				'<label for="current-page-selector" class="screen-reader-text">' . __( 'Select Page' ) . '</label>',
 				esc_attr__( 'Current page' ),
 				$current,
 				strlen( $total_pages )
@@ -898,7 +925,7 @@ class WP_List_Table {
 	<div class="tablenav <?php echo esc_attr( $which ); ?>">
 
 		<div class="alignleft actions bulkactions">
-			<?php $this->bulk_actions(); ?>
+			<?php $this->bulk_actions( $which ); ?>
 		</div>
 <?php
 		$this->extra_tablenav( $which );

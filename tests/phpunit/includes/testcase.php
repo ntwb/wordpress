@@ -11,12 +11,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	protected $expected_doing_it_wrong = array();
 	protected $caught_doing_it_wrong = array();
 
-	protected static $hooks_saved = array(
-		'merged_filters' => array(),
-		'wp_actions' => array(),
-		'wp_current_filter' => array(),
-		'wp_filter' => array(),
-	);
+	protected static $hooks_saved = array();
 	protected static $ignore_files;
 
 	/**
@@ -72,10 +67,11 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	}
 
 	/**
-	 * Saves the action and filter-related globals so they can be restored later
+	 * Saves the action and filter-related globals so they can be restored later.
 	 *
 	 * Stores $merged_filters, $wp_actions, $wp_current_filter, and $wp_filter
-	 * on a class variable so they can be restored on tearDown() using _restore_hooks()
+	 * on a class variable so they can be restored on tearDown() using _restore_hooks().
+	 *
 	 * @global array $merged_filters
 	 * @global array $wp_actions
 	 * @global array $wp_current_filter
@@ -91,8 +87,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 
 	/**
 	 * Restores the hook-related globals to their state at setUp()
-	 *
-	 * so that future tests aren't affected by hooks set during this last test
+	 * so that future tests aren't affected by hooks set during this last test.
 	 *
 	 * @global array $merged_filters
 	 * @global array $wp_actions
@@ -100,13 +95,15 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	 * @global array $wp_filter
 	 * @return void
 	 */
-	protected function _restore_hooks(){
+	protected function _restore_hooks() {
 		$globals = array( 'merged_filters', 'wp_actions', 'wp_current_filter', 'wp_filter' );
 		foreach ( $globals as $key ) {
-			$GLOBALS[ $key ] = self::$hooks_saved[ $key ];
+			if ( isset( self::$hooks_saved[ $key ] ) ) {
+				$GLOBALS[ $key ] = self::$hooks_saved[ $key ];
+			}
 		}
 	}
-
+	
 	function flush_cache() {
 		global $wp_object_cache;
 		$wp_object_cache->group_ops = array();

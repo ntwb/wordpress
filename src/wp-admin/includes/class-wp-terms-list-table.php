@@ -11,6 +11,16 @@ class WP_Terms_List_Table extends WP_List_Table {
 
 	public $callback_args;
 
+	/**
+	 * Constructor.
+	 *
+	 * @since 3.1.0
+	 * @access public
+	 *
+	 * @see WP_List_Table::__construct() for more information on default arguments.
+	 *
+	 * @param array $args An associative array of arguments.
+	 */
 	public function __construct( $args = array() ) {
 		global $post_type, $taxonomy, $action, $tax;
 
@@ -127,8 +137,7 @@ class WP_Terms_List_Table extends WP_List_Table {
 		if ( 'link_category' == $this->screen->taxonomy ) {
 			$columns['links'] = __( 'Links' );
 		} else {
-			$post_type_object = get_post_type_object( $this->screen->post_type );
-			$columns['posts'] = $post_type_object ? $post_type_object->labels->name : __( 'Posts' );
+			$columns['posts'] = _x( 'Count', 'Number/count of items' );
 		}
 
 		return $columns;

@@ -33,6 +33,10 @@ class WP_Users_List_Table extends WP_List_Table {
 	 *
 	 * @since 3.1.0
 	 * @access public
+	 *
+	 * @see WP_List_Table::__construct() for more information on default arguments.
+	 *
+	 * @param array $args An associative array of arguments.
 	 */
 	public function __construct( $args = array() ) {
 		parent::__construct( array(

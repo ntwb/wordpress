@@ -456,7 +456,7 @@ function wp_dashboard_quick_press( $error_msg = false ) {
 
 		<div class="textarea-wrap" id="description-wrap">
 			<label class="screen-reader-text prompt" for="content" id="content-prompt-text"><?php _e( 'What&#8217;s on your mind?' ); ?></label>
-			<textarea name="content" id="content" class="mceEditor" rows="3" cols="15"></textarea>
+			<textarea name="content" id="content" class="mceEditor" rows="3" cols="15" autocomplete="off"></textarea>
 		</div>
 
 		<p class="submit">
@@ -845,8 +845,8 @@ function wp_dashboard_cached_rss_widget( $widget_id, $callback, $check_urls = ar
 	}
 
 	if ( $callback && is_callable( $callback ) ) {
-		$args = array_slice( func_get_args(), 2 );
-		array_unshift( $args, $widget_id );
+		$args = array_slice( func_get_args(), 3 );
+		array_unshift( $args, $widget_id, $check_urls );
 		ob_start();
 		call_user_func_array( $callback, $args );
 		set_transient( $cache_key, ob_get_flush(), 12 * HOUR_IN_SECONDS ); // Default lifetime in cache of 12 hours (same as the feeds)

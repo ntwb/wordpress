@@ -671,7 +671,7 @@ function wp_validate_auth_cookie($cookie = '', $scheme = '') {
 	$key = wp_hash( $username . '|' . $pass_frag . '|' . $expiration . '|' . $token, $scheme );
 	$hash = hash_hmac( 'sha256', $username . '|' . $expiration . '|' . $token, $key );
 
-	if ( hash_hmac( 'sha256', $hmac, $key ) !== hash_hmac( 'sha256', $hash, $key ) ) {
+	if ( ! hash_equals( $hash, $hmac ) ) {
 		/**
 		 * Fires if a bad authentication cookie hash is encountered.
 		 *
@@ -684,7 +684,7 @@ function wp_validate_auth_cookie($cookie = '', $scheme = '') {
 	}
 
 	$manager = WP_Session_Tokens::get_instance( $user->ID );
-	if ( ! $manager->verify_token( $token ) ) {
+	if ( ! $manager->verify( $token ) ) {
 		do_action( 'auth_cookie_bad_session_token', $cookie_elements );
 		return false;
 	}
@@ -728,7 +728,7 @@ function wp_generate_auth_cookie( $user_id, $expiration, $scheme = 'auth', $toke
 
 	if ( ! $token ) {
 		$manager = WP_Session_Tokens::get_instance( $user_id );
-		$token = $manager->create_token( $expiration );
+		$token = $manager->create( $expiration );
 	}
 
 	$pass_frag = substr($user->user_pass, 8, 4);
@@ -877,7 +877,7 @@ function wp_set_auth_cookie($user_id, $remember = false, $secure = '') {
 	}
 
 	$manager = WP_Session_Tokens::get_instance( $user_id );
-	$token = $manager->create_token( $expiration );
+	$token = $manager->create( $expiration );
 
 	$auth_cookie = wp_generate_auth_cookie( $user_id, $expiration, $scheme, $token );
 	$logged_in_cookie = wp_generate_auth_cookie( $user_id, $expiration, 'logged_in', $token );
@@ -1707,16 +1707,22 @@ function wp_verify_nonce($nonce, $action = -1) {
 		$uid = apply_filters( 'nonce_user_logged_out', $uid, $action );
 	}
 
+	if ( empty( $nonce ) ) {
+		return false;
+	}
+
 	$token = wp_get_session_token();
 	$i = wp_nonce_tick();
 
 	// Nonce generated 0-12 hours ago
-	if ( $nonce === substr( wp_hash( $i . '|' . $action . '|' . $uid . '|' . $token, 'nonce'), -12, 10 ) ) {
+	$expected = substr( wp_hash( $i . '|' . $action . '|' . $uid . '|' . $token, 'nonce'), -12, 10 );
+	if ( hash_equals( $expected, $nonce ) ) {
 		return 1;
 	}
 
 	// Nonce generated 12-24 hours ago
-	if ( $nonce === substr( wp_hash( ( $i - 1 ) . '|' . $action . '|' . $uid . '|' . $token, 'nonce' ), -12, 10 ) ) {
+	$expected = substr( wp_hash( ( $i - 1 ) . '|' . $action . '|' . $uid . '|' . $token, 'nonce' ), -12, 10 );
+	if ( hash_equals( $expected, $nonce ) ) {
 		return 2;
 	}
 
@@ -2050,6 +2056,10 @@ if ( !function_exists('wp_set_password') ) :
  * For integration with other applications, this function can be overwritten to
  * instead use the other package password checking algorithm.
  *
+ * Please note: This function should be used sparingly and is really only meant for single-time
+ * application. Leveraging this improperly in a plugin or theme could result in an endless loop
+ * of password resets if precautions are not taken to ensure it does not execute on every page load.
+ *
  * @since 2.5.0
  *
  * @uses $wpdb WordPress database object for queries
@@ -2171,7 +2181,8 @@ function get_avatar( $id_or_email, $size = '96', $default = '', $alt = false ) {
 		$out = str_replace( '&#038;', '&amp;', esc_url( $out ) );
 		$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo' height='{$size}' width='{$size}' />";
 	} else {
-		$avatar = "<img alt='{$safe_alt}' src='{$default}' class='avatar avatar-{$size} photo avatar-default' height='{$size}' width='{$size}' />";
+		$out = esc_url( $default );
+		$avatar = "<img alt='{$safe_alt}' src='{$out}' class='avatar avatar-{$size} photo avatar-default' height='{$size}' width='{$size}' />";
 	}
 
 	/**

@@ -27,31 +27,12 @@ columns = {
 	},
 
 	saveManageColumnsState : function() {
-		var hidden, page, opts = $( '.misc-screen-options' );
-		if ( opts.length ) {
-			hidden = [];
-			opts.find( '.hide-column-tog' ).each( function() {
-				var $el, field = this.value;
-				$el = $( '.data-' + field );
-				if ( ! this.checked ) {
-					hidden.push( field );
-					$el.removeClass( 'data-visible' ).addClass( 'data-hidden' );
-				} else {
-					$el.removeClass( 'data-hidden' ).addClass( 'data-visible' );
-				}
-			} );
-			page = pagenow + opts.data( 'id' );
-			hidden = hidden.join( ',' );
-		} else {
-			page = pagenow;
-			hidden = this.hidden();
-		}
-
+		var hidden = this.hidden();
 		$.post(ajaxurl, {
 			action: 'hidden-columns',
 			hidden: hidden,
 			screenoptionnonce: $('#screenoptionnonce').val(),
-			page: page
+			page: pagenow
 		});
 	},
 
@@ -212,10 +193,10 @@ $(document).ready( function() {
 			respWidth = Math.max( window.innerWidth, document.documentElement.clientWidth );
 		} else {
 			// IE < 9 doesn't support @media CSS rules
-			respWidth = 901;
+			respWidth = 961;
 		}
 
-		if ( respWidth && respWidth < 900 ) {
+		if ( respWidth && respWidth < 960 ) {
 			if ( body.hasClass('auto-fold') ) {
 				body.removeClass('auto-fold').removeClass('folded');
 				setUserSetting('unfold', 1);

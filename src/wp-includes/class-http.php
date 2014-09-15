@@ -201,11 +201,7 @@ class WP_Http {
 
 		// Determine if this request is to OUR install of WordPress.
 		$homeURL = parse_url( get_bloginfo( 'url' ) );
-		if ( isset( $homeURL['host'] ) ) {
-			$r['local'] = ( $homeURL['host'] == $arrURL['host'] || 'localhost' == $arrURL['host'] );
-		} else {
-			$r['local'] = false;
-		}
+		$r['local'] = 'localhost' == $arrURL['host'] || ( isset( $homeURL['host'] ) && $homeURL['host'] == $arrURL['host'] );
 		unset( $homeURL );
 
 		/*
@@ -637,7 +633,7 @@ class WP_Http {
 		$home = parse_url( get_option('siteurl') );
 
 		// Don't block requests back to ourselves by default.
-		if ( $check['host'] == 'localhost' || $check['host'] == $home['host'] ) {
+		if ( 'localhost' == $check['host'] || ( isset( $home['host'] ) && $home['host'] == $check['host'] ) ) {
 			/**
 			 * Filter whether to block local requests through the proxy.
 			 *
@@ -727,7 +723,7 @@ class WP_Http {
 	 * @since 3.7.0
 	 *
 	 * @param string $url The URL which was requested.
-	 * @param array $args The Arguements which were used to make the request.
+	 * @param array $args The Arguments which were used to make the request.
 	 * @param array $response The Response of the HTTP request.
 	 * @return false|object False if no redirect is present, a WP_HTTP or WP_Error result otherwise.
 	 */
@@ -1430,7 +1426,7 @@ class WP_Http_Curl {
 
 		$curl_error = curl_errno( $handle );
 
-		// If an error occured, or, no response.
+		// If an error occurred, or, no response.
 		if ( $curl_error || ( 0 == strlen( $theBody ) && empty( $theHeaders['headers'] ) ) ) {
 			if ( CURLE_WRITE_ERROR /* 23 */ == $curl_error &&  $r['stream'] ) {
 				fclose( $this->stream_handle );
@@ -1732,7 +1728,7 @@ class WP_HTTP_Proxy {
 		if ( ! is_null( $result ) )
 			return $result;
 
-		if ( $check['host'] == 'localhost' || $check['host'] == $home['host'] )
+		if ( 'localhost' == $check['host'] || ( isset( $home['host'] ) && $home['host'] == $check['host'] ) )
 			return false;
 
 		if ( !defined('WP_PROXY_BYPASS_HOSTS') )

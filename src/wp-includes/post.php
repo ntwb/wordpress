@@ -1458,7 +1458,7 @@ function register_post_type( $post_type, $args = array() ) {
 	 * @since 3.3.0
 	 *
 	 * @param string $post_type Post type.
-	 * @param array  $args      Arguments used to register the post type.
+	 * @param object $args      Arguments used to register the post type.
 	 */
 	do_action( 'registered_post_type', $post_type, $args );
 
@@ -2314,7 +2314,7 @@ function _count_posts_cache_key( $type = 'post', $perm = '' ) {
 	$cache_key = 'posts-' . $type;
 	if ( 'readable' == $perm && is_user_logged_in() ) {
 		$post_type_object = get_post_type_object( $type );
-		if ( ! current_user_can( $post_type_object->cap->read_private_posts ) ) {
+		if ( $post_type_object && ! current_user_can( $post_type_object->cap->read_private_posts ) ) {
 			$cache_key .= '_' . $perm . '_' . get_current_user_id();
 		}
 	}
@@ -3146,7 +3146,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 	}
 
 	$post_status = empty( $postarr['post_status'] ) ? 'draft' : $postarr['post_status'];
-	if ( 'attachment' === $post_type && ! in_array( $post_status, array( 'inherit', 'private' ) ) ) {
+	if ( 'attachment' === $post_type && ! in_array( $post_status, array( 'inherit', 'private', 'trash' ) ) ) {
 		$post_status = 'inherit';
 	}
 
@@ -4719,9 +4719,14 @@ function is_local_attachment($url) {
 function wp_insert_attachment( $args, $file = false, $parent = 0 ) {
 	$defaults = array(
 		'file'        => $file,
-		'post_parent' => $parent
+		'post_parent' => 0
 	);
+
 	$data = wp_parse_args( $args, $defaults );
+
+	if ( ! empty( $parent ) ) {
+		$data['post_parent'] = $parent;
+	}
 
 	$data['post_type'] = 'attachment';
 

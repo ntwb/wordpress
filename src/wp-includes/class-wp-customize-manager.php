@@ -16,7 +16,7 @@
  */
 final class WP_Customize_Manager {
 	/**
-	 * An instance of the theme that is being customized.
+	 * An instance of the theme being previewed.
 	 *
 	 * @var WP_Theme
 	 */
@@ -30,8 +30,7 @@ final class WP_Customize_Manager {
 	protected $original_stylesheet;
 
 	/**
-	 * Whether filters have been set to change the active theme to the theme being
-	 * customized.
+	 * Whether this is a Customizer pageload.
 	 *
 	 * @var boolean
 	 */
@@ -44,10 +43,11 @@ final class WP_Customize_Manager {
 	 */
 	public $widgets;
 
-	protected $settings = array();
-	protected $panels   = array();
-	protected $sections = array();
-	protected $controls = array();
+	protected $settings   = array();
+	protected $containers = array();
+	protected $panels     = array();
+	protected $sections   = array();
+	protected $controls   = array();
 
 	protected $nonce_tick;
 
@@ -67,6 +67,7 @@ final class WP_Customize_Manager {
 	 */
 	public function __construct() {
 		require( ABSPATH . WPINC . '/class-wp-customize-setting.php' );
+		require( ABSPATH . WPINC . '/class-wp-customize-panel.php' );
 		require( ABSPATH . WPINC . '/class-wp-customize-section.php' );
 		require( ABSPATH . WPINC . '/class-wp-customize-control.php' );
 		require( ABSPATH . WPINC . '/class-wp-customize-widgets.php' );
@@ -183,7 +184,6 @@ final class WP_Customize_Manager {
 				$this->wp_die( -1 );
 		}
 
-		// All good, let's do some internal business to preview the theme.
 		$this->start_previewing_theme();
 	}
 
@@ -200,7 +200,8 @@ final class WP_Customize_Manager {
 	}
 
 	/**
-	 * Start previewing the selected theme by adding filters to change the current theme.
+	 * If the theme to be previewed isn't the active theme, add filter callbacks
+	 * to swap it out at runtime.
 	 *
 	 * @since 3.4.0
 	 */
@@ -303,6 +304,17 @@ final class WP_Customize_Manager {
 	 */
 	public function controls() {
 		return $this->controls;
+	}
+
+	/**
+	 * Get the registered containers.
+	 *
+	 * @since 4.0.0
+	 *
+	 * @return array
+	 */
+	public function containers() {
+		return $this->containers;
 	}
 
 	/**
@@ -432,7 +444,7 @@ final class WP_Customize_Manager {
 
 	/**
 	 * Prevent sending a 404 status when returning the response for the customize
-	 * preview, since it causes the jQuery Ajax to fail. Send 200 instead.
+	 * preview, since it causes the jQuery AJAX to fail. Send 200 instead.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -891,6 +903,10 @@ final class WP_Customize_Manager {
 			$panels[] = $panel;
 		}
 		$this->panels = $panels;
+
+		// Sort panels and top-level sections together.
+		$this->containers = array_merge( $this->panels, $this->sections );
+		uasort( $this->containers, array( $this, '_cmp_priority' ) );
 	}
 
 	/**

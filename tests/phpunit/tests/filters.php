@@ -267,4 +267,51 @@ class Tests_Filters extends WP_UnitTestCase {
 		$this->assertEquals( 1, $b->get_call_count(), 'priority 12 filters should run after priority 10 empties itself and priority 11 runs' );
 		$this->assertEquals( $result, $tag . '_append_append', 'priority 11 and 12 filters should run after priority 10 empties itself' );
 	}
+
+	/**
+	 * @ticket 29070
+	 */
+	function test_has_filter_after_remove_all_filters() {
+		$a = new MockAction();
+		$tag = rand_str();
+		$val = rand_str();
+
+		// No priority
+		add_filter( $tag, array( $a, 'filter' ), 11 );
+		add_filter( $tag, array( $a, 'filter' ), 12 );
+		$this->assertTrue( has_filter( $tag ) );
+
+		remove_all_filters( $tag );
+		$this->assertFalse( has_filter( $tag ) );
+
+		// Remove priorities one at a time
+		add_filter( $tag, array( $a, 'filter' ), 11 );
+		add_filter( $tag, array( $a, 'filter' ), 12 );
+		$this->assertTrue( has_filter( $tag ) );
+
+		remove_all_filters( $tag, 11 );
+		remove_all_filters( $tag, 12 );
+		$this->assertFalse( has_filter( $tag ) );
+	}
+
+	/**
+	 * @ticket 29070
+	 */
+	 function test_has_filter_doesnt_reset_wp_filter() {
+	 	add_action( 'action_test_has_filter_doesnt_reset_wp_filter', '__return_null', 1 );
+	 	add_action( 'action_test_has_filter_doesnt_reset_wp_filter', '__return_null', 2 );
+	 	add_action( 'action_test_has_filter_doesnt_reset_wp_filter', '__return_null', 3 );
+	 	add_action( 'action_test_has_filter_doesnt_reset_wp_filter', array( $this, '_action_test_has_filter_doesnt_reset_wp_filter' ), 4 );
+
+	 	do_action( 'action_test_has_filter_doesnt_reset_wp_filter' );
+	 }
+	 function _action_test_has_filter_doesnt_reset_wp_filter() {
+	 	global $wp_filter;
+
+	 	has_action( 'action_test_has_filter_doesnt_reset_wp_filter', '_function_that_doesnt_exist' );
+
+		$filters = current( $wp_filter['action_test_has_filter_doesnt_reset_wp_filter'] );
+	 	$the_ = current( $filters );
+	 	$this->assertEquals( $the_['function'], array( $this, '_action_test_has_filter_doesnt_reset_wp_filter' ) );
+	 }
 }

@@ -319,7 +319,7 @@ function media_handle_upload($file_id, $post_id, $post_data = array(), $override
 			$content .= ' ' . sprintf( __( 'Genre: %s.' ), $meta['genre'] );
 
 	// Use image exif/iptc data for title and caption defaults if possible.
-	} elseif ( $image_meta = @wp_read_image_metadata( $file ) ) {
+	} elseif ( 0 === strpos( $type, 'image/' ) && $image_meta = @wp_read_image_metadata( $file ) ) {
 		if ( trim( $image_meta['title'] ) && ! is_numeric( sanitize_title( $image_meta['title'] ) ) )
 			$title = $image_meta['title'];
 		if ( trim( $image_meta['caption'] ) )
@@ -528,8 +528,9 @@ function media_buttons($editor_id = 'content') {
 
 	$img = '<span class="wp-media-buttons-icon"></span> ';
 
-	printf( '<a href="#" id="insert-media-button-%d" class="button insert-media add_media" data-editor="%s" title="%s">%s</a>',
-		$instance,
+	$id_attribute = $instance === 1 ? ' id="insert-media-button"' : '';
+	printf( '<a href="#"%s class="button insert-media add_media" data-editor="%s" title="%s">%s</a>',
+		$id_attribute,
 		esc_attr( $editor_id ),
 		esc_attr__( 'Add Media' ),
 		$img . __( 'Add Media' )
@@ -1701,7 +1702,7 @@ function media_upload_form( $errors = null ) {
 	global $type, $tab, $is_IE, $is_opera;
 
 	if ( ! _device_can_upload() ) {
-		echo '<p>' . sprintf( __('The web browser on your device cannot be used to upload files. You may be able to use the <a href="%s">native app for your device</a> instead.'), 'https://wordpress.org/mobile/' ) . '</p>';
+		echo '<p>' . sprintf( __('The web browser on your device cannot be used to upload files. You may be able to use the <a href="%s">native app for your device</a> instead.'), 'https://apps.wordpress.org/' ) . '</p>';
 		return;
 	}
 
@@ -1778,6 +1779,12 @@ $plupload_init = array(
 	),
 	'multipart_params'    => $post_params,
 );
+
+// Currently only iOS Safari supports multiple files uploading but has a bug that prevents uploading of videos
+// when enabled. See #29602.
+if ( wp_is_mobile() ) {
+	$plupload_init['multi_selection'] = false;
+}
 
 /**
  * Filter the default Plupload settings.
@@ -1856,7 +1863,7 @@ do_action( 'post-html-upload-ui' );
 ?>
 </div>
 
-<span class="max-upload-size"><?php printf( __( 'Maximum upload file size: %s.' ), esc_html( size_format( $max_upload_size ) ) ); ?></span>
+<p class="max-upload-size"><?php printf( __( 'Maximum upload file size: %s.' ), esc_html( size_format( $max_upload_size ) ) ); ?></p>
 <?php
 
 	/**
@@ -2859,7 +2866,7 @@ function wp_add_id3_tag_data( &$metadata, $data ) {
 	foreach ( array( 'id3v2', 'id3v1' ) as $version ) {
 		if ( ! empty( $data[$version]['comments'] ) ) {
 			foreach ( $data[$version]['comments'] as $key => $list ) {
-				if ( ! empty( $list ) ) {
+				if ( 'length' !== $key && ! empty( $list ) ) {
 					$metadata[$key] = reset( $list );
 					// Fix bug in byte stream analysis.
 					if ( 'terms_of_use' === $key && 0 === strpos( $metadata[$key], 'yright notice.' ) )
@@ -2921,7 +2928,7 @@ function wp_read_video_metadata( $file ) {
 	if ( ! empty( $data['mime_type'] ) )
 		$metadata['mime_type'] = $data['mime_type'];
 	if ( ! empty( $data['playtime_seconds'] ) )
-		$metadata['length'] = (int) ceil( $data['playtime_seconds'] );
+		$metadata['length'] = (int) round( $data['playtime_seconds'] );
 	if ( ! empty( $data['playtime_string'] ) )
 		$metadata['length_formatted'] = $data['playtime_string'];
 	if ( ! empty( $data['video']['resolution_x'] ) )
@@ -2977,7 +2984,7 @@ function wp_read_audio_metadata( $file ) {
 	if ( ! empty( $data['mime_type'] ) )
 		$metadata['mime_type'] = $data['mime_type'];
 	if ( ! empty( $data['playtime_seconds'] ) )
-		$metadata['length'] = (int) ceil( $data['playtime_seconds'] );
+		$metadata['length'] = (int) round( $data['playtime_seconds'] );
 	if ( ! empty( $data['playtime_string'] ) )
 		$metadata['length_formatted'] = $data['playtime_string'];
 

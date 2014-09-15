@@ -9,16 +9,17 @@
 
 #wpcontent {
 	height: 100%;
+	padding-left: 20px;
 }
 
 #wpcontent,
 #wpfooter {
-	margin-left: 180px;
+	margin-left: 160px;
 }
 
 .folded #wpcontent,
 .folded #wpfooter {
-	margin-left: 56px;
+	margin-left: 36px;
 }
 
 #wpbody-content {
@@ -216,6 +217,10 @@ body {
 body.iframe {
 	min-width: 0;
 	padding-top: 1px;
+}
+
+body.modal-open {
+	overflow: hidden;
 }
 
 iframe,
@@ -708,9 +713,6 @@ td.help {
 .postbox .hndle,
 .stuffbox .hndle,
 .control-section .accordion-section-title,
-h3.dashboard-widget-title,
-h3.dashboard-widget-title span,
-h3.dashboard-widget-title small,
 .sidebar-name,
 #nav-menu-header,
 #nav-menu-footer,
@@ -746,7 +748,7 @@ h3.dashboard-widget-title small,
 }
 
 /* @todo can we combine these into a class or use an existing dashicon one? */
-#welcome-panel.welcome-panel .welcome-panel-close::before,
+#welcome-panel.welcome-panel .welcome-panel-close:before,
 .tagchecklist span a:before,
 #bulk-titles div a:before {
 	background: none;
@@ -756,10 +758,18 @@ h3.dashboard-widget-title small,
 	font: normal 16px/1 'dashicons';
 	speak: none;
 	height: 20px;
-	margin: 2px 0;
 	text-align: center;
 	width: 20px;
 	-webkit-font-smoothing: antialiased !important;
+}
+
+#welcome-panel.welcome-panel .welcome-panel-close:before {
+	margin: 0;
+}
+
+.tagchecklist span a:before,
+#bulk-titles div a:before {
+	margin: 2px 0;
 }
 
 #welcome-panel.welcome-panel .welcome-panel-close:hover:before,
@@ -924,22 +934,6 @@ th.action-links {
 }
 
 /* Filter bar */
-
-.wp-title-count {
-	display: inline;
-	position: relative;
-	top: -3px;
-	margin-left: 5px;
-	margin-right: 20px;
-	padding: 4px 10px;
-	-webkit-border-radius: 30px;
-	border-radius: 30px;
-	background: #777;
-	color: #fff;
-	font-size: 14px;
-	font-weight: 600;
-}
-
 .wp-filter {
 	display: inline-block;
 	position: relative;
@@ -961,13 +955,14 @@ th.action-links {
 	text-decoration: none;
 }
 
-.wp-filter-count {
+.filter-count {
 	display: inline-block;
 	vertical-align: middle;
 	min-width: 4em;
 }
 
-.wp-filter-count .count {
+.title-count,
+.filter-count .count {
 	display: inline-block;
 	position: relative;
 	top: -1px;
@@ -980,17 +975,25 @@ th.action-links {
 	font-weight: 600;
 }
 
-.wp-filter-links {
+/* not a part of filter bar, but derived from it, so here for now */
+.title-count {
+	display: inline;
+	top: -3px;
+	margin-left: 5px;
+	margin-right: 20px;
+}
+
+.filter-links {
 	display: inline-block;
 	margin: 0;
 }
 
-.wp-filter-links li {
+.filter-links li {
 	display: inline-block;
 	margin: 0;
 }
 
-.wp-filter-link {
+.filter-links li > a {
 	display: inline-block;
 	margin: 0 10px;
 	padding: 15px 0;
@@ -999,16 +1002,27 @@ th.action-links {
 	cursor: pointer;
 }
 
-.wp-filter-links .current {
+.filter-links .current {
+	-webkit-box-shadow: none;
+	box-shadow: none;
 	border-bottom: 4px solid #666;
 	color: #222;
 }
 
-.wp-filter-search {
-	position: absolute;
-	top: 9px;
-	right: 10px;
-	left: auto;
+.filter-links li > a:hover,
+.filter-links li > a:focus,
+.show-filters .filter-links a.current:hover,
+.show-filters .filter-links a.current:focus {
+	color: #2ea2cc;
+}
+
+.wp-filter .search-form {
+	float: right;
+	margin-top: 9px;
+}
+
+.wp-filter .search-form input[type="search"] {
+	margin: 0;
 	padding: 3px 5px;
 	width: 280px;
 	font-size: 16px;
@@ -1016,7 +1030,12 @@ th.action-links {
 	line-height: 1.5;
 }
 
-.wp-filter-drawer-toggle {
+.wp-filter .search-form select {
+	height: 33px;
+	vertical-align: top;
+}
+
+.wp-filter .drawer-toggle {
 	display: inline-block;
 	margin: 0 10px;
 	padding: 4px 6px;
@@ -1024,7 +1043,7 @@ th.action-links {
 	cursor: pointer;
 }
 
-.wp-filter-drawer-toggle:before {
+.wp-filter .drawer-toggle:before {
 	display: inline-block;
 	vertical-align: top;
 	content: "\f111";
@@ -1044,15 +1063,16 @@ th.action-links {
 	-webkit-font-smoothing: antialiased;
 }
 
-.wp-filter-drawer-toggle:hover {
-	color: #777;
+.wp-filter .drawer-toggle:hover,
+.wp-filter .drawer-toggle:hover:before {
+	color: #2ea2cc;
 }
 
-.wp-filter-drawer-toggle.current:before {
+.wp-filter .drawer-toggle.current:before {
 	color: #fff;
 }
 
-.wp-filter-drawer {
+.filter-drawer {
 	display: none;
 	margin: 0 -20px;
 	padding: 20px;
@@ -1060,21 +1080,21 @@ th.action-links {
 	background: #fafafa;
 }
 
-body.show-filter-drawer .wp-filter-drawer {
+.show-filters .filter-drawer {
 	display: block;
 	overflow: hidden;
 }
 
-body.show-filter-drawer .wp-filter-drawer-toggle:hover,
-body.show-filter-drawer .wp-filter-drawer-toggle:focus {
+.show-filters .wp-filter .drawer-toggle:hover,
+.show-filters .wp-filter .drawer-toggle:focus {
 	background: rgb(46, 162, 204);
 }
 
-body.show-filter-drawer .wp-filter-link.current {
+.show-filters .filter-links a.current {
 	border-bottom: none;
 }
 
-body.show-filter-drawer .wp-filter-drawer-toggle {
+.show-filters .wp-filter .drawer-toggle {
 	-webkit-border-radius: 2px;
 	border-radius: 2px;
 	border: none;
@@ -1082,11 +1102,11 @@ body.show-filter-drawer .wp-filter-drawer-toggle {
 	color: #fff;
 }
 
-body.show-filter-drawer .wp-filter-drawer-toggle:before {
+.show-filters .wp-filter .drawer-toggle:before {
 	color: #fff;
 }
 
-.wp-filter-group {
+.filter-group {
 	-webkit-box-sizing: border-box;
 	-moz-box-sizing: border-box;
 	box-sizing: border-box;
@@ -1100,22 +1120,22 @@ body.show-filter-drawer .wp-filter-drawer-toggle:before {
 	box-shadow: 0 1px 1px rgba(0,0,0,0.04);
 }
 
-.wp-filter-group-wide {
+.filter-group.wide {
 	width: 38%;
 }
 
-.wp-filter-group-title {
+.filter-group h4 {
 	position: relative;
 	margin: 0;
 }
 
-.wp-filter-drawer ol {
+.filter-drawer ol {
 	margin: 20px 0 0;
 	list-style-type: none;
 	font-size: 12px;
 }
 
-.wp-filter-drawer li {
+.filter-drawer li {
 	display: inline-block;
 	vertical-align: top;
 	margin: 5px 0;
@@ -1124,11 +1144,11 @@ body.show-filter-drawer .wp-filter-drawer-toggle:before {
 	list-style-type: none;
 }
 
-.wp-filter-drawer-buttons {
+.filter-drawer .buttons {
 	margin-bottom: 20px;
 }
 
-.wp-filter .wp-filter-drawer-buttons .button span {
+.filter-drawer .buttons .button span {
 	display: inline-block;
 	opacity: 0.8;
 	font-size: 12px;
@@ -1140,24 +1160,24 @@ body.show-filter-drawer .wp-filter-drawer-toggle:before {
 	margin: 0 0 20px 10px;
 }
 
-.wp-filter-by {
+.filtered-by {
 	display: none;
 	margin: 0;
 }
 
-.wp-filter-by > span {
+.filtered-by > span {
 	font-weight: 600;
 }
 
-.wp-filter-by a {
+.filtered-by a {
 	margin-left: 10px;
 }
 
-.wp-filter-by .tags {
+.filtered-by .tags {
 	display: inline;
 }
 
-.wp-filter-by .tag {
+.filtered-by .tag {
 	margin: 0 5px;
 	padding: 4px 8px;
 	border: 1px solid #e5e5e5;
@@ -1167,32 +1187,29 @@ body.show-filter-drawer .wp-filter-drawer-toggle:before {
 	font-size: 11px;
 }
 
-body.filters-applied .wp-filter-group,
-body.filters-applied .wp-filter-drawer a.button,
-body.filters-applied .wp-filter-drawer br {
+.filters-applied .filter-group,
+.filters-applied .filter-drawer .buttons,
+.filters-applied .filter-drawer br {
 	display: none !important;
 }
 
-body.filters-applied .wp-filter-by {
+.filters-applied .filtered-by {
 	display: block;
 }
 
-body.filters-applied .wp-filter-drawer {
+.filters-applied .filter-drawer {
 	padding: 20px;
 }
 
-body.show-filter-drawer .wp-filter-content,
-body.show-filter-drawer.filters-applied.loading-content .wp-filter-content {
+.show-filters .content-filterable,
+.show-filters.filters-applied.loading-content .content-filterable,
+.loading-content .content-filterable,
+.error .content-filterable {
 	display: none;
 }
 
-body.show-filter-drawer.filters-applied .wp-filter-content {
+.show-filters.filters-applied .content-filterable {
 	display: block;
-}
-
-.loading-content .wp-filter-content,
-.error .wp-filter-content {
-	display: none;
 }
 
 .loading-content .spinner {
@@ -1202,30 +1219,29 @@ body.show-filter-drawer.filters-applied .wp-filter-content {
 }
 
 @media only screen and (max-width: 1120px) {
-	.wp-filter-search {
-		position: static;
+	.wp-filter .search-form {
+		float: none;
 		margin: 20px 0;
-		width: 100%;
 	}
 
-	.wp-filter-drawer {
+	.filter-drawer {
 		border-bottom: 1px solid #eee;
 	}
 
-	.wp-filter-group {
+	.filter-group {
 		margin-bottom: 0;
 		margin-top: 5px;
 		width: 100%;
 	}
 
-	.wp-filter-group li {
+	.filter-group li {
 		margin: 10px 0;
 	}
 }
 
 @media only screen and (max-width: 782px) {
-	.wp-filter-group,
-	.wp-filter-group li {
+	.filter-group,
+	.filter-group li {
 		width: 100%;
 	}
 
@@ -1333,7 +1349,6 @@ form.upgrade .hint {
 	display: none;
 	margin: 0 20px -1px 0px;
 	position: relative;
-	z-index: 10;
 	background-color: #fff;
 	border: 1px solid #ddd;
 	border-top: none;
@@ -1356,7 +1371,6 @@ form.upgrade .hint {
 #screen-meta-links .screen-meta-toggle {
 	position: relative;
 	top: 0;
-	z-index: 10;
 }
 
 #screen-meta-links a {
@@ -1367,12 +1381,6 @@ form.upgrade .hint {
 #screen-meta-links a:active,
 #screen-meta-links a:focus {
 	color: #333;
-}
-
-#screen-meta-links a:focus {
-	border-color: #aaa;
-	-webkit-box-shadow: 0 2px 3px rgba(0,0,0,0.15);
-	box-shadow: 0 2px 3px rgba(0,0,0,0.15);
 }
 
 #screen-meta-links a.show-settings {
@@ -1765,8 +1773,7 @@ html.wp-toolbar {
 	bottom: 0;
 	left: 0;
 	right: 0;
-	padding: 10px 0;
-	margin-right: 20px;
+	padding: 10px 20px;
 	color: #777;
 }
 
@@ -2110,22 +2117,28 @@ div.action-links {
 
 /* Plugin install thickbox */
 #plugin-information {
-	background: #fcfcfc;
+	background: #fff;
 	position: fixed;
 	top: 0;
 	right: 0;
 	bottom: 0;
 	left: 0;
-	height: auto;
+	height: 100%;
 	padding: 0;
 }
 
+#plugin-information-scrollable {
+	overflow: auto;
+	height: 100%;
+}
+
 #plugin-information-title {
-	margin-right: 56px; /* avoid collisions with the close icon */
 	padding: 0 20px;
+	background: #f5f5f5;
 	font-size: 22px;
 	font-weight: 600;
 	line-height: 56px;
+	position: relative;
 	top: 0;
 	right: 0;
 	left: 0;
@@ -2144,22 +2157,23 @@ div.action-links {
 }
 
 #plugin-information-title h2 {
-	font-family: "Helvetica Neue", sans-serif;
-	padding:0;
+	font-size: 1em;
+	font-weight: bold;
+	padding: 0;
 	margin: 0;
-	max-width: 760px;
+	max-width: 680px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 #plugin-information-title.with-banner h2 {
+	font-family: "Helvetica Neue", sans-serif;
+	display: inline-block;
 	font-size: 30px;
 	line-height: 50px;
-	font-weight: bold;
-	max-width: 760px;
-	position: absolute;
-	left: 20px;
-	top: 145px;
 	padding: 0 15px;
-	margin: 0;
+	margin: 174px 0 0 10px;
 	color: #fff;
 	background: rgba( 30, 30, 30, 0.9 );
 	text-shadow: 0 1px 3px rgba( 0, 0, 0, 0.4 );
@@ -2175,8 +2189,9 @@ div.action-links {
 
 #plugin-information-title.with-banner div.vignette {
 	display: block;
+	float: right;
 	top: 0;
-	height: 215px;
+	height: 250px;
 	width: 830px;
 	margin: 0 -20px;
 	background: transparent;
@@ -2186,17 +2201,13 @@ div.action-links {
 
 #plugin-information-tabs {
 	padding: 0 16px;
-	position: absolute;
-	top: 56px;
+	position: relative;
 	right: 0;
 	left: 0;
 	height: 36px;
 	z-index: 1;
-}
-
-#plugin-information-tabs.with-banner {
-	top: 214px;
-	background: rgba( 255, 255, 255, 0.85 );
+	border-bottom: 1px solid #ddd;
+	background: #f3f3f3;
 }
 
 #plugin-information-tabs a {
@@ -2216,7 +2227,7 @@ div.action-links {
 	margin: 0 -1px 0;
 	background: #fff;
 	border: 1px solid #ddd;
-	border-bottom: none;
+	border-bottom-color: #fff;
 	padding-top: 8px;
 	color: #333;
 }
@@ -2232,31 +2243,34 @@ div.action-links {
 }
 
 #plugin-information-content {
+	overflow: hidden; /* equal height column trick */
 	background: #fff;
-	border-top: 1px solid #ddd;
-	border-bottom: 1px solid #ddd;
-	position: absolute;
-	top: 91px;
+	position: relative;
+	top: 0;
 	right: 0;
-	bottom: 58px;
 	left: 0;
-	overflow: auto;
+	min-height: 100%;
+	/* Height of title + tabs + install now */
+	min-height: -webkit-calc( 100% - 152px );
+	min-height: calc( 100% - 152px );
 }
 
 #plugin-information-content.with-banner {
-	border-top: none;
-	top: 250px;
+	/* Height of banner + tabs + install now */
+	min-height: -webkit-calc( 100% - 346px );
+	min-height: calc( 100% - 346px );
 }
 
 #section-holder {
-	margin: 0;
-	padding: 10px 26px;
-	position: absolute;
+	position: relative;
 	top: 0;
 	right: 250px;
 	bottom: 0;
 	left: 0;
-	overflow: auto;
+	margin-right: 250px; /* FYI box */
+	padding: 10px 26px;
+	margin-bottom: -99930px; /* a bit less than the padding below to accommodate footer */
+	padding-bottom: 99999px; /* equal height column trick */
 }
 
 #section-holder .updated {
@@ -2265,16 +2279,17 @@ div.action-links {
 
 #plugin-information .fyi {
 	display: block;
-	background: #f3f3f3;
-	border-left: 1px solid #ddd;
-	color: #666;
-	padding: 16px;
-	position: absolute;
+	float: right;
+	position: relative;
 	top: 0;
 	right: 0;
-	bottom: 0;
+	padding: 16px;
+	margin-bottom: -99930px; /* slightly less than the padding below to accommodate footer */
+	padding-bottom: 99999px; /* equal height column trick */
 	width: 217px;
-	overflow: auto;
+	border-left: 1px solid #ddd;
+	background: #f3f3f3;
+	color: #666;
 }
 
 #plugin-information .fyi strong {
@@ -2312,6 +2327,7 @@ div.action-links {
 #plugin-information .counter-label {
 	float: left;
 	margin-right: 5px;
+	min-width: 55px;
 }
 
 #plugin-information .counter-back {
@@ -2359,8 +2375,16 @@ div.action-links {
 	bottom: 0;
 	left: 0;
 	height: 28px;
+	border-top: 1px solid #ddd;
+	background: #f3f3f3;
 }
 
+/* @noflip */
+#plugin-information .section {
+	direction: ltr;
+}
+
+/* @noflip */
 #plugin-information .section ul,
 #plugin-information .section ol {
 	list-style-type: disc;
@@ -2388,6 +2412,7 @@ div.action-links {
 	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.3 );
 }
 
+/* @noflip */
 #plugin-information #section-screenshots li p {
 	font-style: italic;
 	padding-left: 20px;
@@ -2399,51 +2424,101 @@ div.action-links {
 	border: 1px solid #ccc;
 }
 
+/* @noflip */
+#plugin-information .review {
+	overflow: hidden; /* clearfix */
+	width: 100%;
+	margin-bottom: 20px;
+	border-bottom: 1px solid #e6e6e6;
+}
+
+#plugin-information .review-title-section {
+	overflow: hidden; /* clearfix */
+}
+
+/* @noflip */
+#plugin-information .review-title-section h4 {
+	display: inline-block;
+	float: left;
+	margin: 0 6px 0 0;
+}
+
+#plugin-information .reviewer-info p {
+	clear: both;
+	margin: 0;
+	padding-top: 2px;
+}
+
+/* @noflip */
+#plugin-information .reviewer-info .avatar {
+	float: left;
+	margin: 4px 6px 0 0;
+}
+
+/* @noflip */
+#plugin-information .reviewer-info .star-rating {
+	float: left;
+}
+
+/* @noflip */
+#plugin-information .review-meta {
+	float: left;
+	margin-left: 0.75em;
+}
+
+/* @noflip */
+#plugin-information .review-body {
+	float: left;
+	width: 100%;
+}
+
 .plugin-version-author-uri {
 	font-size: 13px;
 }
 
-@media screen and ( max-width: 771px ), screen and ( max-height: 500px ) {
+@media screen and ( max-width: 771px ) {
 	#plugin-information-title.with-banner {
 		height: 100px;
 		bottom: 100px;
 	}
 
 	#plugin-information-title.with-banner h2 {
-		top: 12px;
+		margin-top: 30px;
 		font-size: 20px;
 		line-height: 40px;
+		max-width: 85%;
 	}
 
 	#plugin-information-title.with-banner div.vignette {
-		height: 65px;
-		bottom: 65px;
+		height: 100px;
+		bottom: 100px;
 		width: 800%;
 	}
 
-	#plugin-information-tabs.with-banner {
-		top: 63px;
-	}
-
-	#plugin-information-content.with-banner {
-		top: 99px;
-	}
-}
-
-@media screen and ( max-width: 771px ) {
 	#plugin-information-tabs {
+		overflow: hidden; /* clearfix */
 		padding: 0;
+		height: auto; /* let tabs wrap */
+	}
+
+	#plugin-information-tabs a.current {
+		margin-bottom: 0;
+		border-bottom: none;
 	}
 
 	#plugin-information .fyi {
+		float: none;
 		border: 1px solid #ddd;
 		position: static;
 		width: auto;
-		margin: 26px 26px 16px;
+		margin: 26px 26px 0;
+		padding-bottom: 0; /* reset from the two column height fix */
 	}
 
 	#section-holder {
 		position: static;
+		margin: 0;
+		padding-bottom: 70px; /* reset from the two column height fix, plus accomodate footer */
 	}
 
 	#plugin-information .fyi h3,
@@ -2504,20 +2579,37 @@ body.import-php .tb-close-icon,
 body.plugins-php .tb-close-icon,
 body.update-core-php .tb-close-icon,
 body.index-php .tb-close-icon {
-	background: rgba( 255, 255, 255, .5);
-	color: #444;
-	line-height: 48px;
-	width: 48px;
-	height: 48px;
+	left: auto;
+	right: -30px;
+	color: #eee;
+	-webkit-transition: color .1s ease-in-out, background .1s ease-in-out;
+	transition: color .1s ease-in-out, background .1s ease-in-out;
 }
 
+body.plugin-install-php #TB_closeWindowButton:focus,
+body.plugin-install-php #TB_closeWindowButton:focus .tb-close-icon,
+body.plugin-install-php .tb-close-icon:focus,
 body.plugin-install-php .tb-close-icon:hover,
+body.import-php #TB_closeWindowButton:focus,
+body.import-php #TB_closeWindowButton:focus .tb-close-icon,
+body.import-php .tb-close-icon:focus,
 body.import-php .tb-close-icon:hover,
+body.plugins-php #TB_closeWindowButton:focus,
+body.plugins-php #TB_closeWindowButton:focus .tb-close-icon,
+body.plugins-php .tb-close-icon:focus,
 body.plugins-php .tb-close-icon:hover,
+body.update-core-php #TB_closeWindowButton:focus,
+body.update-core-php #TB_closeWindowButton:focus .tb-close-icon,
+body.update-core-php .tb-close-icon:focus,
 body.update-core-php .tb-close-icon:hover,
+body.index-php #TB_closeWindowButton:focus,
+body.index-php #TB_closeWindowButton:focus .tb-close-icon,
+body.index-php .tb-close-icon:focus,
 body.index-php .tb-close-icon:hover {
-	background: #0074a2;
-	color: #fff;
+	color: #2ea2cc;
+	outline: none;
+	-webkit-box-shadow: none;
+	box-shadow: none;
 }
 
 body.plugin-install-php .tb-close-icon:before,
@@ -2525,7 +2617,20 @@ body.import-php .tb-close-icon:before,
 body.plugins-php .tb-close-icon:before,
 body.update-core-php .tb-close-icon:before,
 body.index-php .tb-close-icon:before {
-	line-height: 48px;
+	content: "\f335";
+	font-size: 32px;
+}
+
+/* move plugin install close icon to top on narrow screens */
+@media screen and ( max-width: 830px ) {
+	body.plugin-install-php .tb-close-icon,
+	body.import-php .tb-close-icon,
+	body.plugins-php .tb-close-icon,
+	body.update-core-php .tb-close-icon,
+	body.index-php .tb-close-icon {
+		right: 0;
+		top: -30px;
+	}
 }
 
 /* @todo: move this. */
@@ -3012,6 +3117,10 @@ img {
 
 	.wp-responsive-open #wpbody {
 		right: -190px;
+	}
+
+	code {
+		word-wrap: break-word;
 	}
 
 	/* General Metabox */

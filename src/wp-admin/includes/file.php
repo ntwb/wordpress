@@ -327,9 +327,6 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 	}
 
 	$filename = wp_unique_filename( $uploads['path'], $file['name'], $unique_filename_callback );
-	// Strip the query strings.
-	$filename = str_replace( '?', '-', $filename );
-	$filename = str_replace( '&', '-', $filename );
 
 	// Move the file to the uploads dir.
 	$new_file = $uploads['path'] . "/$filename";
@@ -1025,7 +1022,7 @@ function request_filesystem_credentials($form_post, $type = '', $error = false, 
 	$public_key = isset( $credentials['public_key'] ) ? $credentials['public_key'] : '';
 	$private_key = isset( $credentials['private_key'] ) ? $credentials['private_key'] : '';
 	$port = isset( $credentials['port'] ) ? $credentials['port'] : '';
-	$connection_type = isset( $credentials[''] ) ? $credentials[''] : '';
+	$connection_type = isset( $credentials['connection_type'] ) ? $credentials['connection_type'] : '';
 
 	if ( $error ) {
 		$error_string = __('<strong>ERROR:</strong> There was an error connecting to the server, Please verify the settings are correct.');

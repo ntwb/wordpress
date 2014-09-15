@@ -47,12 +47,12 @@ class WP_oEmbed {
 			'http://gi*.photobucket.com/groups/*'                 => array( 'http://photobucket.com/oembed',                      false ),
 			'#https?://(www\.)?scribd\.com/doc/.*#i'              => array( 'http://www.scribd.com/services/oembed',              true  ),
 			'#https?://wordpress.tv/.*#i'                         => array( 'http://wordpress.tv/oembed/',                        true ),
-			'#https?://(.+\.)?polldaddy\.com/.*#i'                => array( 'http://polldaddy.com/oembed/',                       true  ),
-			'#https?://poll\.fm/.*#i'                             => array( 'http://polldaddy.com/oembed/',                       true  ),
+			'#https?://(.+\.)?polldaddy\.com/.*#i'                => array( 'https://polldaddy.com/oembed/',                      true  ),
+			'#https?://poll\.fm/.*#i'                             => array( 'https://polldaddy.com/oembed/',                      true  ),
 			'#https?://(www\.)?funnyordie\.com/videos/.*#i'       => array( 'http://www.funnyordie.com/oembed',                   true  ),
 			'#https?://(www\.)?twitter\.com/.+?/status(es)?/.*#i' => array( 'https://api.twitter.com/1/statuses/oembed.{format}', true  ),
  			'#https?://(www\.)?soundcloud\.com/.*#i'              => array( 'http://soundcloud.com/oembed',                       true  ),
-			'#https?://(www\.)?slideshare\.net/.*#i'              => array( 'https://www.slideshare.net/api/oembed/2',            true  ),
+			'#https?://(.+?\.)?slideshare\.net/.*#i'              => array( 'https://www.slideshare.net/api/oembed/2',            true  ),
 			'#http://instagr(\.am|am\.com)/p/.*#i'                => array( 'http://api.instagram.com/oembed',                    true  ),
 			'#https?://(www\.)?rdio\.com/.*#i'                    => array( 'http://www.rdio.com/api/oembed/',                    true  ),
 			'#https?://rd\.io/x/.*#i'                             => array( 'http://www.rdio.com/api/oembed/',                    true  ),
@@ -544,13 +544,13 @@ class WP_oEmbed {
 	/**
 	 * Strip any new lines from the HTML.
 	 *
-	 * @access private
+	 * @access public
 	 * @param string $html Existing HTML.
 	 * @param object $data Data object from WP_oEmbed::data2html()
 	 * @param string $url The original URL passed to oEmbed.
 	 * @return string Possibly modified $html
 	 */
-	private function _strip_newlines( $html, $data, $url ) {
+	public function _strip_newlines( $html, $data, $url ) {
 		if ( false !== strpos( $html, "\n" ) )
 			$html = str_replace( array( "\r\n", "\n" ), '', $html );
 

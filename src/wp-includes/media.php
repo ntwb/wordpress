@@ -719,8 +719,8 @@ function wp_get_attachment_image($attachment_id, $size = 'thumbnail', $icon = fa
 		 *
 		 * @since 2.8.0
 		 *
-		 * @param mixed $attr          Attributes for the image markup.
-		 * @param int   $attachment_id Image attachment ID.
+		 * @param mixed $attr       Attributes for the image markup.
+		 * @param int   $attachment Image attachment post.
 		 */
 		$attr = apply_filters( 'wp_get_attachment_image_attributes', $attr, $attachment );
 		$attr = array_map( 'esc_attr', $attr );
@@ -959,9 +959,6 @@ function gallery_shortcode( $attr ) {
 	), $attr, 'gallery' );
 
 	$id = intval( $atts['id'] );
-	if ( 'RAND' == $atts['order'] ) {
-		$atts['orderby'] = 'none';
-	}
 
 	if ( ! empty( $atts['include'] ) ) {
 		$_attachments = get_posts( array( 'include' => $atts['include'], 'post_status' => 'inherit', 'post_type' => 'attachment', 'post_mime_type' => 'image', 'order' => $atts['order'], 'orderby' => $atts['orderby'] ) );
@@ -1166,7 +1163,7 @@ add_action( 'wp_playlist_scripts', 'wp_playlist_scripts' );
  *
  *     @type string  $type         Type of playlist to display. Accepts 'audio' or 'video'. Default 'audio'.
  *     @type string  $order        Designates ascending or descending order of items in the playlist.
- *                                 Accepts 'ASC', 'DESC', or 'RAND'. Default 'ASC'.
+ *                                 Accepts 'ASC', 'DESC'. Default 'ASC'.
  *     @type string  $orderby      Any column, or columns, to sort the playlist. If $ids are
  *                                 passed, this defaults to the order of the $ids array ('post__in').
  *                                 Otherwise default is 'menu_order ID'.
@@ -1243,9 +1240,6 @@ function wp_playlist_shortcode( $attr ) {
 	), $attr, 'playlist' );
 
 	$id = intval( $atts['id'] );
-	if ( 'RAND' == $atts['order'] ) {
-		$atts['orderby'] = 'none';
-	}
 
 	$args = array(
 		'post_status' => 'inherit',
@@ -2943,7 +2937,7 @@ function wp_enqueue_media( $args = array() ) {
 		'noItemsFound'           => __( 'No items found.' ),
 		'insertIntoPost'         => $hier ? __( 'Insert into page' ) : __( 'Insert into post' ),
 		'unattached'             => __( 'Unattached' ),
-		'trash'                  => __( 'Trash' ),
+		'trash'                  => _x( 'Trash', 'noun' ),
 		'uploadedToThisPost'     => $hier ? __( 'Uploaded to this page' ) : __( 'Uploaded to this post' ),
 		'warnDelete'             => __( "You are about to permanently delete this item.\n  'Cancel' to stop, 'OK' to delete." ),
 		'warnBulkDelete'         => __( "You are about to permanently delete these items.\n  'Cancel' to stop, 'OK' to delete." ),

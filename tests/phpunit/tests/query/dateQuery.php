@@ -15,54 +15,26 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 
 	public function setUp() {
 		parent::setUp();
-
-		// Be careful modifying this. Tests are coded to expect this exact sample data.
-		$post_dates = array(
-			'1972-05-24 14:53:45',
-			'1984-07-28 19:28:56',
-			'2003-05-27 22:45:07',
-			'2004-01-03 08:54:10',
-			'2004-05-22 12:34:12',
-			'2005-02-17 00:00:15',
-			'2005-12-31 23:59:20',
-			'2007-01-22 03:49:21',
-			'2007-05-16 17:32:22',
-			'2007-09-24 07:17:23',
-			'2008-03-29 09:04:25',
-			'2008-07-15 11:32:26',
-			'2008-12-10 13:06:27',
-			'2009-06-11 21:30:28',
-			'2009-12-18 10:42:29',
-			'2010-06-17 17:09:30',
-			'2011-02-23 12:12:31',
-			'2011-07-04 01:56:32',
-			'2011-12-12 16:39:33',
-			'2012-06-13 14:03:34',
-			'2025-04-20 10:13:00',
-			'2025-04-20 10:13:01',
-			'2025-05-20 10:13:01',
-		);
-
-		foreach ( $post_dates as $post_date ) {
-			$this->factory->post->create( array( 'post_date' => $post_date ) );
-		}
-
 		unset( $this->q );
 		$this->q = new WP_Query();
 	}
 
 	public function _get_query_result( $args = array() ) {
 		$args = wp_parse_args( $args, array(
-			'post_status'    => 'any', // For the future post
-			'posts_per_page' => '-1',  // To make sure results are accurate
-			'orderby'        => 'ID',  // Same order they were created
-			'order'          => 'ASC',
+			'post_status'            => 'any', // For the future post
+			'posts_per_page'         => '-1',  // To make sure results are accurate
+			'orderby'                => 'ID',  // Same order they were created
+			'order'                  => 'ASC',
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
 		) );
 
 		return $this->q->query( $args );
 	}
 
 	public function test_date_query_before_array() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -96,6 +68,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	 * their minimum values when being used with "before".
 	 */
 	public function test_date_query_before_array_test_defaulting() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -123,6 +97,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_before_string() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -149,6 +125,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_after_array() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -180,6 +158,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	 * their maximum values when being used with "after".
 	 */
 	public function test_date_query_after_array_test_defaulting() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -207,6 +187,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_after_string() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -230,6 +212,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_after_string_inclusive() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -258,6 +242,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	 * @ticket 26653
 	 */
 	public function test_date_query_inclusive_between_dates() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				'after' => array(
@@ -286,6 +272,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_year_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -303,6 +291,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_year_expecting_noresults() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -315,6 +305,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_month_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -334,6 +326,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_month_expecting_noresults() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -346,6 +340,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_week_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -362,6 +358,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_week_expecting_noresults() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -374,6 +372,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_day_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -391,6 +391,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_day_expecting_noresults() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -403,6 +405,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_dayofweek_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -423,6 +427,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_hour_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -439,6 +445,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_hour_expecting_noresults() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -451,6 +459,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_minute_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -467,6 +477,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_minute_expecting_noresults() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -479,6 +491,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_second_expecting_results() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -495,6 +509,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_second_expecting_noresults() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -507,6 +523,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_between_two_times() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -541,6 +559,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_relation_or() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -563,6 +583,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_query_compare_greater_than_or_equal_to() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				array(
@@ -588,6 +610,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_params_monthnum_m_duplicate() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				'month' => 5,
@@ -611,6 +635,8 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 	}
 
 	public function test_date_params_week_w_duplicate() {
+		$this->create_posts();
+
 		$posts = $this->_get_query_result( array(
 			'date_query' => array(
 				'week' => 21,
@@ -630,5 +656,40 @@ class Tests_Query_DateQuery extends WP_UnitTestCase {
 		$this->assertContains( "AND ( ( WEEK( post_date, 1 ) = 21 ) ) AND", $this->q->request );
 
 		$this->assertNotContains( "AND ( ( WEEK( post_date, 1 ) = 21 AND WEEK( post_date, 1 ) = 22 ) ) AND", $this->q->request );
+	}
+
+	/** Helpers **********************************************************/
+
+	protected function create_posts() {
+		// Be careful modifying this. Tests are coded to expect this exact sample data.
+		$post_dates = array(
+			'1972-05-24 14:53:45',
+			'1984-07-28 19:28:56',
+			'2003-05-27 22:45:07',
+			'2004-01-03 08:54:10',
+			'2004-05-22 12:34:12',
+			'2005-02-17 00:00:15',
+			'2005-12-31 23:59:20',
+			'2007-01-22 03:49:21',
+			'2007-05-16 17:32:22',
+			'2007-09-24 07:17:23',
+			'2008-03-29 09:04:25',
+			'2008-07-15 11:32:26',
+			'2008-12-10 13:06:27',
+			'2009-06-11 21:30:28',
+			'2009-12-18 10:42:29',
+			'2010-06-17 17:09:30',
+			'2011-02-23 12:12:31',
+			'2011-07-04 01:56:32',
+			'2011-12-12 16:39:33',
+			'2012-06-13 14:03:34',
+			'2025-04-20 10:13:00',
+			'2025-04-20 10:13:01',
+			'2025-05-20 10:13:01',
+		);
+
+		foreach ( $post_dates as $post_date ) {
+			$this->factory->post->create( array( 'post_date' => $post_date ) );
+		}
 	}
 }

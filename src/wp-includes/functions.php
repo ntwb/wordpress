@@ -100,7 +100,7 @@ function date_i18n( $dateformatstring, $unixtimestamp = false, $gmt = false ) {
 
 	/*
 	 * Store original value for language with untypical grammars.
-	 * See http://core.trac.wordpress.org/ticket/9396
+	 * See https://core.trac.wordpress.org/ticket/9396
 	 */
 	$req_format = $dateformatstring;
 
@@ -377,7 +377,7 @@ function maybe_serialize( $data ) {
 		return serialize( $data );
 
 	// Double serialization is required for backward compatibility.
-	// See http://core.trac.wordpress.org/ticket/12930
+	// See https://core.trac.wordpress.org/ticket/12930
 	if ( is_serialized( $data, false ) )
 		return serialize( $data );
 
@@ -2016,7 +2016,7 @@ function wp_ext2type( $ext ) {
 		'image'       => array( 'jpg', 'jpeg', 'jpe',  'gif',  'png',  'bmp',   'tif',  'tiff', 'ico' ),
 		'audio'       => array( 'aac', 'ac3',  'aif',  'aiff', 'm3a',  'm4a',   'm4b',  'mka',  'mp1',  'mp2',  'mp3', 'ogg', 'oga', 'ram', 'wav', 'wma' ),
 		'video'       => array( '3g2',  '3gp', '3gpp', 'asf', 'avi',  'divx', 'dv',   'flv',  'm4v',   'mkv',  'mov',  'mp4',  'mpeg', 'mpg', 'mpv', 'ogm', 'ogv', 'qt',  'rm', 'vob', 'wmv' ),
-		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf',  'xps',  'oxps', 'rtf',  'wp',   'wpd' ),
+		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf',  'xps',  'oxps', 'rtf',  'wp', 'wpd', 'psd' ),
 		'spreadsheet' => array( 'numbers',     'ods',  'xls',  'xlsx', 'xlsm',  'xlsb' ),
 		'interactive' => array( 'swf', 'key',  'ppt',  'pptx', 'pptm', 'pps',   'ppsx', 'ppsm', 'sldx', 'sldm', 'odp' ),
 		'text'        => array( 'asc', 'csv',  'tsv',  'txt' ),
@@ -2223,6 +2223,7 @@ function wp_get_mime_types() {
 	'rar' => 'application/rar',
 	'7z' => 'application/x-7z-compressed',
 	'exe' => 'application/x-msdownload',
+	'psd' => 'application/octet-stream',
 	// MS Office formats.
 	'doc' => 'application/msword',
 	'pot|pps|ppt' => 'application/vnd.ms-powerpoint',
@@ -3926,7 +3927,7 @@ function wp_timezone_choice( $selected_zone ) {
  * @since 2.8.0
  * @access private
  *
- * @see http://core.trac.wordpress.org/ticket/8497
+ * @see https://core.trac.wordpress.org/ticket/8497
  *
  * @param string $str Header comment to clean up.
  * @return string
@@ -4275,7 +4276,7 @@ function wp_allowed_protocols() {
  *
  * @since 3.4.0
  *
- * @see http://core.trac.wordpress.org/ticket/19589
+ * @see https://core.trac.wordpress.org/ticket/19589
  *
  * @param string $ignore_class Optional. A class to ignore all function calls within - useful
  *                             when you want to just give info about the callee. Default null.
@@ -4536,7 +4537,7 @@ function get_tag_regex( $tag ) {
  * @since 3.6.0
  * @access private
  *
- * @see http://core.trac.wordpress.org/ticket/23688
+ * @see https://core.trac.wordpress.org/ticket/23688
  *
  * @param string $charset A charset name.
  * @return string The canonical form of the charset.

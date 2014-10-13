@@ -41,6 +41,7 @@ function create_initial_taxonomies() {
 				'ep_mask' => EP_CATEGORIES,
 			),
 			'post_tag' => array(
+				'hierarchical' => false,
 				'slug' => get_option('tag_base') ? get_option('tag_base') : 'tag',
 				'with_front' => ! get_option('tag_base') || $wp_rewrite->using_index_permalinks(),
 				'ep_mask' => EP_TAGS,
@@ -1512,10 +1513,10 @@ function get_terms( $taxonomies, $args = '' ) {
 			$selects = array( 'COUNT(*)' );
 			break;
 		case 'id=>name':
-			$selects = array( 't.term_id', 't.name' );
+			$selects = array( 't.term_id', 't.name', 'tt.count' );
 			break;
 		case 'id=>slug':
-			$selects = array( 't.term_id', 't.slug' );
+			$selects = array( 't.term_id', 't.slug', 'tt.count' );
 			break;
 	}
 
@@ -1654,12 +1655,13 @@ function get_terms( $taxonomies, $args = '' ) {
  *
  * @param int|string $term The term to check
  * @param string $taxonomy The taxonomy name to use
- * @param int $parent ID of parent term under which to confine the exists search.
- * @return mixed Returns 0 if the term does not exist. Returns the term ID if no taxonomy is specified
- *               and the term ID exists. Returns an array of the term ID and the term taxonomy ID
- *               if the taxonomy is specified and the pairing exists.
+ * @param int $parent Optional. ID of parent term under which to confine the exists search.
+ * @return mixed Returns null if the term does not exist. Returns the term ID
+ *               if no taxonomy is specified and the term ID exists. Returns
+ *               an array of the term ID and the term taxonomy ID the taxonomy
+ *               is specified and the pairing exists.
  */
-function term_exists($term, $taxonomy = '', $parent = 0) {
+function term_exists( $term, $taxonomy = '', $parent = null ) {
 	global $wpdb;
 
 	$select = "SELECT term_id FROM $wpdb->terms as t WHERE ";
@@ -1676,17 +1678,15 @@ function term_exists($term, $taxonomy = '', $parent = 0) {
 	}
 
 	$term = trim( wp_unslash( $term ) );
-
-	if ( '' === $slug = sanitize_title($term) )
-		return 0;
+	$slug = sanitize_title( $term );
 
 	$where = 't.slug = %s';
 	$else_where = 't.name = %s';
 	$where_fields = array($slug);
 	$else_where_fields = array($term);
 	if ( !empty($taxonomy) ) {
-		$parent = (int) $parent;
-		if ( $parent > 0 ) {
+		if ( is_numeric( $parent ) ) {
+			$parent = (int) $parent;
 			$where_fields[] = $parent;
 			$else_where_fields[] = $parent;
 			$where .= ' AND tt.parent = %d';
@@ -2447,34 +2447,20 @@ function wp_insert_term( $term, $taxonomy, $args = array() ) {
 
 	$term_group = 0;
 	if ( $args['alias_of'] ) {
-		$alias = $wpdb->get_row( $wpdb->prepare( "SELECT term_id, term_group FROM $wpdb->terms WHERE slug = %s", $args['alias_of'] ) );
-		if ( $alias->term_group ) {
+		$alias = get_term_by( 'slug', $args['alias_of'], $taxonomy );
+		if ( ! empty( $alias->term_group ) ) {
 			// The alias we want is already in a group, so let's use that one.
 			$term_group = $alias->term_group;
-		} else {
-			// The alias isn't in a group, so let's create a new one and firstly add the alias term to it.
+		} else if ( ! empty( $alias->term_id ) ) {
+			/*
+			 * The alias is not in a group, so we create a new one
+			 * and add the alias to it.
+			 */
 			$term_group = $wpdb->get_var("SELECT MAX(term_group) FROM $wpdb->terms") + 1;
 
-			/**
-			 * Fires immediately before the given terms are edited.
-			 *
-			 * @since 2.9.0
-			 *
-			 * @param int    $term_id  Term ID.
-			 * @param string $taxonomy Taxonomy slug.
-			 */
-			do_action( 'edit_terms', $alias->term_id, $taxonomy );
-			$wpdb->update($wpdb->terms, compact('term_group'), array('term_id' => $alias->term_id) );
-
-			/**
-			 * Fires immediately after the given terms are edited.
-			 *
-			 * @since 2.9.0
-			 *
-			 * @param int    $term_id  Term ID
-			 * @param string $taxonomy Taxonomy slug.
-			 */
-			do_action( 'edited_terms', $alias->term_id, $taxonomy );
+			wp_update_term( $alias->term_id, $taxonomy, array(
+				'term_group' => $term_group,
+			) );
 		}
 	}
 
@@ -2947,6 +2933,10 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 	if ( '' == trim($name) )
 		return new WP_Error('empty_term_name', __('A name is required for this term'));
 
+	if ( $parsed_args['parent'] > 0 && ! term_exists( (int) $parsed_args['parent'] ) ) {
+		return new WP_Error( 'missing_parent', __( 'Parent term does not exist.' ) );
+	}
+
 	$empty_slug = false;
 	if ( empty( $args['slug'] ) ) {
 		$empty_slug = true;
@@ -2959,20 +2949,20 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 
 	$term_group = isset( $parsed_args['term_group'] ) ? $parsed_args['term_group'] : 0;
 	if ( $args['alias_of'] ) {
-		$alias = $wpdb->get_row( $wpdb->prepare( "SELECT term_id, term_group FROM $wpdb->terms WHERE slug = %s", $args['alias_of'] ) );
-		if ( $alias->term_group ) {
+		$alias = get_term_by( 'slug', $args['alias_of'], $taxonomy );
+		if ( ! empty( $alias->term_group ) ) {
 			// The alias we want is already in a group, so let's use that one.
 			$term_group = $alias->term_group;
-		} else {
-			// The alias isn't in a group, so let's create a new one and firstly add the alias term to it.
+		} else if ( ! empty( $alias->term_id ) ) {
+			/*
+			 * The alias is not in a group, so we create a new one
+			 * and add the alias to it.
+			 */
 			$term_group = $wpdb->get_var("SELECT MAX(term_group) FROM $wpdb->terms") + 1;
 
-			/** This action is documented in wp-includes/taxonomy.php */
-			do_action( 'edit_terms', $alias->term_id, $taxonomy );
-			$wpdb->update( $wpdb->terms, compact('term_group'), array( 'term_id' => $alias->term_id ) );
-
-			/** This action is documented in wp-includes/taxonomy.php */
-			do_action( 'edited_terms', $alias->term_id, $taxonomy );
+			wp_update_term( $alias->term_id, $taxonomy, array(
+				'term_group' => $term_group,
+			) );
 		}
 
 		$parsed_args['term_group'] = $term_group;
@@ -3004,7 +2994,14 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 			return new WP_Error('duplicate_term_slug', sprintf(__('The slug &#8220;%s&#8221; is already in use by another term'), $slug));
 	}
 
-	/** This action is documented in wp-includes/taxonomy.php */
+	/**
+	 * Fires immediately before the given terms are edited.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param int    $term_id  Term ID.
+	 * @param string $taxonomy Taxonomy slug.
+	 */
 	do_action( 'edit_terms', $term_id, $taxonomy );
 	$wpdb->update($wpdb->terms, compact( 'name', 'slug', 'term_group' ), compact( 'term_id' ) );
 	if ( empty($slug) ) {
@@ -3012,7 +3009,14 @@ function wp_update_term( $term_id, $taxonomy, $args = array() ) {
 		$wpdb->update( $wpdb->terms, compact( 'slug' ), compact( 'term_id' ) );
 	}
 
-	/** This action is documented in wp-includes/taxonomy.php */
+	/**
+	 * Fires immediately after the given terms are edited.
+	 *
+	 * @since 2.9.0
+	 *
+	 * @param int    $term_id  Term ID
+	 * @param string $taxonomy Taxonomy slug.
+	 */
 	do_action( 'edited_terms', $term_id, $taxonomy );
 
 	$tt_id = $wpdb->get_var( $wpdb->prepare( "SELECT tt.term_taxonomy_id FROM $wpdb->term_taxonomy AS tt INNER JOIN $wpdb->terms AS t ON tt.term_id = t.term_id WHERE tt.taxonomy = %s AND t.term_id = %d", $taxonomy, $term_id) );
@@ -3633,12 +3637,12 @@ function _update_generic_term_count( $terms, $taxonomy ) {
 }
 
 /**
- * Generates a permalink for a taxonomy term archive.
+ * Generate a permalink for a taxonomy term archive.
  *
  * @since 2.5.0
  *
- * @param object|int|string $term
- * @param string $taxonomy (optional if $term is object)
+ * @param object|int|string $term     The term object, ID, or slug whose link will be retrieved.
+ * @param string            $taxonomy Optional. Taxonomy. Default empty.
  * @return string|WP_Error HTML link to taxonomy term archive on success, WP_Error if term does not exist.
  */
 function get_term_link( $term, $taxonomy = '') {

@@ -4840,6 +4840,8 @@
 				this.model.on( 'selection:single selection:unsingle', this.details, this );
 				this.details( this.model, this.controller.state().get('selection') );
 			}
+
+			this.listenTo( this.controller, 'attachment:compat:waiting attachment:compat:ready', this.updateSave );
 		},
 		/**
 		 * @returns {wp.media.view.Attachment} Returns itself to allow chaining
@@ -5501,10 +5503,6 @@
 				// If the `collection` has a `comparator`, disable sorting.
 				disabled: !! collection.comparator,
 
-				// Prevent attachments from being dragged outside the bounding
-				// box of the list.
-				containment: this.$el,
-
 				// Change the position of the attachment as soon as the
 				// mouse pointer overlaps a thumbnail.
 				tolerance: 'pointer',
@@ -5746,6 +5744,41 @@
 			});
 
 			this.$el.val( value );
+		}
+	});
+
+	/**
+	 * A filter dropdown for month/dates.
+	 *
+	 * @constructor
+	 * @augments wp.media.view.AttachmentFilters
+	 * @augments wp.media.View
+	 * @augments wp.Backbone.View
+	 * @augments Backbone.View
+	 */
+	media.view.DateFilter = media.view.AttachmentFilters.extend({
+		id: 'media-attachment-date-filters',
+
+		createFilters: function() {
+			var filters = {};
+			_.each( media.view.settings.months || {}, function( value, index ) {
+				filters[ index ] = {
+					text: value.text,
+					props: {
+						year: value.year,
+						monthnum: value.month
+					}
+				};
+			});
+			filters.all = {
+				text:  l10n.allDates,
+				props: {
+					monthnum: false,
+					year:  false
+				},
+				priority: 10
+			};
+			this.filters = filters;
 		}
 	});
 
@@ -6078,6 +6111,51 @@
 							this.controller.trigger( 'selection:action:done' );
 						}
 					}
+				}).render() );
+
+				if ( media.view.settings.mediaTrash ) {
+					this.toolbar.set( 'deleteSelectedPermanentlyButton', new media.view.DeleteSelectedPermanentlyButton({
+						filters: Filters,
+						style: 'primary',
+						disabled: true,
+						text: l10n.deleteSelected,
+						controller: this.controller,
+						priority: -55,
+						click: function() {
+							var removed = [], selection = this.controller.state().get( 'selection' );
+
+							if ( ! selection.length || ! confirm( l10n.warnBulkDelete ) ) {
+								return;
+							}
+
+							selection.each( function( model ) {
+								if ( ! model.get( 'nonces' )['delete'] ) {
+									removed.push( model );
+									return;
+								}
+
+								model.destroy();
+							} );
+
+							selection.remove( removed );
+							this.controller.trigger( 'selection:action:done' );
+						}
+					}).render() );
+				}
+
+			} else {
+				// DateFilter is a <select>, screen reader text needs to be rendered before
+				this.toolbar.set( 'dateFilterLabel', new media.view.Label({
+					value: l10n.filterByDate,
+					attributes: {
+						'for': 'media-attachment-date-filters'
+					},
+					priority: -75
+				}).render() );
+				this.toolbar.set( 'dateFilter', new media.view.DateFilter({
+					controller: this.controller,
+					model:      this.collection.props,
+					priority: -75
 				}).render() );
 			}
 
@@ -6828,7 +6906,12 @@
 				data[ pair.name ] = pair.value;
 			});
 
-			this.model.saveCompat( data );
+			this.controller.trigger( 'attachment:compat:waiting', ['waiting'] );
+			this.model.saveCompat( data ).always( _.bind( this.postSave, this ) );
+		},
+
+		postSave: function() {
+			this.controller.trigger( 'attachment:compat:ready', ['ready'] );
 		}
 	});
 

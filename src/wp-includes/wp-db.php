@@ -567,7 +567,7 @@ class wpdb {
 	 * the actual setting up of the class properties and connection
 	 * to the database.
 	 *
-	 * @link http://core.trac.wordpress.org/ticket/3354
+	 * @link https://core.trac.wordpress.org/ticket/3354
 	 * @since 2.0.8
 	 *
 	 * @param string $dbuser MySQL database user
@@ -1042,7 +1042,11 @@ class wpdb {
 		}
 
 		$class = get_class( $this );
-		_doing_it_wrong( $class, "$class must set a database connection for use with escaping.", E_USER_NOTICE );
+		if ( function_exists( '__' ) ) {
+			_doing_it_wrong( $class, sprintf( __( '%s must set a database connection for use with escaping.' ), $class ), E_USER_NOTICE );
+		} else {
+			_doing_it_wrong( $class, sprintf( '%s must set a database connection for use with escaping.', $class ), E_USER_NOTICE );
+		}
 		return addslashes( $string );
 	}
 
@@ -2149,7 +2153,7 @@ class wpdb {
 				return version_compare( $version, '4.1', '>=' );
 			case 'set_charset' :
 				return version_compare( $version, '5.0.7', '>=' );
-		};
+		}
 
 		return false;
 	}

@@ -257,6 +257,8 @@ class WP_Comment_Query {
 	 * Execute the query
 	 *
 	 * @since 3.1.0
+	 * @since 4.1.0 Introduced 'comment__in', 'comment__not_in',
+	 *              'post__in', and 'post__not_in' to $query_vars.
 	 *
 	 * @param string|array $query_vars
 	 * @return int|array
@@ -268,6 +270,8 @@ class WP_Comment_Query {
 			'author_email' => '',
 			'fields' => '',
 			'ID' => '',
+			'comment__in' => '',
+			'comment__not_in' => '',
 			'karma' => '',
 			'number' => '',
 			'offset' => '',
@@ -276,6 +280,8 @@ class WP_Comment_Query {
 			'parent' => '',
 			'post_ID' => '',
 			'post_id' => 0,
+			'post__in' => '',
+			'post__not_in' => '',
 			'post_author' => '',
 			'post_name' => '',
 			'post_parent' => '',
@@ -406,6 +412,26 @@ class WP_Comment_Query {
 		$post_id = absint( $this->query_vars['post_id'] );
 		if ( ! empty( $post_id ) ) {
 			$where .= $wpdb->prepare( ' AND comment_post_ID = %d', $post_id );
+		}
+
+		// Parse comment IDs for an IN clause.
+		if ( ! empty( $this->query_vars['comment__in'] ) ) {
+			$where .= ' AND comment_ID IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['comment__in'] ) ) . ' )';
+		}
+
+		// Parse comment IDs for a NOT IN clause.
+		if ( ! empty( $this->query_vars['comment__not_in'] ) ) {
+			$where .= ' AND comment_ID NOT IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['comment__not_in'] ) ) . ' )';
+		}
+
+		// Parse comment post IDs for an IN clause.
+		if ( ! empty( $this->query_vars['post__in'] ) ) {
+			$where .= ' AND comment_post_ID IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['post__in'] ) ) . ' )';
+		}
+
+		// Parse comment post IDs for a NOT IN clause.
+		if ( ! empty( $this->query_vars['post__not_in'] ) ) {
+			$where .= ' AND comment_post_ID NOT IN ( ' . implode( ',', wp_parse_id_list( $this->query_vars['post__not_in'] ) ) . ' )';
 		}
 
 		if ( '' !== $this->query_vars['author_email'] ) {
@@ -1771,7 +1797,7 @@ function wp_throttle_comment_flood($block, $time_lastcomment, $time_newcomment) 
  *
  * We use REMOTE_ADDR here directly. If you are behind a proxy, you should ensure
  * that it is properly set, such as in wp-config.php, for your environment.
- * See {@link http://core.trac.wordpress.org/ticket/9235}
+ * See {@link https://core.trac.wordpress.org/ticket/9235}
  *
  * @since 1.5.0
  * @param array $commentdata Contains information on the comment.

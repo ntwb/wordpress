@@ -60,8 +60,8 @@
  * the file. This is not checked however and the file is only opened for
  * reading.
  *
- * @link http://trac.wordpress.org/ticket/5651 Previous Optimizations.
- * @link http://trac.wordpress.org/ticket/7372 Further and better Optimizations.
+ * @link https://core.trac.wordpress.org/ticket/5651 Previous Optimizations.
+ * @link https://core.trac.wordpress.org/ticket/7372 Further and better Optimizations.
  * @since 1.5.0
  *
  * @param string $plugin_file Path to the plugin file
@@ -533,7 +533,7 @@ function activate_plugin( $plugin, $redirect = '', $network_wide = false, $silen
 	if ( is_wp_error($valid) )
 		return $valid;
 
-	if ( !in_array($plugin, $current) ) {
+	if ( ( $network_wide && ! isset( $current[ $plugin ] ) ) || ( ! $network_wide && ! in_array( $plugin, $current ) ) ) {
 		if ( !empty($redirect) )
 			wp_redirect(add_query_arg('_error_nonce', wp_create_nonce('plugin-activation-error_' . $plugin), $redirect)); // we'll override this later if the plugin can be included without fatal error
 		ob_start();
@@ -797,29 +797,50 @@ function delete_plugins( $plugins, $deprecated = '' ) {
 	if ( is_wp_error($wp_filesystem->errors) && $wp_filesystem->errors->get_error_code() )
 		return new WP_Error('fs_error', __('Filesystem error.'), $wp_filesystem->errors);
 
-	//Get the base plugin folder
+	// Get the base plugin folder.
 	$plugins_dir = $wp_filesystem->wp_plugins_dir();
-	if ( empty($plugins_dir) )
-		return new WP_Error('fs_no_plugins_dir', __('Unable to locate WordPress Plugin directory.'));
+	if ( empty( $plugins_dir ) ) {
+		return new WP_Error( 'fs_no_plugins_dir', __( 'Unable to locate WordPress Plugin directory.' ) );
+	}
 
 	$plugins_dir = trailingslashit( $plugins_dir );
+
+	$translations_dir = $wp_filesystem->wp_lang_dir();
+	$translations_dir = trailingslashit( $translations_dir );
+
+	$plugin_translations = wp_get_installed_translations( 'plugins' );
 
 	$errors = array();
 
 	foreach( $plugins as $plugin_file ) {
-		// Run Uninstall hook
-		if ( is_uninstallable_plugin( $plugin_file ) )
+		// Run Uninstall hook.
+		if ( is_uninstallable_plugin( $plugin_file ) ) {
 			uninstall_plugin($plugin_file);
+		}
 
-		$this_plugin_dir = trailingslashit( dirname($plugins_dir . $plugin_file) );
+		$this_plugin_dir = trailingslashit( dirname( $plugins_dir . $plugin_file ) );
 		// If plugin is in its own directory, recursively delete the directory.
-		if ( strpos($plugin_file, '/') && $this_plugin_dir != $plugins_dir ) //base check on if plugin includes directory separator AND that it's not the root plugin folder
-			$deleted = $wp_filesystem->delete($this_plugin_dir, true);
-		else
-			$deleted = $wp_filesystem->delete($plugins_dir . $plugin_file);
+		if ( strpos( $plugin_file, '/' ) && $this_plugin_dir != $plugins_dir ) { //base check on if plugin includes directory separator AND that it's not the root plugin folder
+			$deleted = $wp_filesystem->delete( $this_plugin_dir, true );
+		} else {
+			$deleted = $wp_filesystem->delete( $plugins_dir . $plugin_file );
+		}
 
-		if ( ! $deleted )
+		if ( ! $deleted ) {
 			$errors[] = $plugin_file;
+			continue;
+		}
+
+		// Remove language files, silently.
+		$plugin_slug = dirname( $plugin_file );
+		if ( '.' !== $plugin_slug && ! empty( $plugin_translations[ $plugin_slug ] ) ) {
+			$translations = $plugin_translations[ $plugin_slug ];
+
+			foreach ( $translations as $translation => $data ) {
+				$wp_filesystem->delete( WP_LANG_DIR . '/plugins/' . $plugin_slug . '-' . $translation . '.po' );
+				$wp_filesystem->delete( WP_LANG_DIR . '/plugins/' . $plugin_slug . '-' . $translation . '.mo' );
+			}
+		}
 	}
 
 	// Remove deleted plugins from the plugin updates list.

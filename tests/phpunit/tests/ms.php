@@ -301,6 +301,29 @@ class Tests_MS extends WP_UnitTestCase {
 		$this->assertEquals( 1, $this->plugin_hook_count ); // testing actions and silent mode
 	}
 
+	/**
+	 * @ticket 28651
+	 */
+	function test_duplicate_network_active_plugin() {
+		$path = "hello.php";
+		$mock = new MockAction();
+		add_action( 'activate_' . $path, array ( $mock, 'action' ) );
+
+		// should activate on the first try
+		activate_plugin( $path, '', true );
+		$active_plugins = wp_get_active_network_plugins();
+		$this->assertCount( 1, $active_plugins );
+		$this->assertEquals( 1, $mock->get_call_count() );
+
+		// should do nothing on the second try
+		activate_plugin( $path, '', true );
+		$active_plugins = wp_get_active_network_plugins();
+		$this->assertCount( 1, $active_plugins );
+		$this->assertEquals( 1, $mock->get_call_count() );
+
+		remove_action( 'activate_' . $path, array ( $mock, 'action' ) );
+	}
+
 	function _helper_deactivate_hook() {
 		$this->plugin_hook_count++;
 	}
@@ -1412,6 +1435,82 @@ class Tests_MS extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 29845
+	 */
+	function test_get_blog_details() {
+		$network_ids = array(
+			'wordpress.org/'         => array( 'domain' => 'wordpress.org', 'path' => '/' ),
+			'make.wordpress.org/'    => array( 'domain' => 'make.wordpress.org', 'path' => '/' ),
+		);
+
+		foreach ( $network_ids as &$id ) {
+			$id = $this->factory->network->create( $id );
+		}
+		unset( $id );
+
+		$ids = array(
+			'wordpress.org/'              => array( 'domain' => 'wordpress.org',      'path' => '/',         'title' => 'Test 1', 'site_id' => $network_ids['wordpress.org/'] ),
+			'wordpress.org/foo/'          => array( 'domain' => 'wordpress.org',      'path' => '/foo/',     'title' => 'Test 2', 'site_id' => $network_ids['wordpress.org/'] ),
+			'wordpress.org/foo/bar/'      => array( 'domain' => 'wordpress.org',      'path' => '/foo/bar/', 'title' => 'Test 3', 'site_id' => $network_ids['wordpress.org/'] ),
+			'make.wordpress.org/'         => array( 'domain' => 'make.wordpress.org', 'path' => '/',         'title' => 'Test 4', 'site_id' => $network_ids['make.wordpress.org/'] ),
+			'make.wordpress.org/foo/'     => array( 'domain' => 'make.wordpress.org', 'path' => '/foo/',     'title' => 'Test 5', 'site_id' => $network_ids['make.wordpress.org/'] ),
+		);
+
+		foreach ( $ids as &$id ) {
+			$id = $this->factory->blog->create( $id );
+		}
+		unset( $id );
+
+		// Retrieve site details by passing only a blog ID.
+		$site = get_blog_details( $ids['wordpress.org/'] );
+		$this->assertEquals( $ids['wordpress.org/'], $site->blog_id );
+		$this->assertEquals( 'Test 1', $site->blogname );
+
+		$site = get_blog_details( $ids['wordpress.org/foo/'] );
+		$this->assertEquals( $ids['wordpress.org/foo/'], $site->blog_id );
+		$this->assertEquals( 'Test 2', $site->blogname );
+
+		$site = get_blog_details( 999 );
+		$this->assertFalse( $site );
+
+		// Retrieve site details by passing an array containing blog_id.
+		$site = get_blog_details( array( 'blog_id' => $ids['wordpress.org/foo/bar/'] ) );
+		$this->assertEquals( $ids['wordpress.org/foo/bar/'], $site->blog_id );
+		$this->assertEquals( 'Test 3', $site->blogname );
+
+		$site = get_blog_details( array( 'blog_id' => $ids['make.wordpress.org/'] ) );
+		$this->assertEquals( $ids['make.wordpress.org/'], $site->blog_id );
+		$this->assertEquals( 'Test 4', $site->blogname );
+
+		$site = get_blog_details( array( 'blog_id' => 999 ) );
+		$this->assertFalse( $site );
+
+		// Retrieve site details by passing an array containing domain and path.
+		$site = get_blog_details( array( 'domain' => 'wordpress.org', 'path' => '/' ) );
+		$this->assertEquals( $ids['wordpress.org/'], $site->blog_id );
+		$this->assertEquals( 'Test 1', $site->blogname );
+
+		$site = get_blog_details( array( 'domain' => 'wordpress.org', 'path' => '/foo/' ) );
+		$this->assertEquals( $ids['wordpress.org/foo/'], $site->blog_id );
+		$this->assertEquals( 'Test 2', $site->blogname );
+
+		$site = get_blog_details( array( 'domain' => 'wordpress.org', 'path' => '/foo/bar/' ) );
+		$this->assertEquals( $ids['wordpress.org/foo/bar/'], $site->blog_id );
+		$this->assertEquals( 'Test 3', $site->blogname );
+
+		$site = get_blog_details( array( 'domain' => 'make.wordpress.org', 'path' => '/' ) );
+		$this->assertEquals( $ids['make.wordpress.org/'], $site->blog_id );
+		$this->assertEquals( 'Test 4', $site->blogname );
+
+		$site = get_blog_details( array( 'domain' => 'make.wordpress.org', 'path' => '/foo/' ) );
+		$this->assertEquals( $ids['make.wordpress.org/foo/'], $site->blog_id );
+		$this->assertEquals( 'Test 5', $site->blogname );
+
+		$site = get_blog_details( array( 'domain' => 'wordpress.org', 'path' => '/zxy/' ) );
+		$this->assertFalse( $site );
+	}
+
+	/**
 	 * @ticket 27884
 	 */
 	function test_multisite_bootstrap() {
@@ -1496,6 +1595,9 @@ class Tests_MS extends WP_UnitTestCase {
 		$this->_setup_host_request( 'make.wordpress.org', '/foo/' );
 		$this->assertEquals( $ids['make.wordpress.org/foo/'], $current_blog->blog_id );
 		$this->assertEquals( $network_ids['make.wordpress.org/'], $current_blog->site_id );
+
+		// Request the original tests domain and path to unpollute the stack.
+		$this->_setup_host_request( WP_TESTS_DOMAIN, '/' );
 	}
 
 	/**

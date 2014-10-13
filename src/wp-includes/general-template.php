@@ -571,7 +571,7 @@ function wp_register( $before = '<li>', $after = '</li>', $echo = true ) {
  *
  * @since 1.5.0
  *
- * @link http://trac.wordpress.org/ticket/1458 Explanation of 'wp_meta' action.
+ * @link https://core.trac.wordpress.org/ticket/1458 Explanation of 'wp_meta' action.
  */
 function wp_meta() {
 	/**
@@ -2297,13 +2297,13 @@ function wp_default_editor() {
  * Renders an editor.
  *
  * Using this function is the proper way to output all needed components for both TinyMCE and Quicktags.
- * _WP_Editors should not be used directly. See http://core.trac.wordpress.org/ticket/17144.
+ * _WP_Editors should not be used directly. See https://core.trac.wordpress.org/ticket/17144.
  *
  * NOTE: Once initialized the TinyMCE editor cannot be safely moved in the DOM. For that reason
  * running wp_editor() inside of a metabox is not a good idea unless only Quicktags is used.
  * On the post edit screen several actions can be used to include additional editors
  * containing TinyMCE: 'edit_page_form', 'edit_form_advanced' and 'dbx_post_sidebar'.
- * See http://core.trac.wordpress.org/ticket/19173 for more information.
+ * See https://core.trac.wordpress.org/ticket/19173 for more information.
  *
  * @see wp-includes/class-wp-editor.php
  * @since 3.3.0
@@ -2485,7 +2485,7 @@ function paginate_links( $args = '' ) {
 		'end_size' => 1,
 		'mid_size' => 2,
 		'type' => 'plain',
-		'add_args' => false, // array of query args to add
+		'add_args' => $query_args, // array of query args to add
 		'add_fragment' => '',
 		'before_page_number' => '',
 		'after_page_number' => ''

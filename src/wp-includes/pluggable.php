@@ -72,7 +72,6 @@ if ( !function_exists('get_currentuserinfo') ) :
  * @since 0.71
  *
  * @uses $current_user Checks if the current user is set
- * @uses wp_validate_auth_cookie() Retrieves current logged in user.
  *
  * @return bool|null False on XML-RPC Request and invalid auth cookie. Null when current user set.
  */
@@ -1215,8 +1214,6 @@ if ( !function_exists('wp_safe_redirect') ) :
  *
  * @since 2.3.0
  *
- * @uses wp_validate_redirect() To validate the redirect is to an allowed host.
- *
  * @return void Does not return anything
  **/
 function wp_safe_redirect($location, $status = 302) {
@@ -1385,9 +1382,9 @@ function wp_notify_postauthor( $comment_id, $deprecated = null ) {
 			$notify_message  = sprintf( __( 'New trackback on your post "%s"' ), $post->post_title ) . "\r\n";
 			/* translators: 1: website name, 2: author IP, 3: author domain */
 			$notify_message .= sprintf( __('Website: %1$s (IP: %2$s , %3$s)'), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
-			$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
-			$notify_message .= __('Excerpt: ') . "\r\n" . $comment->comment_content . "\r\n\r\n";
-			$notify_message .= __('You can see all trackbacks on this post here: ') . "\r\n";
+			$notify_message .= sprintf( __( 'URL: %s' ), $comment->comment_author_url ) . "\r\n";
+			$notify_message .= sprintf( __( 'Comment: %s' ), $comment->comment_content ) . "\r\n\r\n";
+			$notify_message .= __( 'You can see all trackbacks on this post here:' ) . "\r\n";
 			/* translators: 1: blog name, 2: post title */
 			$subject = sprintf( __('[%1$s] Trackback: "%2$s"'), $blogname, $post->post_title );
 			break;
@@ -1395,21 +1392,21 @@ function wp_notify_postauthor( $comment_id, $deprecated = null ) {
 			$notify_message  = sprintf( __( 'New pingback on your post "%s"' ), $post->post_title ) . "\r\n";
 			/* translators: 1: comment author, 2: author IP, 3: author domain */
 			$notify_message .= sprintf( __('Website: %1$s (IP: %2$s , %3$s)'), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
-			$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
-			$notify_message .= __('Excerpt: ') . "\r\n" . sprintf('[...] %s [...]', $comment->comment_content ) . "\r\n\r\n";
-			$notify_message .= __('You can see all pingbacks on this post here: ') . "\r\n";
+			$notify_message .= sprintf( __( 'URL: %s' ), $comment->comment_author_url ) . "\r\n";
+			$notify_message .= sprintf( __( 'Comment: %s' ), $comment->comment_content ) . "\r\n\r\n";
+			$notify_message .= __( 'You can see all pingbacks on this post here:' ) . "\r\n";
 			/* translators: 1: blog name, 2: post title */
 			$subject = sprintf( __('[%1$s] Pingback: "%2$s"'), $blogname, $post->post_title );
 			break;
 		default: // Comments
 			$notify_message  = sprintf( __( 'New comment on your post "%s"' ), $post->post_title ) . "\r\n";
 			/* translators: 1: comment author, 2: author IP, 3: author domain */
-			$notify_message .= sprintf( __('Author : %1$s (IP: %2$s , %3$s)'), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
-			$notify_message .= sprintf( __('E-mail : %s'), $comment->comment_author_email ) . "\r\n";
-			$notify_message .= sprintf( __('URL    : %s'), $comment->comment_author_url ) . "\r\n";
-			$notify_message .= sprintf( __('Whois  : http://whois.arin.net/rest/ip/%s'), $comment->comment_author_IP ) . "\r\n";
-			$notify_message .= __('Comment: ') . "\r\n" . $comment->comment_content . "\r\n\r\n";
-			$notify_message .= __('You can see all comments on this post here: ') . "\r\n";
+			$notify_message .= sprintf( __( 'Author: %1$s (IP: %2$s , %3$s)' ), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
+			$notify_message .= sprintf( __( 'E-mail: %s' ), $comment->comment_author_email ) . "\r\n";
+			$notify_message .= sprintf( __( 'URL: %s' ), $comment->comment_author_url ) . "\r\n";
+			$notify_message .= sprintf( __( 'Whois: %s' ), "http://whois.arin.net/rest/ip/{$comment->comment_author_IP}" ) . "\r\n";
+			$notify_message .= sprintf( __('Comment: %s' ), $comment->comment_content ) . "\r\n\r\n";
+			$notify_message .= __( 'You can see all comments on this post here:' ) . "\r\n";
 			/* translators: 1: blog name, 2: post title */
 			$subject = sprintf( __('[%1$s] Comment: "%2$s"'), $blogname, $post->post_title );
 			break;
@@ -1487,7 +1484,7 @@ if ( !function_exists('wp_notify_moderator') ) :
  *
  * @since 1.0.0
  *
- * @uses $wpdb
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param int $comment_id Comment ID
  * @return bool Always returns true
@@ -1872,7 +1869,6 @@ if ( !function_exists('wp_hash') ) :
  * Get hash of given string.
  *
  * @since 2.0.3
- * @uses wp_salt() Get WordPress salt
  *
  * @param string $data Plain text to hash
  * @return string Hash of $data
@@ -2068,8 +2064,7 @@ if ( !function_exists('wp_set_password') ) :
  *
  * @since 2.5.0
  *
- * @uses $wpdb WordPress database object for queries
- * @uses wp_hash_password() Used to encrypt the user's password before passing to the database
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param string $password The plaintext new user password
  * @param int $user_id User ID

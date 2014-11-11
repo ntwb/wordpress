@@ -12,9 +12,6 @@
  *
  * @since 3.0.0
  *
- * @uses get_term
- * @uses get_term_by
- *
  * @param string $menu Menu ID, slug, or name.
  * @return mixed false if $menu param isn't supplied or term does not exist, menu object if successful.
  */
@@ -81,8 +78,7 @@ function register_nav_menus( $locations = array() ) {
 /**
  * Unregisters a navigation menu for a theme.
  *
- * @param array $location the menu location identifier
- *
+ * @param string $location The menu location identifier.
  * @return bool True on success, false on failure.
  */
 function unregister_nav_menu( $location ) {

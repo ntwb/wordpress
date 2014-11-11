@@ -31,21 +31,18 @@ Please click the following link to activate your user account:
 %%s' ), get_bloginfo( 'name' ), home_url(), wp_specialchars_decode( translate_user_role( $role['name'] ) ) );
 	}
 	add_filter( 'wpmu_signup_user_notification_email', 'admin_created_user_email' );
-
-	function admin_created_user_subject( $text ) {
-		return sprintf( __( '[%s] Your site invite' ), get_bloginfo( 'name' ) );
-	}
 }
 
 if ( isset($_REQUEST['action']) && 'adduser' == $_REQUEST['action'] ) {
 	check_admin_referer( 'add-user', '_wpnonce_add-user' );
 
 	$user_details = null;
-	if ( false !== strpos($_REQUEST[ 'email' ], '@') ) {
-		$user_details = get_user_by('email', $_REQUEST[ 'email' ]);
+	$user_email = wp_unslash( $_REQUEST['email'] );
+	if ( false !== strpos( $user_email, '@' ) ) {
+		$user_details = get_user_by( 'email', $user_email );
 	} else {
 		if ( is_super_admin() ) {
-			$user_details = get_user_by('login', $_REQUEST[ 'email' ]);
+			$user_details = get_user_by( 'login', $user_email );
 		} else {
 			wp_redirect( add_query_arg( array('update' => 'enter_email'), 'user-new.php' ) );
 			die();
@@ -112,7 +109,8 @@ Please click the following link to confirm the invite:
 		}
 	} else {
 		// Adding a new user to this site
-		$user_details = wpmu_validate_user_signup( $_REQUEST[ 'user_login' ], $_REQUEST[ 'email' ] );
+		$new_user_email = wp_unslash( $_REQUEST['email'] );
+		$user_details = wpmu_validate_user_signup( $_REQUEST['user_login'], $new_user_email );
 		if ( is_wp_error( $user_details[ 'errors' ] ) && !empty( $user_details[ 'errors' ]->errors ) ) {
 			$add_user_errors = $user_details[ 'errors' ];
 		} else {
@@ -128,9 +126,9 @@ Please click the following link to confirm the invite:
 				add_filter( 'wpmu_signup_user_notification', '__return_false' ); // Disable confirmation email
 				add_filter( 'wpmu_welcome_user_notification', '__return_false' ); // Disable welcome email
 			}
-			wpmu_signup_user( $new_user_login, $_REQUEST[ 'email' ], array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST[ 'role' ] ) );
+			wpmu_signup_user( $new_user_login, $new_user_email, array( 'add_to_blog' => $wpdb->blogid, 'new_role' => $_REQUEST['role'] ) );
 			if ( isset( $_POST[ 'noconfirmation' ] ) && is_super_admin() ) {
-				$key = $wpdb->get_var( $wpdb->prepare( "SELECT activation_key FROM {$wpdb->signups} WHERE user_login = %s AND user_email = %s", $new_user_login, $_REQUEST[ 'email' ] ) );
+				$key = $wpdb->get_var( $wpdb->prepare( "SELECT activation_key FROM {$wpdb->signups} WHERE user_login = %s AND user_email = %s", $new_user_login, $new_user_email ) );
 				wpmu_activate_signup( $key );
 				$redirect = add_query_arg( array('update' => 'addnoconfirmation'), 'user-new.php' );
 			} else {
@@ -398,7 +396,7 @@ if ( apply_filters( 'show_password_fields', true ) ) : ?>
 		<input name="pass2" type="password" id="pass2" autocomplete="off" />
 		<br />
 		<div id="pass-strength-result"><?php _e('Strength indicator'); ?></div>
-		<p class="description indicator-hint"><?php _e('Hint: The password should be at least seven characters long. To make it stronger, use upper and lower case letters, numbers, and symbols like ! " ? $ % ^ &amp; ).'); ?></p>
+		<p class="description indicator-hint"><?php echo _wp_get_password_hint(); ?></p>
 		</td>
 	</tr>
 	<tr>

@@ -72,18 +72,24 @@
 	};
 
 	/**
-	 * ========================================================================
-	 * CONTROLLERS
-	 * ========================================================================
-	 */
-
-	/**
 	 * wp.media.controller.Region
 	 *
-	 * @constructor
-	 * @augments Backbone.Model
+	 * A region is a persistent application layout area.
 	 *
-	 * @param {Object} [options={}]
+	 * A region assumes one mode at any time, and can be switched to another.
+	 *
+	 * When mode changes, events are triggered on the region's parent view.
+	 * The parent view will listen to specific events and fill the region with an
+	 * appropriate view depending on mode. For example, a frame listens for the
+	 * 'browse' mode t be activated on the 'content' view and then fills the region
+	 * with an AttachmentsBrowser view.
+	 *
+	 * @class
+	 *
+	 * @param {object}        options          Options hash for the region.
+	 * @param {string}        options.id       Unique identifier for the region.
+	 * @param {Backbone.View} options.view     A parent view the region exists within.
+	 * @param {string}        options.selector jQuery selector for the region within the parent view.
 	 */
 	media.controller.Region = function( options ) {
 		_.extend( this, _.pick( options || {}, 'id', 'view', 'selector' ) );
@@ -244,9 +250,14 @@
 	/**
 	 * wp.media.controller.StateMachine
 	 *
+	 * A state machine keeps track of state. It is in one state at a time,
+	 * and can change from one state to another.
+	 *
+	 * States are stored as models in a Backbone collection.
+	 *
 	 * @since 3.5.0
 	 *
-	 * @constructor
+	 * @class
 	 * @augments Backbone.Model
 	 * @mixin
 	 * @mixes Backbone.Events
@@ -254,6 +265,7 @@
 	 * @param {Array} states
 	 */
 	media.controller.StateMachine = function( states ) {
+		// @todo This is dead code. The states collection gets created in media.view.Frame._createStates.
 		this.states = new Backbone.Collection( states );
 	};
 
@@ -360,10 +372,17 @@
 	 * wp.media.controller.State
 	 *
 	 * A state is a step in a workflow that when set will trigger the controllers
-	 * for the regions to be updated as specified in the frame. This is the base
-	 * class that the various states used in wp.media extend.
+	 * for the regions to be updated as specified in the frame.
 	 *
-	 * @constructor
+	 * A state has an event-driven lifecycle:
+	 *
+	 *     'ready'      triggers when a state is added to a state machine's collection.
+	 *     'activate'   triggers when a state is activated by a state machine.
+	 *     'deactivate' triggers when a state is deactivated by a state machine.
+	 *     'reset'      is not triggered automatically. It should be invoked by the
+	 *                  proper controller to reset the state to its default.
+	 *
+	 * @class
 	 * @augments Backbone.Model
 	 */
 	media.controller.State = Backbone.Model.extend({
@@ -388,24 +407,32 @@
 			this.on( 'change:menu', this._updateMenu, this );
 		},
 		/**
+		 * Ready event callback.
+		 *
 		 * @abstract
 		 * @since 3.5.0
 		 */
 		ready: function() {},
 
 		/**
+		 * Activate event callback.
+		 *
 		 * @abstract
 		 * @since 3.5.0
 		 */
 		activate: function() {},
 
 		/**
+		 * Deactivate event callback.
+		 *
 		 * @abstract
 		 * @since 3.5.0
 		 */
 		deactivate: function() {},
 
 		/**
+		 * Reset event callback.
+		 *
 		 * @abstract
 		 * @since 3.5.0
 		 */
@@ -539,8 +566,12 @@
 		},
 
 		/**
+		 * Create a view in the media menu for the state.
+		 *
 		 * @access private
 		 * @since 3.5.0
+		 *
+		 * @param {media.view.Menu} view The menu view.
 		 */
 		_renderMenu: function( view ) {
 			var menuItem = this.get('menuItem'),
@@ -575,6 +606,16 @@
 		};
 	});
 
+	/**
+	 * wp.media.selectionSync
+	 *
+	 * Sync an attachments selection in a state with another state.
+	 *
+	 * Allows for selecting multiple images in the Insert Media workflow, and then
+	 * switching to the Insert Gallery workflow while preserving the attachments selection.
+	 *
+	 * @mixin
+	 */
 	media.selectionSync = {
 		/**
 		 * @since 3.5.0
@@ -629,33 +670,54 @@
 	};
 
 	/**
-	 * A state for choosing an attachment from the media library.
+	 * wp.media.controller.Library
 	 *
-	 * @constructor
+	 * A state for choosing an attachment or group of attachments from the media library.
+	 *
+	 * @class
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 * @mixes media.selectionSync
+	 *
+	 * @param {object}                          [attributes]                         The attributes hash passed to the state.
+	 * @param {string}                          [attributes.id=library]              Unique identifier.
+	 * @param {string}                          [attributes.title=Media library]     Title for the state. Displays in the media menu and the frame's title region.
+	 * @param {wp.media.model.Attachments}      [attributes.library]                 The attachments collection to browse.
+	 *                                                                               If one is not supplied, a collection of all attachments will be created.
+	 * @param {wp.media.model.Selection|object} [attributes.selection]               A collection to contain attachment selections within the state.
+	 *                                                                               If the 'selection' attribute is a plain JS object,
+	 *                                                                               a Selection will be created using its values as the selection instance's `props` model.
+	 *                                                                               Otherwise, it will copy the library's `props` model.
+	 * @param {boolean}                         [attributes.multiple=false]          Whether multi-select is enabled.
+	 * @param {string}                          [attributes.content=upload]          Initial mode for the content region.
+	 *                                                                               Overridden by persistent user setting if 'contentUserSetting' is true.
+	 * @param {string}                          [attributes.menu=default]            Initial mode for the menu region.
+	 * @param {string}                          [attributes.router=browse]           Initial mode for the router region.
+	 * @param {string}                          [attributes.toolbar=select]          Initial mode for the toolbar region.
+	 * @param {boolean}                         [attributes.searchable=true]         Whether the library is searchable.
+	 * @param {boolean|string}                  [attributes.filterable=false]        Whether the library is filterable, and if so what filters should be shown.
+	 *                                                                               Accepts 'all', 'uploaded', or 'unattached'.
+	 * @param {boolean}                         [attributes.sortable=true]           Whether the Attachments should be sortable. Depends on the orderby property being set to menuOrder on the attachments collection.
+	 * @param {boolean}                         [attributes.autoSelect=true]         Whether an uploaded attachment should be automatically added to the selection.
+	 * @param {boolean}                         [attributes.describe=false]          Whether to offer UI to describe attachments - e.g. captioning images in a gallery.
+	 * @param {boolean}                         [attributes.contentUserSetting=true] Whether the content region's mode should be set and persisted per user.
+	 * @param {boolean}                         [attributes.syncSelection=true]      Whether the Attachments selection should be persisted from the last state.
 	 */
 	media.controller.Library = media.controller.State.extend({
 		defaults: {
 			id:                 'library',
 			title:              l10n.mediaLibraryTitle,
-			// Selection defaults. @see media.model.Selection
 			multiple:           false,
-			// Initial region modes.
 			content:            'upload',
 			menu:               'default',
 			router:             'browse',
 			toolbar:            'select',
-			// Attachments browser defaults. @see media.view.AttachmentsBrowser
 			searchable:         true,
 			filterable:         false,
 			sortable:           true,
-
 			autoSelect:         true,
 			describe:           false,
-			// Uses a user setting to override the content mode.
 			contentUserSetting: true,
-			// Sync the selection from the last state when 'multiple' matches.
 			syncSelection:      true
 		},
 
@@ -681,10 +743,6 @@
 					props = _.omit( props, 'orderby', 'query' );
 				}
 
-				// If the `selection` attribute is set to an object,
-				// it will use those values as the selection instance's
-				// `props` model. Otherwise, it will copy the library's
-				// `props` model.
 				this.set( 'selection', new media.model.Selection( null, {
 					multiple: this.get('multiple'),
 					props: props
@@ -726,6 +784,8 @@
 		},
 
 		/**
+		 * Reset the library to its initial state.
+		 *
 		 * @since 3.5.0
 		 */
 		reset: function() {
@@ -735,6 +795,10 @@
 		},
 
 		/**
+		 * Reset the attachment display settings defaults to the site options.
+		 *
+		 * If site options don't define them, fall back to a persistent user setting.
+		 *
 		 * @since 3.5.0
 		 */
 		resetDisplays: function() {
@@ -748,6 +812,8 @@
 		},
 
 		/**
+		 * Create a model to represent display settings (alignment, etc.) for an attachment.
+		 *
 		 * @since 3.5.0
 		 *
 		 * @param {wp.media.model.Attachment} attachment
@@ -763,6 +829,8 @@
 		},
 
 		/**
+		 * Given an attachment, create attachment display settings properties.
+		 *
 		 * @since 3.6.0
 		 *
 		 * @param {wp.media.model.Attachment} attachment
@@ -777,6 +845,8 @@
 		},
 
 		/**
+		 * Whether an attachment can be embedded (audio or video).
+		 *
 		 * @since 3.6.0
 		 *
 		 * @param {wp.media.model.Attachment} attachment
@@ -814,13 +884,15 @@
 		},
 
 		/**
-		 * If the uploader was selected, navigate to the browser.
+		 * Callback handler when an attachment is uploaded.
 		 *
-		 * Automatically select any uploading attachments.
+		 * Switch to the Media Library if uploaded from the 'Upload Files' tab.
 		 *
-		 * Selections that don't support multiple attachments automatically
-		 * limit themselves to one attachment (in this case, the last
-		 * attachment in the upload queue).
+		 * Adds any uploading attachments to the selection.
+		 *
+		 * If the state only supports one attachment to be selected and multiple
+		 * attachments are uploaded, the last attachment in the upload queue will
+		 * be selected.
 		 *
 		 * @since 3.5.0
 		 *
@@ -840,7 +912,7 @@
 		},
 
 		/**
-		 * Only track the browse router on library states.
+		 * Persist the mode of the content region as a user setting.
 		 *
 		 * @since 3.5.0
 		 */
@@ -858,25 +930,41 @@
 		}
 	});
 
+	// Make selectionSync available on any Media Library state.
 	_.extend( media.controller.Library.prototype, media.selectionSync );
 
 	/**
-	 * A state for editing the settings of an image within a content editor.
+	 * wp.media.controller.ImageDetails
 	 *
-	 * @constructor
+	 * A state for editing the attachment display settings of an image that's been
+	 * inserted into the editor.
+	 *
+	 * @class
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                    [attributes]                       The attributes hash passed to the state.
+	 * @param {string}                    [attributes.id=image-details]      Unique identifier.
+	 * @param {string}                    [attributes.title=Image Details]   Title for the state. Displays in the frame's title region.
+	 * @param {wp.media.model.Attachment} attributes.image                   The image's model.
+	 * @param {string|false}              [attributes.content=image-details] Initial mode for the content region.
+	 * @param {string|false}              [attributes.menu=false]            Initial mode for the menu region.
+	 * @param {string|false}              [attributes.router=false]          Initial mode for the router region.
+	 * @param {string|false}              [attributes.toolbar=image-details] Initial mode for the toolbar region.
+	 * @param {boolean}                   [attributes.editing=false]         Unused.
+	 * @param {int}                       [attributes.priority=60]           Unused.
+	 *
+	 * @todo This state inherits some defaults from media.controller.Library.prototype.defaults,
+	 *       however this may not do anything.
 	 */
 	media.controller.ImageDetails = media.controller.State.extend({
 		defaults: _.defaults({
 			id:       'image-details',
 			title:    l10n.imageDetailsTitle,
-			// Initial region modes.
 			content:  'image-details',
 			menu:     false,
 			router:   false,
 			toolbar:  'image-details',
-
 			editing:  false,
 			priority: 60
 		}, media.controller.Library.prototype.defaults ),
@@ -900,37 +988,53 @@
 	});
 
 	/**
+	 * wp.media.controller.GalleryEdit
+	 *
 	 * A state for editing a gallery's images and settings.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.controller.Library
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                     [attributes]                       The attributes hash passed to the state.
+	 * @param {string}                     [attributes.id=gallery-edit]       Unique identifier.
+	 * @param {string}                     [attributes.title=Edit Gallery]    Title for the state. Displays in the frame's title region.
+	 * @param {wp.media.model.Attachments} [attributes.library]               The collection of attachments in the gallery.
+	 *                                                                        If one is not supplied, an empty media.model.Selection collection is created.
+	 * @param {boolean}                    [attributes.multiple=false]        Whether multi-select is enabled.
+	 * @param {boolean}                    [attributes.searchable=false]      Whether the library is searchable.
+	 * @param {boolean}                    [attributes.sortable=true]         Whether the Attachments should be sortable. Depends on the orderby property being set to menuOrder on the attachments collection.
+	 * @param {string|false}               [attributes.content=browse]        Initial mode for the content region.
+	 * @param {string|false}               [attributes.toolbar=image-details] Initial mode for the toolbar region.
+	 * @param {boolean}                    [attributes.describe=true]         Whether to offer UI to describe attachments - e.g. captioning images in a gallery.
+	 * @param {boolean}                    [attributes.displaySettings=true]  Whether to show the attachment display settings interface.
+	 * @param {boolean}                    [attributes.dragInfo=true]         Whether to show instructional text about the attachments being sortable.
+	 * @param {int}                        [attributes.idealColumnWidth=170]  The ideal column width in pixels for attachments.
+	 * @param {boolean}                    [attributes.editing=false]         Whether the gallery is being created, or editing an existing instance.
+	 * @param {int}                        [attributes.priority=60]           The priority for the state link in the media menu.
+	 * @param {boolean}                    [attributes.syncSelection=false]   Whether the Attachments selection should be persisted from the last state.
+	 *                                                                        Defaults to false for this state, because the library passed in  *is* the selection.
+	 * @param {view}                       [attributes.AttachmentView]        The single `Attachment` view to be used in the `Attachments`.
+	 *                                                                        If none supplied, defaults to wp.media.view.Attachment.EditLibrary.
 	 */
 	media.controller.GalleryEdit = media.controller.Library.extend({
 		defaults: {
-			id:              'gallery-edit',
-			title:           l10n.editGalleryTitle,
-			// Selection defaults. @see media.model.Selection
-			multiple:        false,
-			// Attachments browser defaults. @see media.view.AttachmentsBrowser
-			searchable:      false,
-			sortable:        true,
-			display:         false,
-			// Initial region modes.
-			content:         'browse',
-			toolbar:         'gallery-edit',
-
+			id:               'gallery-edit',
+			title:            l10n.editGalleryTitle,
+			multiple:         false,
+			searchable:       false,
+			sortable:         true,
+			display:          false,
+			content:          'browse',
+			toolbar:          'gallery-edit',
 			describe:         true,
 			displaySettings:  true,
 			dragInfo:         true,
 			idealColumnWidth: 170,
 			editing:          false,
 			priority:         60,
-
-			// Don't sync the selection, as the Edit Gallery library
-			// *is* the selection.
-			syncSelection: false
+			syncSelection:    false
 		},
 
 		/**
@@ -1014,28 +1118,43 @@
 	});
 
 	/**
-	 * A state for adding an image to a gallery.
+	 * A state for selecting more images to add to a gallery.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.controller.Library
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                     [attributes]                         The attributes hash passed to the state.
+	 * @param {string}                     [attributes.id=gallery-library]      Unique identifier.
+	 * @param {string}                     [attributes.title=Add to Gallery]    Title for the state. Displays in the frame's title region.
+	 * @param {boolean}                    [attributes.multiple=add]            Whether multi-select is enabled. @todo 'add' doesn't seem do anything special, and gets used as a boolean.
+	 * @param {wp.media.model.Attachments} [attributes.library]                 The attachments collection to browse.
+	 *                                                                          If one is not supplied, a collection of all images will be created.
+	 * @param {boolean|string}             [attributes.filterable=uploaded]     Whether the library is filterable, and if so what filters should be shown.
+	 *                                                                          Accepts 'all', 'uploaded', or 'unattached'.
+	 * @param {string}                     [attributes.menu=gallery]            Initial mode for the menu region.
+	 * @param {string}                     [attributes.content=upload]          Initial mode for the content region.
+	 *                                                                          Overridden by persistent user setting if 'contentUserSetting' is true.
+	 * @param {string}                     [attributes.router=browse]           Initial mode for the router region.
+	 * @param {string}                     [attributes.toolbar=gallery-add]     Initial mode for the toolbar region.
+	 * @param {boolean}                    [attributes.searchable=true]         Whether the library is searchable.
+	 * @param {boolean}                    [attributes.sortable=true]           Whether the Attachments should be sortable. Depends on the orderby property being set to menuOrder on the attachments collection.
+	 * @param {boolean}                    [attributes.autoSelect=true]         Whether an uploaded attachment should be automatically added to the selection.
+	 * @param {boolean}                    [attributes.contentUserSetting=true] Whether the content region's mode should be set and persisted per user.
+	 * @param {int}                        [attributes.priority=100]            The priority for the state link in the media menu.
+	 * @param {boolean}                    [attributes.syncSelection=false]     Whether the Attachments selection should be persisted from the last state.
+	 *                                                                          Defaults to false because for this state, because the library of the Edit Gallery state is the selection.
 	 */
 	media.controller.GalleryAdd = media.controller.Library.extend({
 		defaults: _.defaults({
 			id:            'gallery-library',
 			title:         l10n.addToGalleryTitle,
-			// Selection defaults. @see media.model.Selection
 			multiple:      'add',
-			// Attachments browser defaults. @see media.view.AttachmentsBrowser
 			filterable:    'uploaded',
-			// Initial region modes.
 			menu:          'gallery',
 			toolbar:       'gallery-add',
-
 			priority:      100,
-			// Don't sync the selection, as the Edit Gallery library
-			// *is* the selection.
 			syncSelection: false
 		}, media.controller.Library.prototype.defaults ),
 
@@ -1043,7 +1162,7 @@
 		 * @since 3.5.0
 		 */
 		initialize: function() {
-			// If we haven't been provided a `library`, create a `Selection`.
+			// If a library wasn't supplied, create a library of images.
 			if ( ! this.get('library') )
 				this.set( 'library', media.query({ type: 'image' }) );
 
@@ -1080,31 +1199,50 @@
 	/**
 	 * wp.media.controller.CollectionEdit
 	 *
-	 * @constructor
+	 * A state for editing a collection, which is used by audio and video playlists,
+	 * and can be used for other collections.
+	 *
+	 * @class
 	 * @augments wp.media.controller.Library
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                     [attributes]                      The attributes hash passed to the state.
+	 * @param {string}                     attributes.title                  Title for the state. Displays in the media menu and the frame's title region.
+	 * @param {wp.media.model.Attachments} [attributes.library]              The attachments collection to edit.
+	 *                                                                       If one is not supplied, an empty media.model.Selection collection is created.
+	 * @param {boolean}                    [attributes.multiple=false]       Whether multi-select is enabled.
+	 * @param {string}                     [attributes.content=browse]       Initial mode for the content region.
+	 * @param {string}                     attributes.menu                   Initial mode for the menu region. @todo this needs a better explanation.
+	 * @param {boolean}                    [attributes.searchable=false]     Whether the library is searchable.
+	 * @param {boolean}                    [attributes.sortable=true]        Whether the Attachments should be sortable. Depends on the orderby property being set to menuOrder on the attachments collection.
+	 * @param {boolean}                    [attributes.describe=true]        Whether to offer UI to describe the attachments - e.g. captioning images in a gallery.
+	 * @param {boolean}                    [attributes.dragInfo=true]        Whether to show instructional text about the attachments being sortable.
+	 * @param {boolean}                    [attributes.dragInfoText]         Instructional text about the attachments being sortable.
+	 * @param {int}                        [attributes.idealColumnWidth=170] The ideal column width in pixels for attachments.
+	 * @param {boolean}                    [attributes.editing=false]        Whether the gallery is being created, or editing an existing instance.
+	 * @param {int}                        [attributes.priority=60]          The priority for the state link in the media menu.
+	 * @param {boolean}                    [attributes.syncSelection=false]  Whether the Attachments selection should be persisted from the last state.
+	 *                                                                       Defaults to false for this state, because the library passed in  *is* the selection.
+	 * @param {view}                       [attributes.SettingsView]         The view to edit the collection instance settings (e.g. Playlist settings with "Show tracklist" checkbox).
+	 * @param {view}                       [attributes.AttachmentView]       The single `Attachment` view to be used in the `Attachments`.
+	 *                                                                       If none supplied, defaults to wp.media.view.Attachment.EditLibrary.
+	 * @param {string}                     attributes.type                   The collection's media type. (e.g. 'video').
+	 * @param {string}                     attributes.collectionType         The collection type. (e.g. 'playlist').
 	 */
 	media.controller.CollectionEdit = media.controller.Library.extend({
 		defaults: {
-			// Selection defaults. @see media.model.Selection
-			multiple:     false,
-			// Attachments browser defaults. @see media.view.AttachmentsBrowser
-			sortable:     true,
-			searchable:   false,
-			// Region mode defaults.
-			content:      'browse',
-
+			multiple:         false,
+			sortable:         true,
+			searchable:       false,
+			content:          'browse',
 			describe:         true,
 			dragInfo:         true,
 			idealColumnWidth: 170,
 			editing:          false,
 			priority:         60,
 			SettingsView:     false,
-
-			// Don't sync the selection, as the Edit {Collection} library
-			// *is* the selection.
-			syncSelection: false
+			syncSelection:    false
 		},
 
 		/**
@@ -1161,18 +1299,23 @@
 		},
 
 		/**
+		 * Render the collection embed settings view in the browser sidebar.
+		 *
+		 * @todo This is against the pattern elsewhere in media. Typically the frame
+		 *       is responsible for adding region mode callbacks. Explain.
+		 *
 		 * @since 3.9.0
 		 *
-		 * @param browser
+		 * @param {wp.media.view.attachmentsBrowser} The attachments browser view.
 		 */
-		renderSettings: function( browser ) {
+		renderSettings: function( attachmentsBrowserView ) {
 			var library = this.get('library'),
 				collectionType = this.get('collectionType'),
 				dragInfoText = this.get('dragInfoText'),
 				SettingsView = this.get('SettingsView'),
 				obj = {};
 
-			if ( ! library || ! browser ) {
+			if ( ! library || ! attachmentsBrowserView ) {
 				return;
 			}
 
@@ -1184,16 +1327,17 @@
 				priority:   40
 			});
 
-			browser.sidebar.set( obj );
+			attachmentsBrowserView.sidebar.set( obj );
 
 			if ( dragInfoText ) {
-				browser.toolbar.set( 'dragInfo', new media.View({
+				attachmentsBrowserView.toolbar.set( 'dragInfo', new media.View({
 					el: $( '<div class="instructions">' + dragInfoText + '</div>' )[0],
 					priority: -40
 				}) );
 			}
 
-			browser.toolbar.set( 'reverse', {
+			// Add the 'Reverse order' button to the toolbar.
+			attachmentsBrowserView.toolbar.set( 'reverse', {
 				text:     l10n.reverseOrder,
 				priority: 80,
 
@@ -1207,10 +1351,35 @@
 	/**
 	 * wp.media.controller.CollectionAdd
 	 *
-	 * @constructor
+	 * A state for adding attachments to a collection (e.g. video playlist).
+	 *
+	 * @class
 	 * @augments wp.media.controller.Library
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                     [attributes]                         The attributes hash passed to the state.
+	 * @param {string}                     [attributes.id=library]      Unique identifier.
+	 * @param {string}                     attributes.title                    Title for the state. Displays in the frame's title region.
+	 * @param {boolean}                    [attributes.multiple=add]            Whether multi-select is enabled. @todo 'add' doesn't seem do anything special, and gets used as a boolean.
+	 * @param {wp.media.model.Attachments} [attributes.library]                 The attachments collection to browse.
+	 *                                                                          If one is not supplied, a collection of attachments of the specified type will be created.
+	 * @param {boolean|string}             [attributes.filterable=uploaded]     Whether the library is filterable, and if so what filters should be shown.
+	 *                                                                          Accepts 'all', 'uploaded', or 'unattached'.
+	 * @param {string}                     [attributes.menu=gallery]            Initial mode for the menu region.
+	 * @param {string}                     [attributes.content=upload]          Initial mode for the content region.
+	 *                                                                          Overridden by persistent user setting if 'contentUserSetting' is true.
+	 * @param {string}                     [attributes.router=browse]           Initial mode for the router region.
+	 * @param {string}                     [attributes.toolbar=gallery-add]     Initial mode for the toolbar region.
+	 * @param {boolean}                    [attributes.searchable=true]         Whether the library is searchable.
+	 * @param {boolean}                    [attributes.sortable=true]           Whether the Attachments should be sortable. Depends on the orderby property being set to menuOrder on the attachments collection.
+	 * @param {boolean}                    [attributes.autoSelect=true]         Whether an uploaded attachment should be automatically added to the selection.
+	 * @param {boolean}                    [attributes.contentUserSetting=true] Whether the content region's mode should be set and persisted per user.
+	 * @param {int}                        [attributes.priority=100]            The priority for the state link in the media menu.
+	 * @param {boolean}                    [attributes.syncSelection=false]     Whether the Attachments selection should be persisted from the last state.
+	 *                                                                          Defaults to false because for this state, because the library of the Edit Gallery state is the selection.
+	 * @param {string}                     attributes.type                   The collection's media type. (e.g. 'video').
+	 * @param {string}                     attributes.collectionType         The collection type. (e.g. 'playlist').
 	 */
 	media.controller.CollectionAdd = media.controller.Library.extend({
 		defaults: _.defaults( {
@@ -1274,24 +1443,43 @@
 	});
 
 	/**
+	 * wp.media.controller.FeaturedImage
+	 *
 	 * A state for selecting a featured image for a post.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.controller.Library
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                     [attributes]                          The attributes hash passed to the state.
+	 * @param {string}                     [attributes.id=featured-image]        Unique identifier.
+	 * @param {string}                     [attributes.title=Set Featured Image] Title for the state. Displays in the media menu and the frame's title region.
+	 * @param {wp.media.model.Attachments} [attributes.library]                  The attachments collection to browse.
+	 *                                                                           If one is not supplied, a collection of all images will be created.
+	 * @param {boolean}                    [attributes.multiple=false]           Whether multi-select is enabled.
+	 * @param {string}                     [attributes.content=upload]           Initial mode for the content region.
+	 *                                                                           Overridden by persistent user setting if 'contentUserSetting' is true.
+	 * @param {string}                     [attributes.menu=default]             Initial mode for the menu region.
+	 * @param {string}                     [attributes.router=browse]            Initial mode for the router region.
+	 * @param {string}                     [attributes.toolbar=featured-image]   Initial mode for the toolbar region.
+	 * @param {int}                        [attributes.priority=60]              The priority for the state link in the media menu.
+	 * @param {boolean}                    [attributes.searchable=true]          Whether the library is searchable.
+	 * @param {boolean|string}             [attributes.filterable=false]         Whether the library is filterable, and if so what filters should be shown.
+	 *                                                                           Accepts 'all', 'uploaded', or 'unattached'.
+	 * @param {boolean}                    [attributes.sortable=true]            Whether the Attachments should be sortable. Depends on the orderby property being set to menuOrder on the attachments collection.
+	 * @param {boolean}                    [attributes.autoSelect=true]          Whether an uploaded attachment should be automatically added to the selection.
+	 * @param {boolean}                    [attributes.describe=false]           Whether to offer UI to describe attachments - e.g. captioning images in a gallery.
+	 * @param {boolean}                    [attributes.contentUserSetting=true]  Whether the content region's mode should be set and persisted per user.
+	 * @param {boolean}                    [attributes.syncSelection=true]       Whether the Attachments selection should be persisted from the last state.
 	 */
 	media.controller.FeaturedImage = media.controller.Library.extend({
 		defaults: _.defaults({
 			id:            'featured-image',
 			title:         l10n.setFeaturedImageTitle,
-			// Selection defaults. @see media.model.Selection
 			multiple:      false,
-			// Attachments browser defaults. @see media.view.AttachmentsBrowser
 			filterable:    'uploaded',
-			// Region mode defaults.
 			toolbar:       'featured-image',
-
 			priority:      60,
 			syncSelection: true
 		}, media.controller.Library.prototype.defaults ),
@@ -1369,25 +1557,44 @@
 	});
 
 	/**
+	 * wp.media.controller.ReplaceImage
+	 *
 	 * A state for replacing an image.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.controller.Library
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                     [attributes]                         The attributes hash passed to the state.
+	 * @param {string}                     [attributes.id=replace-image]        Unique identifier.
+	 * @param {string}                     [attributes.title=Replace Image]     Title for the state. Displays in the media menu and the frame's title region.
+	 * @param {wp.media.model.Attachments} [attributes.library]                 The attachments collection to browse.
+	 *                                                                          If one is not supplied, a collection of all images will be created.
+	 * @param {boolean}                    [attributes.multiple=false]          Whether multi-select is enabled.
+	 * @param {string}                     [attributes.content=upload]          Initial mode for the content region.
+	 *                                                                          Overridden by persistent user setting if 'contentUserSetting' is true.
+	 * @param {string}                     [attributes.menu=default]            Initial mode for the menu region.
+	 * @param {string}                     [attributes.router=browse]           Initial mode for the router region.
+	 * @param {string}                     [attributes.toolbar=replace]         Initial mode for the toolbar region.
+	 * @param {int}                        [attributes.priority=60]             The priority for the state link in the media menu.
+	 * @param {boolean}                    [attributes.searchable=true]         Whether the library is searchable.
+	 * @param {boolean|string}             [attributes.filterable=uploaded]     Whether the library is filterable, and if so what filters should be shown.
+	 *                                                                          Accepts 'all', 'uploaded', or 'unattached'.
+	 * @param {boolean}                    [attributes.sortable=true]           Whether the Attachments should be sortable. Depends on the orderby property being set to menuOrder on the attachments collection.
+	 * @param {boolean}                    [attributes.autoSelect=true]         Whether an uploaded attachment should be automatically added to the selection.
+	 * @param {boolean}                    [attributes.describe=false]          Whether to offer UI to describe attachments - e.g. captioning images in a gallery.
+	 * @param {boolean}                    [attributes.contentUserSetting=true] Whether the content region's mode should be set and persisted per user.
+	 * @param {boolean}                    [attributes.syncSelection=true]      Whether the Attachments selection should be persisted from the last state.
 	 */
 	media.controller.ReplaceImage = media.controller.Library.extend({
 		defaults: _.defaults({
 			id:            'replace-image',
 			title:         l10n.replaceImageTitle,
-			// Selection defaults. @see media.model.Selection
 			multiple:      false,
-			// Attachments browser defaults. @see media.view.AttachmentsBrowser
 			filterable:    'uploaded',
-			// Region mode defaults.
 			toolbar:       'replace',
 			menu:          false,
-
 			priority:      60,
 			syncSelection: true
 		}, media.controller.Library.prototype.defaults ),
@@ -1451,21 +1658,30 @@
 	});
 
 	/**
+	 * wp.media.controller.EditImage
+	 *
 	 * A state for editing (cropping, etc.) an image.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object}                    attributes                      The attributes hash passed to the state.
+	 * @param {wp.media.model.Attachment} attributes.model                The attachment.
+	 * @param {string}                    [attributes.id=edit-image]      Unique identifier.
+	 * @param {string}                    [attributes.title=Edit Image]   Title for the state. Displays in the media menu and the frame's title region.
+	 * @param {string}                    [attributes.content=edit-image] Initial mode for the content region.
+	 * @param {string}                    [attributes.toolbar=edit-image] Initial mode for the toolbar region.
+	 * @param {string}                    [attributes.menu=false]         Initial mode for the menu region.
+	 * @param {string}                    [attributes.url]                Unused. @todo Consider removal.
 	 */
 	media.controller.EditImage = media.controller.State.extend({
 		defaults: {
 			id:      'edit-image',
 			title:   l10n.editImage,
-			// Region mode defaults.
 			menu:    false,
 			toolbar: 'edit-image',
 			content: 'edit-image',
-
 			url:     ''
 		},
 
@@ -1514,7 +1730,7 @@
 	/**
 	 * wp.media.controller.MediaLibrary
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.controller.Library
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
@@ -1546,6 +1762,7 @@
 		 * @since 3.9.0
 		 */
 		activate: function() {
+			// @todo this should use this.frame.
 			if ( media.frame.lastMime ) {
 				this.set( 'library', media.query({ type: media.frame.lastMime }) );
 				delete media.frame.lastMime;
@@ -1557,19 +1774,31 @@
 	/**
 	 * wp.media.controller.Embed
 	 *
-	 * @constructor
+	 * A state for embedding media from a URL.
+	 *
+	 * @class
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
+	 *
+	 * @param {object} attributes                         The attributes hash passed to the state.
+	 * @param {string} [attributes.id=embed]              Unique identifier.
+	 * @param {string} [attributes.title=Insert From URL] Title for the state. Displays in the media menu and the frame's title region.
+	 * @param {string} [attributes.content=embed]         Initial mode for the content region.
+	 * @param {string} [attributes.menu=default]          Initial mode for the menu region.
+	 * @param {string} [attributes.toolbar=main-embed]    Initial mode for the toolbar region.
+	 * @param {string} [attributes.menu=false]            Initial mode for the menu region.
+	 * @param {int}    [attributes.priority=120]          The priority for the state link in the media menu.
+	 * @param {string} [attributes.type=link]             The type of embed. Currently only link is supported.
+	 * @param {string} [attributes.url]                   The embed URL.
+	 * @param {object} [attributes.metadata={}]           Properties of the embed, which will override attributes.url if set.
 	 */
 	media.controller.Embed = media.controller.State.extend({
 		defaults: {
 			id:       'embed',
 			title:    l10n.insertFromUrlTitle,
-			// Region mode defaults.
 			content:  'embed',
 			menu:     'default',
 			toolbar:  'main-embed',
-
 			priority: 120,
 			type:     'link',
 			url:      '',
@@ -1589,6 +1818,8 @@
 		},
 
 		/**
+		 * Trigger a scan of the embedded URL's content for metadata required to embed.
+		 *
 		 * @fires wp.media.controller.Embed#scan
 		 */
 		scan: function() {
@@ -1621,6 +1852,8 @@
 			this.set( attributes );
 		},
 		/**
+		 * Try scanning the embed as an image to discover its dimensions.
+		 *
 		 * @param {Object} attributes
 		 */
 		scanImage: function( attributes ) {
@@ -1670,9 +1903,9 @@
 	/**
 	 * wp.media.controller.Cropper
 	 *
-	 * Allows for a cropping step.
+	 * A state for cropping an image.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.controller.State
 	 * @augments Backbone.Model
 	 */
@@ -1774,16 +2007,9 @@
 	});
 
 	/**
-	 * ========================================================================
-	 * VIEWS
-	 * ========================================================================
-	 */
-
-	/**
 	 * wp.media.View
-	 * -------------
 	 *
-	 * The base view class.
+	 * The base view class for media.
 	 *
 	 * Undelegating events, removing events from the model, and
 	 * removing events from the controller mirror the code for
@@ -1792,7 +2018,7 @@
 	 * This behavior has since been removed, and should not be used
 	 * outside of the media manager.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
 	 */
@@ -1804,6 +2030,10 @@
 			wp.Backbone.View.apply( this, arguments );
 		},
 		/**
+		 * @todo The internal comment mentions this might have been a stop-gap
+		 *       before Backbone 0.9.8 came out. Figure out if Backbone core takes
+		 *       care of this in Backbone.View now.
+		 *
 		 * @returns {wp.media.View} Returns itself to allow chaining
 		 */
 		dispose: function() {
@@ -1843,9 +2073,12 @@
 	 * wp.media.view.Frame
 	 *
 	 * A frame is a composite view consisting of one or more regions and one or more
-	 * states. Only one state can be active at any given moment.
+	 * states.
 	 *
-	 * @constructor
+	 * @see wp.media.controller.State
+	 * @see wp.media.controller.Region
+	 *
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -1875,6 +2108,11 @@
 			}, this );
 		},
 		/**
+		 * Create the frame's states.
+		 *
+		 * @see wp.media.controller.State
+		 * @see wp.media.controller.StateMachine
+		 *
 		 * @fires wp.media.controller.State#ready
 		 */
 		_createStates: function() {
@@ -1893,6 +2131,12 @@
 				this.states.add( this.options.states );
 			}
 		},
+
+		/**
+		 * A frame can be in a mode or multiple modes at one time.
+		 *
+		 * For example, the manage media frame can be in the `Bulk Select` or `Edit` mode.
+		 */
 		_createModes: function() {
 			// Store active "modes" that the frame is in. Unrelated to region modes.
 			this.activeModes = new Backbone.Collection();
@@ -1903,6 +2147,8 @@
 			}, this );
 		},
 		/**
+		 * Reset all states on the frame to their defaults.
+		 *
 		 * @returns {wp.media.view.Frame} Returns itself to allow chaining
 		 */
 		reset: function() {
@@ -1989,9 +2235,9 @@
 	/**
 	 * wp.media.view.MediaFrame
 	 *
-	 * Type of frame used to create the media modal.
+	 * The frame used to create the media modal.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Frame
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -2224,9 +2470,9 @@
 	/**
 	 * wp.media.view.MediaFrame.Select
 	 *
-	 * Type of media frame that is used to select an item or items from the media library
+	 * A frame for selecting an item or items from the media library.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.MediaFrame
 	 * @augments wp.media.view.Frame
 	 * @augments wp.media.View
@@ -2236,9 +2482,7 @@
 	 */
 	media.view.MediaFrame.Select = media.view.MediaFrame.extend({
 		initialize: function() {
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+			// Call 'initialize' directly on the parent class.
 			media.view.MediaFrame.prototype.initialize.apply( this, arguments );
 
 			_.defaults( this.options, {
@@ -2388,7 +2632,9 @@
 	/**
 	 * wp.media.view.MediaFrame.Post
 	 *
-	 * @constructor
+	 * The frame for manipulating media on the Edit Post page.
+	 *
+	 * @class
 	 * @augments wp.media.view.MediaFrame.Select
 	 * @augments wp.media.view.MediaFrame
 	 * @augments wp.media.view.Frame
@@ -2416,18 +2662,19 @@
 				state:    'insert',
 				metadata:  {}
 			});
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+
+			// Call 'initialize' directly on the parent class.
 			media.view.MediaFrame.Select.prototype.initialize.apply( this, arguments );
 			this.createIframeStates();
 
 		},
 
+		/**
+		 * Create the default states.
+		 */
 		createStates: function() {
 			var options = this.options;
 
-			// Add the default states.
 			this.states.add([
 				// Main states.
 				new media.controller.Library({
@@ -3108,7 +3355,10 @@
 	/**
 	 * wp.media.view.MediaFrame.ImageDetails
 	 *
-	 * @constructor
+	 * A media frame for manipulating an image that's already been inserted
+	 * into a post.
+	 *
+	 * @class
 	 * @augments wp.media.view.MediaFrame.Select
 	 * @augments wp.media.view.MediaFrame
 	 * @augments wp.media.view.Frame
@@ -3275,7 +3525,9 @@
 	/**
 	 * wp.media.view.Modal
 	 *
-	 * @constructor
+	 * A modal view, which the media modal uses as its default container.
+	 *
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -3480,7 +3732,7 @@
 	/**
 	 * wp.media.view.FocusManager
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -3522,10 +3774,18 @@
 	/**
 	 * wp.media.view.UploaderWindow
 	 *
-	 * @constructor
+	 * An uploader window that allows for dragging and dropping media.
+	 *
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
+	 *
+	 * @param {object} [options]                   Options hash passed to the view.
+	 * @param {object} [options.uploader]          Uploader properties.
+	 * @param {jQuery} [options.uploader.browser]
+	 * @param {jQuery} [options.uploader.dropzone] jQuery collection of the dropzone.
+	 * @param {object} [options.uploader.params]
 	 */
 	media.view.UploaderWindow = media.View.extend({
 		tagName:   'div',
@@ -3617,9 +3877,12 @@
 	});
 
 	/**
+	 * Creates a dropzone on WP editor instances (elements with .wp-editor-wrap
+	 * or #wp-fullscreen-body) and relays drag'n'dropped files to a media workflow.
+	 *
 	 * wp.media.view.EditorUploader
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -3634,6 +3897,9 @@
 		overDropzone: false,
 		draggingFile: null,
 
+		/**
+		 * Bind drag'n'drop events to callbacks.
+		 */
 		initialize: function() {
 			var self = this;
 
@@ -3664,6 +3930,11 @@
 			return this;
 		},
 
+		/**
+		 * Check browser support for drag'n'drop.
+		 *
+		 * @return Boolean
+		 */
 		browserSupport: function() {
 			var supports = false, div = document.createElement('div');
 
@@ -3723,8 +3994,14 @@
 			return this;
 		},
 
+		/**
+		 * When a file is dropped on the editor uploader, open up an editor media workflow
+		 * and upload the file immediately.
+		 *
+		 * @param  {jQuery.Event} event The 'drop' event.
+		 */
 		drop: function( event ) {
-			var $wrap = null;
+			var $wrap = null, uploadView;
 
 			this.containerDragleave( event );
 			this.dropzoneDragleave( event );
@@ -3747,7 +4024,12 @@
 					title:    wp.media.view.l10n.addMedia,
 					multiple: true
 				});
-				this.workflow.on( 'uploader:ready', this.addFiles, this );
+				uploadView = this.workflow.uploader;
+				if ( uploadView.uploader && uploadView.uploader.ready ) {
+					this.addFiles.apply( this );
+				} else {
+					this.workflow.on( 'uploader:ready', this.addFiles, this );
+				}
 			} else {
 				this.workflow.state().reset();
 				this.addFiles.apply( this );
@@ -3757,6 +4039,9 @@
 			return false;
 		},
 
+		/**
+		 * Add the files to the uploader.
+		 */
 		addFiles: function() {
 			if ( this.files.length ) {
 				this.workflow.uploader.uploader.uploader.addFile( _.toArray( this.files ) );
@@ -3807,7 +4092,9 @@
 	/**
 	 * wp.media.view.UploaderInline
 	 *
-	 * @constructor
+	 * The inline uploader that shows up in the 'Upload Files' tab.
+	 *
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -3930,7 +4217,9 @@
 	/**
 	 * wp.media.view.UploaderStatus
 	 *
-	 * @constructor
+	 * An uploader status for on-going uploads.
+	 *
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -4060,7 +4349,7 @@
 	/**
 	 * wp.media.view.UploaderStatusError
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -4073,7 +4362,10 @@
 	/**
 	 * wp.media.view.Toolbar
 	 *
-	 * @constructor
+	 * A toolbar which consists of a primary and a secondary section. Each sections
+	 * can be filled with views.
+	 *
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -4224,7 +4516,7 @@
 	/**
 	 * wp.media.view.Toolbar.Select
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Toolbar
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -4258,9 +4550,7 @@
 					requires: options.requires
 				}
 			});
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+			// Call 'initialize' directly on the parent class.
 			media.view.Toolbar.prototype.initialize.apply( this, arguments );
 		},
 
@@ -4289,7 +4579,7 @@
 	/**
 	 * wp.media.view.Toolbar.Embed
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Toolbar.Select
 	 * @augments wp.media.view.Toolbar
 	 * @augments wp.media.View
@@ -4302,9 +4592,7 @@
 				text: l10n.insertIntoPost,
 				requires: false
 			});
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+			// Call 'initialize' directly on the parent class.
 			media.view.Toolbar.Select.prototype.initialize.apply( this, arguments );
 		},
 
@@ -4321,7 +4609,7 @@
 	/**
 	 * wp.media.view.Button
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -4404,7 +4692,7 @@
 	/**
 	 * wp.media.view.ButtonGroup
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -4444,7 +4732,7 @@
 	/**
 	 * wp.media.view.PriorityList
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -4538,7 +4826,7 @@
 	/**
 	 * wp.media.view.MenuItem
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -4604,7 +4892,7 @@
 	/**
 	 * wp.media.view.Menu
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.PriorityList
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -4714,7 +5002,7 @@
 	/**
 	 * wp.media.view.RouterItem
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.MenuItem
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -4735,7 +5023,7 @@
 	/**
 	 * wp.media.view.Router
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Menu
 	 * @augments wp.media.view.PriorityList
 	 * @augments wp.media.View
@@ -4751,9 +5039,7 @@
 
 		initialize: function() {
 			this.controller.on( 'content:render', this.update, this );
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+			// Call 'initialize' directly on the parent class.
 			media.view.Menu.prototype.initialize.apply( this, arguments );
 		},
 
@@ -4768,7 +5054,7 @@
 	/**
 	 * wp.media.view.Sidebar
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.PriorityList
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -4781,7 +5067,7 @@
 	/**
 	 * wp.media.view.Attachment
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -5314,7 +5600,7 @@
 	/**
 	 * wp.media.view.Attachment.Library
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Attachment
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -5329,7 +5615,7 @@
 	/**
 	 * wp.media.view.Attachment.EditLibrary
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Attachment
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -5344,7 +5630,7 @@
 	/**
 	 * wp.media.view.Attachments
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -5636,7 +5922,7 @@
 	/**
 	 * wp.media.view.Search
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -5678,7 +5964,7 @@
 	/**
 	 * wp.media.view.AttachmentFilters
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -5718,8 +6004,7 @@
 		},
 
 		/**
-		 * When the selection changes, set the Query properties
-		 * accordingly for the selected filter.
+		 * When the selected filter changes, update the Attachment Query properties to match.
 		 */
 		change: function() {
 			var filter = this.filters[ this.el.value ];
@@ -5750,7 +6035,7 @@
 	/**
 	 * A filter dropdown for month/dates.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.AttachmentFilters
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -5785,7 +6070,7 @@
 	/**
 	 * wp.media.view.AttachmentFilters.Uploaded
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.AttachmentFilters
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -5838,7 +6123,7 @@
 	/**
 	 * wp.media.view.AttachmentFilters.All
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.AttachmentFilters
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -5922,10 +6207,20 @@
 	/**
 	 * wp.media.view.AttachmentsBrowser
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
+	 *
+	 * @param {object}      options
+	 * @param {object}      [options.filters=false] Which filters to show in the browser's toolbar.
+	 *                                              Accepts 'uploaded' and 'all'.
+	 * @param {object}      [options.search=true]   Whether to show the search interface in the
+	 *                                              browser's toolbar.
+	 * @param {object}      [options.display=false] Whether to show the attachments display settings
+	 *                                              view in the sidebar.
+	 * @param {bool|string} [options.sidebar=true]  Whether to create a sidebar for the browser.
+	 *                                              Accepts true, false, and 'errors'.
 	 */
 	media.view.AttachmentsBrowser = media.View.extend({
 		tagName:   'div',
@@ -6339,7 +6634,7 @@
 	/**
 	 * wp.media.view.Selection
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -6417,7 +6712,7 @@
 	/**
 	 * wp.media.view.Attachment.Selection
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Attachment
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -6436,7 +6731,7 @@
 	/**
 	 * wp.media.view.Attachments.Selection
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Attachments
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -6452,9 +6747,7 @@
 				// The single `Attachment` view to be used in the `Attachments` view.
 				AttachmentView: media.view.Attachment.Selection
 			});
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+			// Call 'initialize' directly on the parent class.
 			return media.view.Attachments.prototype.initialize.apply( this, arguments );
 		}
 	});
@@ -6462,7 +6755,7 @@
 	/**
 	 * wp.media.view.Attachments.EditSelection
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Attachment.Selection
 	 * @augments wp.media.view.Attachment
 	 * @augments wp.media.View
@@ -6479,7 +6772,7 @@
 	/**
 	 * wp.media.view.Settings
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -6593,7 +6886,7 @@
 	/**
 	 * wp.media.view.Settings.AttachmentDisplay
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Settings
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -6609,9 +6902,7 @@
 			_.defaults( this.options, {
 				userSettings: false
 			});
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+			// Call 'initialize' directly on the parent class.
 			media.view.Settings.prototype.initialize.apply( this, arguments );
 			this.model.on( 'change:link', this.updateLinkTo, this );
 
@@ -6683,7 +6974,7 @@
 	/**
 	 * wp.media.view.Settings.Gallery
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Settings
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -6697,7 +6988,7 @@
 	/**
 	 * wp.media.view.Settings.Playlist
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Settings
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -6711,7 +7002,7 @@
 	/**
 	 * wp.media.view.Attachment.Details
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Attachment
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -6741,9 +7032,7 @@
 			});
 
 			this.on( 'ready', this.initialFocus );
-			/**
-			 * call 'initialize' directly on the parent class
-			 */
+			// Call 'initialize' directly on the parent class.
 			media.view.Attachment.prototype.initialize.apply( this, arguments );
 		},
 
@@ -6841,7 +7130,7 @@
 	 *
 	 * A view to display fields added via the `attachment_fields_to_edit` filter.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -6918,7 +7207,7 @@
 	/**
 	 * wp.media.view.Iframe
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -6939,7 +7228,7 @@
 	/**
 	 * wp.media.view.Embed
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -6998,7 +7287,7 @@
 	});
 
 	/**
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -7021,7 +7310,7 @@
 	/**
 	 * wp.media.view.EmbedUrl
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -7095,7 +7384,7 @@
 	/**
 	 * wp.media.view.EmbedLink
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Settings
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
@@ -7155,7 +7444,7 @@
 	/**
 	 * wp.media.view.EmbedImage
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Settings.AttachmentDisplay
 	 * @augments wp.media.view.Settings
 	 * @augments wp.media.View
@@ -7182,7 +7471,7 @@
 	/**
 	 * wp.media.view.ImageDetails
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.view.Settings.AttachmentDisplay
 	 * @augments wp.media.view.Settings
 	 * @augments wp.media.View
@@ -7348,7 +7637,7 @@
 	 * wp.customize.HeaderControl.calculateImageSelectOptions via
 	 * wp.customize.HeaderControl.openMM.
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View
@@ -7449,7 +7738,7 @@
 	/**
 	 * wp.media.view.Spinner
 	 *
-	 * @constructor
+	 * @class
 	 * @augments wp.media.View
 	 * @augments wp.Backbone.View
 	 * @augments Backbone.View

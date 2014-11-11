@@ -25,7 +25,6 @@
  * height as the second element.
  *
  * @since 2.5.0
- * @uses wp_constrain_dimensions() This function passes the widths and the heights.
  *
  * @param int $width Width of the image
  * @param int $height Height of the image
@@ -684,7 +683,6 @@ function wp_get_attachment_image_src($attachment_id, $size='thumbnail', $icon = 
  * @since 2.5.0
  *
  * @see add_image_size()
- * @uses wp_get_attachment_image_src() Gets attachment file URL and dimensions
  *
  * @param int          $attachment_id Image attachment ID.
  * @param string|array $size          Optional. Default 'thumbnail'.
@@ -938,14 +936,6 @@ function gallery_shortcode( $attr ) {
 		return $output;
 	}
 
-	// We're trusting author input, so let's at least make sure it looks like a valid orderby statement
-	if ( isset( $attr['orderby'] ) ) {
-		$attr['orderby'] = sanitize_sql_orderby( $attr['orderby'] );
-		if ( ! $attr['orderby'] ) {
-			unset( $attr['orderby'] );
-		}
-	}
-
 	$html5 = current_theme_supports( 'html5', 'gallery' );
 	$atts = shortcode_atts( array(
 		'order'      => 'ASC',
@@ -1056,12 +1046,14 @@ function gallery_shortcode( $attr ) {
 
 	$i = 0;
 	foreach ( $attachments as $id => $attachment ) {
+
+		$attr = ( trim( $attachment->post_excerpt ) ) ? array( 'aria-describedby' => "$selector-$id" ) : '';
 		if ( ! empty( $atts['link'] ) && 'file' === $atts['link'] ) {
-			$image_output = wp_get_attachment_link( $id, $atts['size'], false, false );
+			$image_output = wp_get_attachment_link( $id, $atts['size'], false, false, false, $attr );
 		} elseif ( ! empty( $atts['link'] ) && 'none' === $atts['link'] ) {
-			$image_output = wp_get_attachment_image( $id, $atts['size'], false );
+			$image_output = wp_get_attachment_image( $id, $atts['size'], false, $attr );
 		} else {
-			$image_output = wp_get_attachment_link( $id, $atts['size'], true, false );
+			$image_output = wp_get_attachment_link( $id, $atts['size'], true, false, false, $attr );
 		}
 		$image_meta  = wp_get_attachment_metadata( $id );
 
@@ -1076,7 +1068,7 @@ function gallery_shortcode( $attr ) {
 			</{$icontag}>";
 		if ( $captiontag && trim($attachment->post_excerpt) ) {
 			$output .= "
-				<{$captiontag} class='wp-caption-text gallery-caption'>
+				<{$captiontag} class='wp-caption-text gallery-caption' id='$selector-$id'>
 				" . wptexturize($attachment->post_excerpt) . "
 				</{$captiontag}>";
 		}
@@ -1216,16 +1208,6 @@ function wp_playlist_shortcode( $attr ) {
 	$output = apply_filters( 'post_playlist', '', $attr );
 	if ( $output != '' ) {
 		return $output;
-	}
-
-	/*
-	 * We're trusting author input, so let's at least make sure it looks
-	 * like a valid orderby statement.
-	 */
-	if ( isset( $attr['orderby'] ) ) {
-		$attr['orderby'] = sanitize_sql_orderby( $attr['orderby'] );
-		if ( ! $attr['orderby'] )
-			unset( $attr['orderby'] );
 	}
 
 	$atts = shortcode_atts( array(
@@ -1396,7 +1378,7 @@ function wp_playlist_shortcode( $attr ) {
 	}
 	?></ol>
 	</noscript>
-	<script type="application/json" class="wp-playlist-script"><?php echo json_encode( $data ) ?></script>
+	<script type="application/json" class="wp-playlist-script"><?php echo wp_json_encode( $data ) ?></script>
 </div>
 	<?php
 	return ob_get_clean();
@@ -1593,8 +1575,8 @@ function wp_audio_shortcode( $attr, $content = '' ) {
 	$html_atts = array(
 		'class'    => apply_filters( 'wp_audio_shortcode_class', 'wp-audio-shortcode' ),
 		'id'       => sprintf( 'audio-%d-%d', $post_id, $instances ),
-		'loop'     => $atts['loop'],
-		'autoplay' => $atts['autoplay'],
+		'loop'     => wp_validate_boolean( $atts['loop'] ),
+		'autoplay' => wp_validate_boolean( $atts['autoplay'] ),
 		'preload'  => $atts['preload'],
 		'style'    => 'width: 100%; visibility: hidden;',
 	);
@@ -1819,8 +1801,8 @@ function wp_video_shortcode( $attr, $content = '' ) {
 		'width'    => absint( $atts['width'] ),
 		'height'   => absint( $atts['height'] ),
 		'poster'   => esc_url( $atts['poster'] ),
-		'loop'     => $atts['loop'],
-		'autoplay' => $atts['autoplay'],
+		'loop'     => wp_validate_boolean( $atts['loop'] ),
+		'autoplay' => wp_validate_boolean( $atts['autoplay'] ),
 		'preload'  => $atts['preload'],
 	);
 
@@ -1871,14 +1853,11 @@ function wp_video_shortcode( $attr, $content = '' ) {
 	}
 	$html .= '</video>';
 
-	$width_rule = $height_rule = '';
+	$width_rule = '';
 	if ( ! empty( $atts['width'] ) ) {
 		$width_rule = sprintf( 'width: %dpx; ', $atts['width'] );
 	}
-	if ( ! empty( $atts['height'] ) ) {
-		$height_rule = sprintf( 'height: %dpx; ', $atts['height'] );
-	}
-	$output = sprintf( '<div style="%s%s" class="wp-video">%s</div>', $width_rule, $height_rule, $html );
+	$output = sprintf( '<div style="%s" class="wp-video">%s</div>', $width_rule, $html );
 
 	/**
 	 * Filter the output of the video shortcode.
@@ -2014,7 +1993,6 @@ function get_attachment_taxonomies($attachment) {
  *
  * @since 3.5.0
  * @see get_attachment_taxonomies()
- * @uses get_taxonomies()
  *
  * @param string $output The type of output to return, either taxonomy 'names' or 'objects'. 'names' is the default.
  * @return array The names of all taxonomy of $object_type.
@@ -2118,7 +2096,6 @@ function wp_embed_defaults( $url = '' ) {
  * Based on a supplied width/height example, return the biggest possible dimensions based on the max width/height.
  *
  * @since 2.9.0
- * @uses wp_constrain_dimensions() This function passes the widths and the heights.
  *
  * @param int $example_width The width of an example embed.
  * @param int $example_height The height of an example embed.
@@ -2141,9 +2118,6 @@ function wp_expand_dimensions( $example_width, $example_height, $max_width, $max
  * @since 2.9.0
  * @see WP_oEmbed
  *
- * @uses _wp_oembed_get_object()
- * @uses WP_oEmbed::get_html()
- *
  * @param string $url The URL that should be embedded.
  * @param array $args Additional arguments and parameters.
  * @return bool|string False on failure or the embed HTML on success.
@@ -2159,8 +2133,6 @@ function wp_oembed_get( $url, $args = '' ) {
  *
  * @since 2.9.0
  * @see WP_oEmbed
- *
- * @uses _wp_oembed_get_object()
  *
  * @param string $format The format of URL that this provider can handle. You can use asterisks as wildcards.
  * @param string $provider The URL to the oEmbed provider.
@@ -2182,8 +2154,6 @@ function wp_oembed_add_provider( $format, $provider, $regex = false ) {
  *
  * @since 3.5.0
  * @see WP_oEmbed
- *
- * @uses _wp_oembed_get_object()
  *
  * @param string $format The URL format for the oEmbed provider to remove.
  */
@@ -2580,7 +2550,7 @@ function wp_plupload_default_settings() {
 		'limitExceeded' => is_multisite() && ! is_upload_space_available()
 	);
 
-	$script = 'var _wpPluploadSettings = ' . json_encode( $settings ) . ';';
+	$script = 'var _wpPluploadSettings = ' . wp_json_encode( $settings ) . ';';
 
 	if ( $data )
 		$script = "$data\n$script";
@@ -3290,7 +3260,7 @@ function wp_maybe_generate_attachment_metadata( $attachment ) {
  *
  * @since 4.0.0
  *
- * @global wpdb $wpdb WordPress database access abstraction object.
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param string $url The URL to resolve.
  * @return int The found post ID.

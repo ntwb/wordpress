@@ -636,7 +636,7 @@ function post_exists($title, $content = '', $date = '') {
  *
  * @since 2.1.0
  *
- * @return unknown
+ * @return int|WP_Error
  */
 function wp_write_post() {
 	if ( isset($_POST['post_type']) )
@@ -704,11 +704,8 @@ function wp_write_post() {
  * Calls wp_write_post() and handles the errors.
  *
  * @since 2.0.0
-
- * @uses wp_write_post()
- * @uses is_wp_error()
- * @uses wp_die()
- * @return unknown
+ *
+ * @return int|null
  */
 function write_post() {
 	$result = wp_write_post();
@@ -727,8 +724,8 @@ function write_post() {
  *
  * @since 1.2.0
  *
- * @param unknown_type $post_ID
- * @return unknown
+ * @param int $post_ID
+ * @return int|bool
  */
 function add_meta( $post_ID ) {
 	$post_ID = (int) $post_ID;
@@ -766,8 +763,8 @@ function add_meta( $post_ID ) {
  *
  * @since 1.2.0
  *
- * @param unknown_type $mid
- * @return unknown
+ * @param int $mid
+ * @return bool
  */
 function delete_meta( $mid ) {
 	return delete_metadata_by_mid( 'post' , $mid );
@@ -778,7 +775,7 @@ function delete_meta( $mid ) {
  *
  * @since 1.2.0
  *
- * @return unknown
+ * @return mixed
  */
 function get_meta_keys() {
 	global $wpdb;
@@ -797,8 +794,8 @@ function get_meta_keys() {
  *
  * @since 2.1.0
  *
- * @param unknown_type $mid
- * @return unknown
+ * @param int $mid
+ * @return object|bool
  */
 function get_post_meta_by_id( $mid ) {
 	return get_metadata_by_mid( 'post', $mid );
@@ -811,8 +808,8 @@ function get_post_meta_by_id( $mid ) {
  *
  * @since 1.2.0
  *
- * @param unknown_type $postid
- * @return unknown
+ * @param int $postid
+ * @return mixed
  */
 function has_meta( $postid ) {
 	global $wpdb;
@@ -827,10 +824,10 @@ function has_meta( $postid ) {
  *
  * @since 1.2.0
  *
- * @param unknown_type $meta_id
- * @param unknown_type $meta_key Expect Slashed
- * @param unknown_type $meta_value Expect Slashed
- * @return unknown
+ * @param int    $meta_id
+ * @param string $meta_key Expect Slashed
+ * @param string $meta_value Expect Slashed
+ * @return bool
  */
 function update_meta( $meta_id, $meta_key, $meta_value ) {
 	$meta_key = wp_unslash( $meta_key );
@@ -1000,8 +997,8 @@ function wp_edit_posts_query( $q = false ) {
  *
  * @since 2.5.0
  *
- * @param unknown_type $type
- * @return unknown
+ * @param string $type
+ * @return mixed
  */
 function get_available_post_mime_types($type = 'attachment') {
 	global $wpdb;
@@ -1072,12 +1069,11 @@ function wp_edit_attachments_query( $q = false ) {
 /**
  * Returns the list of classes to be used by a metabox
  *
- * @uses get_user_option()
  * @since 2.5.0
  *
- * @param unknown_type $id
- * @param unknown_type $page
- * @return unknown
+ * @param string $id
+ * @param string $page
+ * @return string
  */
 function postbox_classes( $id, $page ) {
 	if ( isset( $_GET['edit'] ) && $_GET['edit'] == $id ) {
@@ -1503,9 +1499,6 @@ function _admin_notice_post_locked() {
  * @subpackage Post_Revisions
  * @since 2.6.0
  *
- * @uses _wp_translate_postdata()
- * @uses _wp_post_revision_fields()
- *
  * @param mixed $post_data Associative array containing the post data or int post ID.
  * @return mixed The autosave revision ID. WP_Error or 0 on error.
  */
@@ -1544,6 +1537,15 @@ function wp_create_post_autosave( $post_data ) {
 			return 0;
 		}
 
+		/**
+		 * Fires before an autosave is stored.
+		 *
+		 * @since 4.1.0
+		 *
+		 * @param array $new_autosave Post array - the autosave that is about to be saved.
+		 */
+		do_action( 'wp_creating_autosave', $new_autosave );
+
 		return wp_update_post( $new_autosave );
 	}
 
@@ -1559,15 +1561,6 @@ function wp_create_post_autosave( $post_data ) {
  *
  * @package WordPress
  * @since 2.7.0
- *
- * @uses get_post_status()
- * @uses edit_post()
- * @uses get_post()
- * @uses current_user_can()
- * @uses wp_die()
- * @uses wp_create_post_autosave()
- * @uses add_query_arg()
- * @uses wp_create_nonce()
  *
  * @return str URL to redirect to show the preview
  */

@@ -611,6 +611,421 @@ class Tests_Post_Query extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 29062
+	 */
+	public function test_meta_query_compare_not_exists_with_another_condition_relation_or() {
+		$posts = $this->factory->post->create_many( 4 );
+		update_post_meta( $posts[0], 'color', 'orange' );
+		update_post_meta( $posts[1], 'color', 'blue' );
+		update_post_meta( $posts[1], 'vegetable', 'onion' );
+		update_post_meta( $posts[2], 'vegetable', 'shallot' );
+
+		$post_3_meta = get_post_meta( $posts[3] );
+		foreach ( $post_3_meta as $meta_key => $meta_value ) {
+			delete_post_meta( $posts[3], $meta_key );
+		}
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+				),
+				array(
+					'key' => 'color',
+					'compare' => 'NOT EXISTS',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[1], $posts[2], $posts[3] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_or_compare_equals() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+					'compare' => '=',
+				),
+				array(
+					'key' => 'vegetable',
+					'value' => 'shallot',
+					'compare' => '=',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[1], $posts[2] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_or_compare_equals_different_keys() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+					'compare' => '=',
+				),
+				array(
+					'key' => 'color',
+					'value' => 'orange',
+					'compare' => '=',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[0], $posts[1] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_or_compare_equals_and_in() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+					'compare' => '=',
+				),
+				array(
+					'key' => 'color',
+					'value' => array( 'orange', 'green' ),
+					'compare' => 'IN',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[0], $posts[1] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_or_compare_equals_and_like() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+					'compare' => '=',
+				),
+				array(
+					'key' => 'vegetable',
+					'value' => 'hall',
+					'compare' => 'LIKE',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[1], $posts[2] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_or_compare_equals_and_between() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'number_of_colors', '2' );
+		add_post_meta( $posts[1], 'number_of_colors', '5' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'vegetable',
+					'value' => 'shallot',
+					'compare' => '=',
+				),
+				array(
+					'key' => 'number_of_colors',
+					'value' => array( 1, 3 ),
+					'compare' => 'BETWEEN',
+					'type' => 'SIGNED',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[0], $posts[2] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_and_compare_in_same_keys() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+		add_post_meta( $posts[3], 'vegetable', 'banana' );
+		add_post_meta( $posts[3], 'vegetable', 'onion' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => 'vegetable',
+					'value' => array( 'onion', 'shallot' ),
+					'compare' => 'IN',
+				),
+				array(
+					'key' => 'vegetable',
+					'value' => array( 'banana' ),
+					'compare' => 'IN',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[3] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_and_compare_in_different_keys() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[1], 'vegetable', 'shallot' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+		add_post_meta( $posts[3], 'vegetable', 'banana' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => 'vegetable',
+					'value' => array( 'onion', 'shallot' ),
+					'compare' => 'IN',
+				),
+				array(
+					'key' => 'color',
+					'value' => array( 'blue' ),
+					'compare' => 'IN',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[1] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_and_compare_not_equals() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+		add_post_meta( $posts[3], 'vegetable', 'banana' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+					'compare' => '!=',
+				),
+				array(
+					'key' => 'vegetable',
+					'value' => 'shallot',
+					'compare' => '!=',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[3] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_and_compare_not_equals_different_keys() {
+		$posts = $this->factory->post->create_many( 4 );
+
+		// !shallot, but orange.
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[0], 'vegetable', 'onion' );
+
+		// !orange, but shallot.
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'shallot' );
+
+		// Neither.
+		add_post_meta( $posts[2], 'color', 'blue' );
+		add_post_meta( $posts[2], 'vegetable', 'onion' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => 'vegetable',
+					'value' => 'shallot',
+					'compare' => '!=',
+				),
+				array(
+					'key' => 'color',
+					'value' => 'orange',
+					'compare' => '!=',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[2] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_and_compare_not_equals_not_in() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+		add_post_meta( $posts[3], 'vegetable', 'banana' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+					'compare' => '!=',
+				),
+				array(
+					'key' => 'vegetable',
+					'value' => array( 'shallot' ),
+					'compare' => 'NOT IN',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[3] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 24093
+	 */
+	public function test_meta_query_relation_and_compare_not_equals_and_not_like() {
+		$posts = $this->factory->post->create_many( 4 );
+		add_post_meta( $posts[0], 'color', 'orange' );
+		add_post_meta( $posts[1], 'color', 'blue' );
+		add_post_meta( $posts[1], 'vegetable', 'onion' );
+		add_post_meta( $posts[2], 'vegetable', 'shallot' );
+		add_post_meta( $posts[3], 'vegetable', 'banana' );
+
+		$query = new WP_Query( array(
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => 'vegetable',
+					'value' => 'onion',
+					'compare' => '!=',
+				),
+				array(
+					'key' => 'vegetable',
+					'value' => 'hall',
+					'compare' => 'NOT LIKE',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$expected = array( $posts[3] );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
 	 * @ticket 23033
 	 * @group meta
 	 */
@@ -772,6 +1187,184 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		$this->assertEqualSets( array( $post_4, $post_3, $post_2, $post_1 ), $query->posts );
 	}
 
+	/**
+	 * @group meta
+	 * @ticket 29604
+	 */
+	public function test_meta_query_with_orderby_meta_value_relation_or() {
+		$posts = $this->factory->post->create_many( 4 );
+		update_post_meta( $posts[0], 'foo', 5 );
+		update_post_meta( $posts[1], 'foo', 6 );
+		update_post_meta( $posts[2], 'foo', 4 );
+		update_post_meta( $posts[3], 'foo', 7 );
+
+		update_post_meta( $posts[0], 'bar1', 'baz' );
+		update_post_meta( $posts[1], 'bar1', 'baz' );
+		update_post_meta( $posts[2], 'bar2', 'baz' );
+
+		$query = new WP_Query( array(
+			'orderby' => 'meta_value',
+			'order' => 'ASC',
+			'meta_key' => 'foo',
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'bar1',
+					'value' => 'baz',
+					'compare' => '=',
+				),
+				array(
+					'key' => 'bar2',
+					'value' => 'baz',
+					'compare' => '=',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$this->assertEquals( array( $posts[2], $posts[0], $posts[1] ), $query->posts );
+	}
+
+	/**
+	 * @group meta
+	 * @ticket 29604
+	 */
+	public function test_meta_query_with_orderby_meta_value_relation_and() {
+		$posts = $this->factory->post->create_many( 4 );
+		update_post_meta( $posts[0], 'foo', 5 );
+		update_post_meta( $posts[1], 'foo', 6 );
+		update_post_meta( $posts[2], 'foo', 4 );
+		update_post_meta( $posts[3], 'foo', 7 );
+
+		update_post_meta( $posts[0], 'bar1', 'baz' );
+		update_post_meta( $posts[1], 'bar1', 'baz' );
+		update_post_meta( $posts[2], 'bar1', 'baz' );
+		update_post_meta( $posts[3], 'bar1', 'baz' );
+		update_post_meta( $posts[0], 'bar2', 'baz' );
+		update_post_meta( $posts[1], 'bar2', 'baz' );
+		update_post_meta( $posts[2], 'bar2', 'baz' );
+
+		$query = new WP_Query( array(
+			'orderby' => 'meta_value',
+			'order' => 'ASC',
+			'meta_key' => 'foo',
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key' => 'bar1',
+					'value' => 'baz',
+					'compare' => '=',
+				),
+				array(
+					'key' => 'bar2',
+					'value' => 'baz',
+					'compare' => '=',
+				),
+			),
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'fields' => 'ids',
+		) );
+
+		$this->assertEquals( array( $posts[2], $posts[0], $posts[1] ), $query->posts );
+	}
+
+	/**
+	 * @ticket 29642
+	 * @group meta
+	 */
+	public function test_meta_query_nested() {
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		add_post_meta( $p1, 'foo', 'bar' );
+		add_post_meta( $p2, 'foo2', 'bar' );
+		add_post_meta( $p3, 'foo2', 'bar' );
+		add_post_meta( $p3, 'foo3', 'bar' );
+
+		$query = new WP_Query( array(
+			'update_post_meta_cache' => false,
+			'update_term_meta_cache' => false,
+			'fields' => 'ids',
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'foo',
+					'value' => 'bar',
+				),
+				array(
+					'relation' => 'AND',
+					array(
+						'key' => 'foo2',
+						'value' => 'bar',
+					),
+					array(
+						'key' => 'foo3',
+						'value' => 'bar',
+					),
+				),
+			),
+		) );
+
+		$expected = array( $p1, $p3 );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @ticket 29642
+	 * @group meta
+	 */
+	public function test_meta_query_nested_two_levels_deep() {
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		add_post_meta( $p1, 'foo', 'bar' );
+		add_post_meta( $p3, 'foo2', 'bar' );
+		add_post_meta( $p3, 'foo3', 'bar' );
+		add_post_meta( $p3, 'foo4', 'bar' );
+
+		$query = new WP_Query( array(
+			'update_post_meta_cache' => false,
+			'update_term_meta_cache' => false,
+			'fields' => 'ids',
+			'meta_query' => array(
+				'relation' => 'OR',
+				array(
+					'key' => 'foo',
+					'value' => 'bar',
+				),
+				array(
+					'relation' => 'OR',
+					array(
+						'key' => 'foo2',
+						'value' => 'bar',
+					),
+					array(
+						'relation' => 'AND',
+						array(
+							'key' => 'foo3',
+							'value' => 'bar',
+						),
+						array(
+							'key' => 'foo4',
+							'value' => 'bar',
+						),
+					),
+				),
+			),
+		) );
+
+		$expected = array( $p1, $p3 );
+		$this->assertEqualSets( $expected, $query->posts );
+	}
+
+	/**
+	 * @group meta
+	 */
 	function test_meta_between_not_between() {
 		$post_id = $this->factory->post->create();
 		add_post_meta( $post_id, 'time', 500 );
@@ -819,6 +1412,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 16829
+	 * @group meta
 	 */
 	function test_meta_default_compare() {
 		// compare should default to IN when meta_value is an array
@@ -859,6 +1453,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 17264
+	 * @group meta
 	 */
 	function test_duplicate_posts_when_no_key() {
 		$post_id = $this->factory->post->create();
@@ -890,6 +1485,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 15292
+	 * @group meta
 	 */
 	function test_empty_meta_value() {
 		$post_id = $this->factory->post->create();
@@ -907,13 +1503,13 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		$post_id6 = $this->factory->post->create();
 		add_post_meta( $post_id6, 'baz', 0 );
 
-		$posts = get_posts( array( 'meta_key' => 'foo', 'meta_value' => '0' ) );
-		$this->assertEquals( 1, count ( $posts ) );
-		foreach ( $posts as $post ) {
+		$q = new WP_Query( array( 'meta_key' => 'foo', 'meta_value' => '0' ) );
+		$this->assertEquals( 1, count ( $q->posts ) );
+		foreach ( $q->posts as $post ) {
 			$this->assertInstanceOf( 'WP_Post', $post );
 			$this->assertEquals( 'raw', $post->filter );
 		}
-		$this->assertEquals( $post_id, $posts[0]->ID );
+		$this->assertEquals( $post_id, $q->posts[0]->ID );
 
 		$posts = get_posts( array( 'meta_key' => 'bar', 'meta_value' => '0' ) );
 		$this->assertEquals( 2, count ( $posts ) );
@@ -1243,6 +1839,52 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 	/**
 	 * @group taxonomy
+	 * @ticket 18105
+	 */
+	public function test_tax_query_single_query_multiple_queries_operator_not_in() {
+		$t1 = $this->factory->term->create( array(
+			'taxonomy' => 'category',
+			'slug' => 'foo',
+			'name' => 'Foo',
+		) );
+		$t2 = $this->factory->term->create( array(
+			'taxonomy' => 'category',
+			'slug' => 'bar',
+			'name' => 'Bar',
+		) );
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		wp_set_post_terms( $p1, $t1, 'category' );
+		wp_set_post_terms( $p2, $t2, 'category' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'tax_query' => array(
+				'relation' => 'AND',
+				array(
+					'taxonomy' => 'category',
+					'terms' => array( 'foo' ),
+					'field' => 'slug',
+					'operator' => 'NOT IN',
+				),
+				array(
+					'taxonomy' => 'category',
+					'terms' => array( 'bar' ),
+					'field' => 'slug',
+					'operator' => 'NOT IN',
+				),
+			),
+		) );
+
+		$this->assertEquals( array( $p3 ), $q->posts );
+	}
+
+	/**
+	 * @group taxonomy
 	 */
 	public function test_tax_query_single_query_multiple_terms_operator_and() {
 		$t1 = $this->factory->term->create( array(
@@ -1277,6 +1919,134 @@ class Tests_Post_Query extends WP_UnitTestCase {
 		) );
 
 		$this->assertEquals( array( $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 29181
+	 */
+	public function test_tax_query_operator_not_exists() {
+		register_taxonomy( 'wptests_tax1', 'post' );
+		register_taxonomy( 'wptests_tax2', 'post' );
+
+		$t1 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax1' ) );
+		$t2 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax2' ) );
+
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		wp_set_object_terms( $p1, array( $t1 ), 'wptests_tax1' );
+		wp_set_object_terms( $p2, array( $t2 ), 'wptests_tax2' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'orderby' => 'ID',
+			'order' => 'ASC',
+			'tax_query' => array(
+				array(
+					'taxonomy' => 'wptests_tax2',
+					'operator' => 'NOT EXISTS',
+				),
+			),
+		) );
+
+		$this->assertEqualSets( array( $p1, $p3 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 29181
+	 */
+	public function test_tax_query_operator_exists() {
+		register_taxonomy( 'wptests_tax1', 'post' );
+		register_taxonomy( 'wptests_tax2', 'post' );
+
+		$t1 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax1' ) );
+		$t2 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax2' ) );
+
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		wp_set_object_terms( $p1, array( $t1 ), 'wptests_tax1' );
+		wp_set_object_terms( $p2, array( $t2 ), 'wptests_tax2' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'orderby' => 'ID',
+			'order' => 'ASC',
+			'tax_query' => array(
+				array(
+					'taxonomy' => 'wptests_tax2',
+					'operator' => 'EXISTS',
+				),
+			),
+		) );
+
+		$this->assertEqualSets( array( $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 29181
+	 */
+	public function test_tax_query_operator_exists_should_ignore_terms() {
+		register_taxonomy( 'wptests_tax1', 'post' );
+		register_taxonomy( 'wptests_tax2', 'post' );
+
+		$t1 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax1' ) );
+		$t2 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax2' ) );
+
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		wp_set_object_terms( $p1, array( $t1 ), 'wptests_tax1' );
+		wp_set_object_terms( $p2, array( $t2 ), 'wptests_tax2' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'orderby' => 'ID',
+			'order' => 'ASC',
+			'tax_query' => array(
+				array(
+					'taxonomy' => 'wptests_tax2',
+					'operator' => 'EXISTS',
+					'terms' => array( 'foo', 'bar' ),
+				),
+			),
+		) );
+
+		$this->assertEqualSets( array( $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 29181
+	 */
+	public function test_tax_query_operator_exists_with_no_taxonomy() {
+		register_taxonomy( 'wptests_tax1', 'post' );
+		register_taxonomy( 'wptests_tax2', 'post' );
+
+		$t1 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax1' ) );
+		$t2 = $this->factory->term->create( array( 'taxonomy' => 'wptests_tax2' ) );
+
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		wp_set_object_terms( $p1, array( $t1 ), 'wptests_tax1' );
+		wp_set_object_terms( $p2, array( $t2 ), 'wptests_tax2' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'orderby' => 'ID',
+			'order' => 'ASC',
+			'tax_query' => array(
+				array(
+					'operator' => 'EXISTS',
+				),
+			),
+		) );
+
+		$this->assertEmpty( $q->posts );
 	}
 
 	/**
@@ -1362,7 +2132,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			),
 		) );
 
-		$this->assertEquals( array( $p1, $p2 ), $q->posts );
+		$this->assertEqualSets( array( $p1, $p2 ), $q->posts );
 	}
 
 	/**
@@ -1405,7 +2175,219 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			),
 		) );
 
-		$this->assertEquals( array( $p1, $p2 ), $q->posts );
+		$this->assertEqualSets( array( $p1, $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 29738
+	 * @group taxonomy
+	 */
+	public function test_tax_query_two_nested_queries() {
+		register_taxonomy( 'foo', 'post' );
+		register_taxonomy( 'bar', 'post' );
+
+		$foo_term_1 = $this->factory->term->create( array(
+			'taxonomy' => 'foo',
+		) );
+		$foo_term_2 = $this->factory->term->create( array(
+			'taxonomy' => 'foo',
+		) );
+		$bar_term_1 = $this->factory->term->create( array(
+			'taxonomy' => 'bar',
+		) );
+		$bar_term_2 = $this->factory->term->create( array(
+			'taxonomy' => 'bar',
+		) );
+
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		wp_set_object_terms( $p1, array( $foo_term_1 ), 'foo' );
+		wp_set_object_terms( $p1, array( $bar_term_1 ), 'bar' );
+		wp_set_object_terms( $p2, array( $foo_term_2 ), 'foo' );
+		wp_set_object_terms( $p2, array( $bar_term_2 ), 'bar' );
+		wp_set_object_terms( $p3, array( $foo_term_1 ), 'foo' );
+		wp_set_object_terms( $p3, array( $bar_term_2 ), 'bar' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'tax_query' => array(
+				'relation' => 'OR',
+				array(
+					'relation' => 'AND',
+					array(
+						'taxonomy' => 'foo',
+						'terms' => array( $foo_term_1 ),
+						'field' => 'term_id',
+					),
+					array(
+						'taxonomy' => 'bar',
+						'terms' => array( $bar_term_1 ),
+						'field' => 'term_id',
+					),
+				),
+				array(
+					'relation' => 'AND',
+					array(
+						'taxonomy' => 'foo',
+						'terms' => array( $foo_term_2 ),
+						'field' => 'term_id',
+					),
+					array(
+						'taxonomy' => 'bar',
+						'terms' => array( $bar_term_2 ),
+						'field' => 'term_id',
+					),
+				),
+			),
+		) );
+
+		_unregister_taxonomy( 'foo' );
+		_unregister_taxonomy( 'bar' );
+
+		$this->assertEqualSets( array( $p1, $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 29738
+	 * @group taxonomy
+	 */
+	public function test_tax_query_one_nested_query_one_first_order_query() {
+		register_taxonomy( 'foo', 'post' );
+		register_taxonomy( 'bar', 'post' );
+
+		$foo_term_1 = $this->factory->term->create( array(
+			'taxonomy' => 'foo',
+		) );
+		$foo_term_2 = $this->factory->term->create( array(
+			'taxonomy' => 'foo',
+		) );
+		$bar_term_1 = $this->factory->term->create( array(
+			'taxonomy' => 'bar',
+		) );
+		$bar_term_2 = $this->factory->term->create( array(
+			'taxonomy' => 'bar',
+		) );
+
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+
+		wp_set_object_terms( $p1, array( $foo_term_1 ), 'foo' );
+		wp_set_object_terms( $p1, array( $bar_term_1 ), 'bar' );
+		wp_set_object_terms( $p2, array( $foo_term_2 ), 'foo' );
+		wp_set_object_terms( $p2, array( $bar_term_2 ), 'bar' );
+		wp_set_object_terms( $p3, array( $foo_term_1 ), 'foo' );
+		wp_set_object_terms( $p3, array( $bar_term_2 ), 'bar' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'tax_query' => array(
+				'relation' => 'OR',
+				array(
+					'taxonomy' => 'foo',
+					'terms' => array( $foo_term_2 ),
+					'field' => 'term_id',
+				),
+				array(
+					'relation' => 'AND',
+					array(
+						'taxonomy' => 'foo',
+						'terms' => array( $foo_term_1 ),
+						'field' => 'term_id',
+					),
+					array(
+						'taxonomy' => 'bar',
+						'terms' => array( $bar_term_1 ),
+						'field' => 'term_id',
+					),
+				),
+			),
+		) );
+
+		_unregister_taxonomy( 'foo' );
+		_unregister_taxonomy( 'bar' );
+
+		$this->assertEqualSets( array( $p1, $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 29738
+	 * @group taxonomy
+	 */
+	public function test_tax_query_one_double_nested_query_one_first_order_query() {
+		register_taxonomy( 'foo', 'post' );
+		register_taxonomy( 'bar', 'post' );
+
+		$foo_term_1 = $this->factory->term->create( array(
+			'taxonomy' => 'foo',
+		) );
+		$foo_term_2 = $this->factory->term->create( array(
+			'taxonomy' => 'foo',
+		) );
+		$bar_term_1 = $this->factory->term->create( array(
+			'taxonomy' => 'bar',
+		) );
+		$bar_term_2 = $this->factory->term->create( array(
+			'taxonomy' => 'bar',
+		) );
+
+		$p1 = $this->factory->post->create();
+		$p2 = $this->factory->post->create();
+		$p3 = $this->factory->post->create();
+		$p4 = $this->factory->post->create();
+
+		wp_set_object_terms( $p1, array( $foo_term_1 ), 'foo' );
+		wp_set_object_terms( $p1, array( $bar_term_1 ), 'bar' );
+		wp_set_object_terms( $p2, array( $foo_term_2 ), 'foo' );
+		wp_set_object_terms( $p2, array( $bar_term_2 ), 'bar' );
+		wp_set_object_terms( $p3, array( $foo_term_1 ), 'foo' );
+		wp_set_object_terms( $p3, array( $bar_term_2 ), 'bar' );
+
+		$q = new WP_Query( array(
+			'fields' => 'ids',
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			'tax_query' => array(
+				'relation' => 'OR',
+				array(
+					'taxonomy' => 'foo',
+					'terms' => array( $foo_term_2 ),
+					'field' => 'term_id',
+				),
+				array(
+					'relation' => 'AND',
+					array(
+						'taxonomy' => 'foo',
+						'terms' => array( $foo_term_1 ),
+						'field' => 'term_id',
+					),
+					array(
+						'relation' => 'OR',
+						array(
+							'taxonomy' => 'bar',
+							'terms' => array( $bar_term_1 ),
+							'field' => 'term_id',
+						),
+						array(
+							'taxonomy' => 'bar',
+							'terms' => array( $bar_term_2 ),
+							'field' => 'term_id',
+						),
+					),
+				),
+			),
+		) );
+
+		_unregister_taxonomy( 'foo' );
+		_unregister_taxonomy( 'bar' );
+
+		$this->assertEqualSets( array( $p1, $p2, $p3 ), $q->posts );
 	}
 
 	/**
@@ -1648,45 +2630,6 @@ class Tests_Post_Query extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @ticket 27193
-	 * @group taxonomy
-	 */
-	function test_cat_or_tag() {
-		$category1 = $this->factory->term->create( array( 'taxonomy' => 'category', 'name' => 'alpha' ) );
-		$category2 = $this->factory->term->create( array( 'taxonomy' => 'category', 'name' => 'beta' ) );
-
-		$tag1 = $this->factory->term->create( array( 'taxonomy' => 'post_tag', 'name' => 'gamma' ) );
-		$tag2 = $this->factory->term->create( array( 'taxonomy' => 'post_tag', 'name' => 'delta' ) );
-
-		$post_id1 = $this->factory->post->create( array( 'post_title' => 'alpha', 'post_category' => array( $category1 ) ) );
-		$terms1 = get_the_category( $post_id1 );
-		$this->assertEquals( array( get_category( $category1 ) ), $terms1 );
-
-		$post_id2 = $this->factory->post->create( array( 'post_title' => 'beta', 'post_category' => array( $category2 ) ) );
-		$terms2 = get_the_category( $post_id2 );
-		$this->assertEquals( array( get_category( $category2 ) ), $terms2 );
-
-		$post_id3 = $this->factory->post->create( array( 'post_title' => 'gamma', 'post_tag' => array( $tag1 ) ) );
-		$post_id4 = $this->factory->post->create( array( 'post_title' => 'delta', 'post_tag' => array( $tag2 ) ) );
-
-		$query = new WP_Query( array(
-			'fields' => 'ids',
-			'update_post_meta_cache' => false,
-			'update_post_term_cache' => false,
-			'tax_query' => array(
-				//'relation' => 'OR',
-				array(
-					'taxonomy' => 'category',
-					'field' => 'term_id',
-					'terms' => array( $category1, $category2 )
-				)
-			)
-		) );
-		$ids = $query->get_posts();
-		$this->assertEquals( array( $post_id1, $post_id2 ), $ids );
-	}
-
-	/**
 	 * @group taxonomy
 	 */
 	function test_tax_query_no_taxonomy() {
@@ -1840,7 +2783,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 	/**
 	 * @group taxonomy
-	 * @ticket 29718
+	 * @ticket 29738
 	 */
 	public function test_populate_taxonomy_query_var_from_tax_query() {
 		register_taxonomy( 'foo', 'post' );
@@ -1955,7 +2898,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 	/**
 	 * @group taxonomy
-	 * @ticket 29718
+	 * @ticket 29738
 	 */
 	public function test_populate_cat_category_name_query_var_from_tax_query() {
 		register_taxonomy( 'foo', 'post' );
@@ -1963,7 +2906,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 			'taxonomy' => 'foo',
 		) );
 		$c = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
+			'taxonomy' => 'category',
 			'slug' => 'bar',
 		) );
 
@@ -1997,7 +2940,7 @@ class Tests_Post_Query extends WP_UnitTestCase {
 
 	/**
 	 * @group taxonomy
-	 * @ticket 29718
+	 * @ticket 29738
 	 */
 	public function test_populate_tag_id_query_var_from_tax_query() {
 		register_taxonomy( 'foo', 'post' );

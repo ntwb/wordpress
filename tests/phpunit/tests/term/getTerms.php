@@ -14,21 +14,16 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 	/**
 	 * @ticket 23326
 	 */
-	function test_get_terms_cache() {
+	public function test_get_terms_cache() {
 		global $wpdb;
 
-		$posts = $this->factory->post->create_many( 15, array( 'post_type' => 'post' ) );
-		foreach ( $posts as $post )
-			wp_set_object_terms( $post, rand_str(), 'post_tag' );
-		wp_cache_delete( 'last_changed', 'terms' );
-
-		$this->assertFalse( wp_cache_get( 'last_changed', 'terms' ) );
+		$this->set_up_three_posts_and_tags();
 
 		$num_queries = $wpdb->num_queries;
 
 		// last_changed and num_queries should bump
 		$terms = get_terms( 'post_tag' );
-		$this->assertEquals( 15, count( $terms ) );
+		$this->assertEquals( 3, count( $terms ) );
 		$time1 = wp_cache_get( 'last_changed', 'terms' );
 		$this->assertNotEmpty( $time1 );
 		$this->assertEquals( $num_queries + 1, $wpdb->num_queries );
@@ -37,36 +32,61 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 
 		// Again. last_changed and num_queries should remain the same.
 		$terms = get_terms( 'post_tag' );
-		$this->assertEquals( 15, count( $terms ) );
+		$this->assertEquals( 3, count( $terms ) );
 		$this->assertEquals( $time1, wp_cache_get( 'last_changed', 'terms' ) );
 		$this->assertEquals( $num_queries, $wpdb->num_queries );
+	}
 
+	/**
+	 * @ticket 23326
+	 */
+	public function test_get_terms_cache_should_be_missed_when_passing_number() {
+		global $wpdb;
+
+		$this->set_up_three_posts_and_tags();
+
+		// Prime cache
+		$terms = get_terms( 'post_tag' );
+		$time1 = wp_cache_get( 'last_changed', 'terms' );
 		$num_queries = $wpdb->num_queries;
 
-
-		// Different query. num_queries should bump, last_changed should remain the same.
-		$terms = get_terms( 'post_tag', array( 'number' => 10 ) );
-		$this->assertEquals( 10, count( $terms ) );
+		// num_queries should bump, last_changed should remain the same.
+		$terms = get_terms( 'post_tag', array( 'number' => 2 ) );
+		$this->assertEquals( 2, count( $terms ) );
 		$this->assertEquals( $time1, wp_cache_get( 'last_changed', 'terms' ) );
 		$this->assertEquals( $num_queries + 1, $wpdb->num_queries );
 
 		$num_queries = $wpdb->num_queries;
 
 		// Again. last_changed and num_queries should remain the same.
-		$terms = get_terms( 'post_tag', array( 'number' => 10 ) );
-		$this->assertEquals( 10, count( $terms ) );
+		$terms = get_terms( 'post_tag', array( 'number' => 2 ) );
+		$this->assertEquals( 2, count( $terms ) );
 		$this->assertEquals( $time1, wp_cache_get( 'last_changed', 'terms' ) );
 		$this->assertEquals( $num_queries, $wpdb->num_queries );
+	}
 
-		// Force last_changed to bump
+	/**
+	 * @ticket 23326
+	 */
+	public function test_wp_delete_term_should_invalidate_cache() {
+		global $wpdb;
+
+		$this->set_up_three_posts_and_tags();
+
+		// Prime cache
+		$terms = get_terms( 'post_tag' );
+		$time1 = wp_cache_get( 'last_changed', 'terms' );
+		$num_queries = $wpdb->num_queries;
+
+		// Force last_changed to bump.
 		wp_delete_term( $terms[0]->term_id, 'post_tag' );
 
 		$num_queries = $wpdb->num_queries;
 		$this->assertNotEquals( $time1, $time2 = wp_cache_get( 'last_changed', 'terms' ) );
 
-		// last_changed and num_queries should bump after a term is deleted
+		// last_changed and num_queries should bump after a term is deleted.
 		$terms = get_terms( 'post_tag' );
-		$this->assertEquals( 14, count( $terms ) );
+		$this->assertEquals( 2, count( $terms ) );
 		$this->assertEquals( $time2, wp_cache_get( 'last_changed', 'terms' ) );
 		$this->assertEquals( $num_queries + 1, $wpdb->num_queries );
 
@@ -74,7 +94,7 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 
 		// Again. last_changed and num_queries should remain the same.
 		$terms = get_terms( 'post_tag' );
-		$this->assertEquals( 14, count( $terms ) );
+		$this->assertEquals( 2, count( $terms ) );
 		$this->assertEquals( $time2, wp_cache_get( 'last_changed', 'terms' ) );
 		$this->assertEquals( $num_queries, $wpdb->num_queries );
 
@@ -151,6 +171,28 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 
 		get_terms( 'post_tag', array( 'include' => array( 'unexpected-string' ), 'hide_empty' => false ) );
 		$this->assertEmpty( $wpdb->last_error );
+	}
+
+	/**
+	 * @ticket 30275
+	 */
+	public function test_exclude_with_hierarchical_true_for_non_hierarchical_taxonomy() {
+		register_taxonomy( 'wptests_tax', 'post' );
+
+		$terms = $this->factory->term->create_many( 2, array(
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$found = get_terms( 'wptests_tax', array(
+			'taxonomy' => 'wptests_tax',
+			'hide_empty' => false,
+			'exclude_tree' => array( $terms[0] ),
+			'hierarchical' => true,
+		) );
+
+		$this->assertEquals( array( $terms[1] ), wp_list_pluck( $found, 'term_id' ) );
+
+		_unregister_taxonomy( 'wptests_tax' );
 	}
 
 	/**
@@ -350,6 +392,36 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 		$this->assertInternalType( 'array', get_term_children( $term->term_id, 'category' ) );
 
 		add_filter( 'wp_update_term_parent', 'wp_check_term_hierarchy_for_loops', 10, 3 );
+	}
+
+	public function test_get_terms_by_slug() {
+		$t1 = $this->factory->tag->create( array( 'slug' => 'foo' ) );
+		$t2 = $this->factory->tag->create( array( 'slug' => 'bar' ) );
+
+		$found = get_terms( 'post_tag', array(
+			'hide_empty' => false,
+			'fields' => 'ids',
+			'slug' => 'foo',
+		) );
+
+		$this->assertEquals( array( $t1 ), $found );
+	}
+
+	/**
+	 * @ticket 23636
+	 */
+	public function test_get_terms_by_multiple_slugs() {
+		$t1 = $this->factory->tag->create( array( 'slug' => 'foo' ) );
+		$t2 = $this->factory->tag->create( array( 'slug' => 'bar' ) );
+		$t3 = $this->factory->tag->create( array( 'slug' => 'barry' ) );
+
+		$found = get_terms( 'post_tag', array(
+			'hide_empty' => false,
+			'fields' => 'ids',
+			'slug' => array( 'foo', 'barry' )
+		) );
+
+		$this->assertEquals( array( $t1, $t3 ), $found );
 	}
 
 	public function test_get_terms_hierarchical_tax_hide_empty_false_fields_ids() {
@@ -766,8 +838,175 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 		$this->assertEqualSets( $expected, $found );
 	}
 
-	protected function create_hierarchical_terms_and_posts() {
+	/**
+	 * @ticket 23261
+	 */
+	public function test_orderby_include() {
+		$tax = 'wptests_tax';
+		register_taxonomy( $tax, 'post' );
 
+		$t1 = $this->factory->term->create( array( 'taxonomy' => $tax ) );
+		$t2 = $this->factory->term->create( array( 'taxonomy' => $tax ) );
+		$t3 = $this->factory->term->create( array( 'taxonomy' => $tax ) );
+		$t4 = $this->factory->term->create( array( 'taxonomy' => $tax ) );
+
+		$found = get_terms( $tax, array(
+			'fields' => 'ids',
+			'include' => array( $t4, $t1, $t2 ),
+			'orderby' => 'include',
+			'hide_empty' => false,
+		) );
+
+		_unregister_taxonomy( 'wptests_tax' );
+
+		$this->assertEquals( array( $t4, $t1, $t2 ), $found );
+	}
+
+	public function test_hierarchical_false_with_parent() {
+		$initial_terms = $this->create_hierarchical_terms();
+
+		// Case where hierarchical is false
+		$terms = get_terms( 'category', array(
+			'hierarchical' => false,
+			'parent' => $initial_terms['one_term']['term_id']
+		) );
+
+		// Verify that there are no children
+		$this->assertEquals( 0, count( $terms ) );
+	}
+
+	/**
+	 * @ticket 29185
+	 */
+	public function test_hierarchical_true_with_parent() {
+		$initial_terms = $this->create_hierarchical_terms();
+
+		// Case where hierarchical is true
+		$terms = get_terms( 'category', array(
+			'hierarchical' => true,
+			'parent' => $initial_terms['one_term']['term_id']
+		) );
+
+		// Verify that the children with non-empty descendants are returned
+		$expected = array(
+			$initial_terms['two_term']['term_id'],
+			$initial_terms['five_term']['term_id'],
+		);
+		$actual = wp_list_pluck( $terms, 'term_id' );
+		$this->assertEqualSets( $expected, $actual );
+	}
+
+	public function test_hierarchical_false_with_child_of_and_direct_child() {
+		$initial_terms = $this->create_hierarchical_terms();
+		$post_id = $this->factory->post->create();
+		wp_set_post_terms(
+			$post_id,
+			array( $initial_terms['seven_term']['term_id'] ),
+			'category'
+		);
+
+		// Case where hierarchical is false
+		$terms = get_terms( 'category', array(
+			'hierarchical' => false,
+			'child_of' => $initial_terms['one_term']['term_id']
+		) );
+
+		$expected = array(
+			$initial_terms['seven_term']['term_id'],
+		);
+
+		$actual = wp_list_pluck( $terms, 'term_id' );
+		$this->assertEqualSets( $expected, $actual );
+	}
+
+	public function test_hierarchical_false_with_child_of_should_not_return_grandchildren() {
+		$initial_terms = $this->create_hierarchical_terms();
+
+		// Case where hierarchical is false
+		$terms = get_terms( 'category', array(
+			'hierarchical' => false,
+			'child_of' => $initial_terms['one_term']['term_id']
+		) );
+
+		// Verify that there are no children
+		$this->assertEquals( 0, count( $terms ) );
+	}
+
+	public function test_hierarchical_true_with_child_of_should_return_grandchildren() {
+		$initial_terms = $this->create_hierarchical_terms();
+
+		// Case where hierarchical is true
+		$terms = get_terms( 'category', array(
+			'hierarchical' => true,
+			'child_of' => $initial_terms['one_term']['term_id']
+		) );
+
+		$expected = array(
+			$initial_terms['two_term']['term_id'],
+			$initial_terms['three_term']['term_id'],
+			$initial_terms['five_term']['term_id'],
+			$initial_terms['six_term']['term_id'],
+		);
+		$actual = wp_list_pluck( $terms, 'term_id' );
+		$this->assertEqualSets( $expected, $actual );
+	}
+
+	public function test_parent_should_override_child_of() {
+		$initial_terms = $this->create_hierarchical_terms();
+
+		$terms = get_terms( 'category', array(
+			'hide_empty' => false,
+			'child_of' => $initial_terms['one_term']['term_id'],
+			'parent' => $initial_terms['one_term']['term_id']
+		) );
+
+		// Verify that parent takes precedence over child_of and returns only direct children.
+		$expected = array(
+			$initial_terms['two_term']['term_id'],
+			$initial_terms['five_term']['term_id'],
+			$initial_terms['seven_term']['term_id']
+		);
+		$actual = wp_list_pluck( $terms, 'term_id' );
+		$this->assertEqualSets( $expected, $actual );
+	}
+
+	public function test_hierarchical_false_parent_should_override_child_of() {
+		$initial_terms = $this->create_hierarchical_terms();
+
+		// Case where hierarchical is false
+		$terms = get_terms( 'category', array(
+			'hierarchical' => false,
+			'child_of' => $initial_terms['one_term']['term_id'],
+			'parent' => $initial_terms['one_term']['term_id']
+		) );
+
+		// hierarchical=false means that descendants are not fetched.
+		$this->assertEquals( 0, count( $terms ) );
+	}
+
+	/**
+	 * @ticket 29185
+	 */
+	public function test_hierarchical_true_parent_overrides_child_of() {
+		$initial_terms = $this->create_hierarchical_terms();
+
+		// Case where hierarchical is true
+		$terms = get_terms( 'category', array(
+			'hierarchical' => true,
+			'child_of' => $initial_terms['one_term']['term_id'],
+			'parent' => $initial_terms['one_term']['term_id'],
+		) );
+
+		// Verify that parent takes precedence over child_of
+		$expected = array(
+			$initial_terms['two_term']['term_id'],
+			$initial_terms['five_term']['term_id'],
+		);
+		$actual = wp_list_pluck( $terms, 'term_id' );
+		$this->assertEqualSets( $expected, $actual );
+	}
+
+	protected function create_hierarchical_terms_and_posts() {
 		$terms = array();
 
 		$terms['parent1'] = $this->factory->term->create( array( 'slug' => 'parent-1', 'name' => 'Parent 1', 'taxonomy' => 'hierarchical_fields' ) );
@@ -781,5 +1020,87 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 		wp_set_post_terms( $post_id, $terms['child1'], 'hierarchical_fields', true );
 
 		return $terms;
+	}
+
+	protected function create_hierarchical_terms() {
+		// Set up the following hierarchy:
+		// - One
+		//   - Two
+		//     - Three (1)
+		//     - Four
+		//   - Five
+		//     - Six (1)
+		//   - Seven
+		$one_term = wp_insert_term(
+			'One',
+			'category'
+		);
+		$two_term = wp_insert_term(
+			'Two',
+			'category',
+			array(
+				'parent' => $one_term['term_id']
+			)
+		);
+		$three_term = wp_insert_term(
+			'Three',
+			'category',
+			array(
+				'parent' => $two_term['term_id']
+			)
+		);
+		$four_term = wp_insert_term(
+			'Four',
+			'category',
+			array(
+				'parent' => $two_term['term_id']
+			)
+		);
+		$five_term = wp_insert_term(
+			'Five',
+			'category',
+			array(
+				'parent' => $one_term['term_id']
+			)
+		);
+		$six_term = wp_insert_term(
+			'Six',
+			'category',
+			array(
+				'parent' => $five_term['term_id']
+			)
+		);
+		$seven_term = wp_insert_term(
+			'Seven',
+			'category',
+			array(
+				'parent' => $one_term['term_id']
+			)
+		);
+
+		// Ensure child terms are not empty
+		$first_post_id = $this->factory->post->create();
+		$second_post_id = $this->factory->post->create();
+		wp_set_post_terms( $first_post_id, array( $three_term['term_id'] ), 'category' );
+		wp_set_post_terms( $second_post_id, array( $six_term['term_id'] ), 'category' );
+
+		return array(
+			'one_term' => $one_term,
+			'two_term' => $two_term,
+			'three_term' => $three_term,
+			'four_term' => $four_term,
+			'five_term' => $five_term,
+			'six_term' => $six_term,
+			'seven_term' => $seven_term
+		);
+	}
+
+	protected function set_up_three_posts_and_tags() {
+		$posts = $this->factory->post->create_many( 3, array( 'post_type' => 'post' ) );
+		foreach ( $posts as $post ) {
+			wp_set_object_terms( $post, rand_str(), 'post_tag' );
+		}
+
+		wp_cache_delete( 'last_changed', 'terms' );
 	}
 }

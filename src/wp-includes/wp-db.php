@@ -632,7 +632,7 @@ class wpdb {
 	 * @return mixed The private member
 	 */
 	public function __get( $name ) {
-		if ( 'col_info' == $name )
+		if ( 'col_info' === $name )
 			$this->load_col_info();
 
 		return $this->$name;
@@ -867,7 +867,6 @@ class wpdb {
 	/**
 	 * Gets blog prefix.
 	 *
-	 * @uses is_multisite()
 	 * @since 3.0.0
 	 * @param int $blog_id Optional.
 	 * @return string Blog prefix.
@@ -906,7 +905,6 @@ class wpdb {
 	 * @uses wpdb::$old_tables
 	 * @uses wpdb::$global_tables
 	 * @uses wpdb::$ms_global_tables
-	 * @uses is_multisite()
 	 *
 	 * @param string $scope Optional. Can be all, global, ms_global, blog, or old tables. Defaults to all.
 	 * @param bool $prefix Optional. Whether to include table prefixes. Default true. If blog
@@ -1324,12 +1322,21 @@ class wpdb {
 		$this->rows_affected = $this->num_rows = 0;
 		$this->last_error  = '';
 
-		if ( is_resource( $this->result ) ) {
-			if ( $this->use_mysqli ) {
-				mysqli_free_result( $this->result );
-			} else {
-				mysql_free_result( $this->result );
+		if ( $this->use_mysqli && $this->result instanceof mysqli_result ) {
+			mysqli_free_result( $this->result );
+			$this->result = null;
+
+			// Sanity check before using the handle
+			if ( empty( $this->dbh ) || !( $this->dbh instanceof mysqli ) ) {
+				return;
 			}
+
+			// Clear out any results from a multi-query
+			while ( mysqli_more_results( $this->dbh ) ) {
+				mysqli_next_result( $this->dbh );
+			}
+		} else if ( is_resource( $this->result ) ) {
+			mysql_free_result( $this->result );
 		}
 	}
 

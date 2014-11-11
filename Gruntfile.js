@@ -13,7 +13,8 @@ module.exports = function(grunt) {
 	grunt.initConfig({
 		autoprefixer: {
 			options: {
-				browsers: ['Android >= 2.1', 'Chrome >= 21', 'Explorer >= 7', 'Firefox >= 17', 'Opera >= 12.1', 'Safari >= 6.0']
+				browsers: ['Android >= 2.1', 'Chrome >= 21', 'Explorer >= 7', 'Firefox >= 17', 'Opera >= 12.1', 'Safari >= 6.0'],
+				cascade: false
 			},
 			core: {
 				expand: true,
@@ -218,7 +219,7 @@ module.exports = function(grunt) {
 					'twenty*/**/*.js',
 					'!twenty{eleven,twelve,thirteen}/**',
 					// Third party scripts
-					'!twentyfourteen/js/html5.js'
+					'!twenty{fourteen,fifteen}/js/html5.js'
 				]
 			},
 			core: {
@@ -327,6 +328,10 @@ module.exports = function(grunt) {
 			multisite: {
 				cmd: 'phpunit',
 				args: ['-c', 'tests/phpunit/multisite.xml']
+			},
+			'external-http': {
+				cmd: 'phpunit',
+				args: ['-c', 'phpunit.xml.dist', '--group', 'external-http']
 			}
 		},
 		uglify: {
@@ -399,8 +404,8 @@ module.exports = function(grunt) {
 			build: {
 				files: {
 					src: [
-						BUILD_DIR + '/**/*.js',
-						'!' + BUILD_DIR + '/wp-content/**/*.js'
+						BUILD_DIR + 'wp-{admin,includes}/**/*.js',
+						BUILD_DIR + 'wp-content/themes/twenty*/**/*.js'
 					]
 				}
 			}
@@ -481,7 +486,7 @@ module.exports = function(grunt) {
 		'uglify:core', 'uglify:jqueryui', 'concat:tinymce', 'compress:tinymce', 'clean:tinymce', 'jsvalidate:build']);
 
 	// Testing tasks.
-	grunt.registerMultiTask('phpunit', 'Runs PHPUnit tests, including the ajax and multisite tests.', function() {
+	grunt.registerMultiTask('phpunit', 'Runs PHPUnit tests, including the ajax, external-http, and multisite tests.', function() {
 		grunt.util.spawn({
 			cmd: this.data.cmd,
 			args: this.data.args,

@@ -119,7 +119,7 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 	<h2><?php esc_html_e( 'Themes' ); ?>
 		<span class="title-count theme-count"><?php echo count( $themes ); ?></span>
 	<?php if ( ! is_multisite() && current_user_can( 'install_themes' ) ) : ?>
-		<a href="<?php echo admin_url( 'theme-install.php' ); ?>" class="hide-if-no-js add-new-h2"><?php echo esc_html( _x( 'Add New', 'Add new theme' ) ); ?></a>
+		<a href="<?php echo admin_url( 'theme-install.php' ); ?>" class="hide-if-no-js add-new-h2"><?php echo esc_html_x( 'Add New', 'Add new theme' ); ?></a>
 	<?php endif; ?>
 	</h2>
 <?php
@@ -216,9 +216,9 @@ foreach ( $themes as $theme ) :
 			<a class="button button-primary customize load-customize hide-if-no-customize" href="<?php echo $theme['actions']['customize']; ?>"><?php _e( 'Customize' ); ?></a>
 		<?php } ?>
 	<?php } else { ?>
-		<a class="button button-primary activate" href="<?php echo $theme['actions']['activate']; ?>"><?php _e( 'Activate' ); ?></a>
+		<a class="button button-secondary activate" href="<?php echo $theme['actions']['activate']; ?>"><?php _e( 'Activate' ); ?></a>
 		<?php if ( current_user_can( 'edit_theme_options' ) && current_user_can( 'customize' ) ) { ?>
-			<a class="button button-secondary load-customize hide-if-no-customize" href="<?php echo $theme['actions']['customize']; ?>"><?php _e( 'Live Preview' ); ?></a>
+			<a class="button button-primary load-customize hide-if-no-customize" href="<?php echo $theme['actions']['customize']; ?>"><?php _e( 'Live Preview' ); ?></a>
 			<a class="button button-secondary hide-if-customize" href="<?php echo $theme['actions']['preview']; ?>"><?php _e( 'Preview' ); ?></a>
 		<?php } ?>
 	<?php } ?>
@@ -246,20 +246,37 @@ if ( ! is_multisite() && current_user_can('edit_themes') && $broken_themes = wp_
 <h3><?php _e('Broken Themes'); ?></h3>
 <p><?php _e('The following themes are installed but incomplete. Themes must have a stylesheet and a template.'); ?></p>
 
+<?php
+$can_delete = current_user_can( 'delete_themes' );
+?>
 <table>
 	<tr>
 		<th><?php _ex('Name', 'theme name'); ?></th>
 		<th><?php _e('Description'); ?></th>
+		<?php if ( $can_delete ) { ?>
+			<th></th>
+		<?php } ?>
+		</tr>
 	</tr>
-<?php
-	foreach ( $broken_themes as $broken_theme ) {
-		echo "
+	<?php foreach ( $broken_themes as $broken_theme ) : ?>
 		<tr>
-			 <td>" . ( $broken_theme->get( 'Name' ) ? $broken_theme->get( 'Name' ) : $broken_theme->get_stylesheet() ) . "</td>
-			 <td>" . $broken_theme->errors()->get_error_message() . "</td>
-		</tr>";
-	}
-?>
+			<td><?php echo $broken_theme->get( 'Name' ) ? $broken_theme->display( 'Name' ) : $broken_theme->get_stylesheet(); ?></td>
+			<td><?php echo $broken_theme->errors()->get_error_message(); ?></td>
+			<?php
+			if ( $can_delete ) {
+				$stylesheet = $broken_theme->get_stylesheet();
+				$delete_url = add_query_arg( array(
+					'action'     => 'delete',
+					'stylesheet' => urlencode( $stylesheet ),
+				), admin_url( 'themes.php' ) );
+				$delete_url = wp_nonce_url( $delete_url, 'delete-theme_' . $stylesheet );
+				?>
+				<td><a href="<?php echo esc_url( $delete_url ); ?>" class="button button-secondary delete-theme"><?php _e( 'Delete' ); ?></a></td>
+				<?php
+			}
+			?>
+		</tr>
+	<?php endforeach; ?>
 </table>
 </div>
 
@@ -297,8 +314,8 @@ if ( ! is_multisite() && current_user_can('edit_themes') && $broken_themes = wp_
 			<a class="button button-primary customize load-customize hide-if-no-customize" href="{{ data.actions.customize }}"><?php _e( 'Customize' ); ?></a>
 		<# } #>
 	<# } else { #>
-		<a class="button button-primary activate" href="{{{ data.actions.activate }}}"><?php _e( 'Activate' ); ?></a>
-		<a class="button button-secondary load-customize hide-if-no-customize" href="{{{ data.actions.customize }}}"><?php _e( 'Live Preview' ); ?></a>
+		<a class="button button-secondary activate" href="{{{ data.actions.activate }}}"><?php _e( 'Activate' ); ?></a>
+		<a class="button button-primary load-customize hide-if-no-customize" href="{{{ data.actions.customize }}}"><?php _e( 'Live Preview' ); ?></a>
 		<a class="button button-secondary hide-if-customize" href="{{{ data.actions.preview }}}"><?php _e( 'Preview' ); ?></a>
 	<# } #>
 
@@ -358,9 +375,9 @@ if ( ! is_multisite() && current_user_can('edit_themes') && $broken_themes = wp_
 			</div>
 			<div class="inactive-theme">
 				<# if ( data.actions.activate ) { #>
-					<a href="{{{ data.actions.activate }}}" class="button button-primary activate"><?php _e( 'Activate' ); ?></a>
+					<a href="{{{ data.actions.activate }}}" class="button button-secondary activate"><?php _e( 'Activate' ); ?></a>
 				<# } #>
-				<a href="{{{ data.actions.customize }}}" class="button button-secondary load-customize hide-if-no-customize"><?php _e( 'Live Preview' ); ?></a>
+				<a href="{{{ data.actions.customize }}}" class="button button-primary load-customize hide-if-no-customize"><?php _e( 'Live Preview' ); ?></a>
 				<a href="{{{ data.actions.preview }}}" class="button button-secondary hide-if-customize"><?php _e( 'Preview' ); ?></a>
 			</div>
 

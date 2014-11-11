@@ -50,7 +50,6 @@ $wp_file_descriptions = array(
  *
  * @since 1.5.0
  *
- * @uses _cleanup_header_comment
  * @uses $wp_file_descriptions
  * @param string $file Filesystem path or filename
  * @return string Description of file from $wp_file_descriptions or basename of $file if description doesn't exist
@@ -75,7 +74,6 @@ function get_file_description( $file ) {
  *
  * @since 1.5.0
  *
- * @uses get_option
  * @return string Full filesystem path to the root of the WordPress installation
  */
 function get_home_path() {
@@ -163,11 +161,9 @@ function wp_tempnam($filename = '', $dir = '') {
  *
  * @since 1.5.0
  *
- * @uses wp_die
- * @uses validate_file
  * @param string $file file the users is attempting to edit
  * @param array $allowed_files Array of allowed files to edit, $file must match an entry exactly
- * @return null
+ * @return string|null
  */
 function validate_file_to_edit( $file, $allowed_files = '' ) {
 	$code = validate_file( $file, $allowed_files );
@@ -269,8 +265,6 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 	$test_type = isset( $overrides['test_type'] ) ? $overrides['test_type'] : true;
 	$mimes = isset( $overrides['mimes'] ) ? $overrides['mimes'] : false;
 
-	$test_upload = isset( $overrides['test_upload'] ) ? $overrides['test_upload'] : true;
-
 	// A correct form post will pass this test.
 	if ( $test_form && ( ! isset( $_POST['action'] ) || ( $_POST['action'] != $action ) ) ) {
 		return call_user_func( $upload_error_handler, $file, __( 'Invalid form submission.' ) );
@@ -293,7 +287,7 @@ function _wp_handle_upload( &$file, $overrides, $time, $action ) {
 
 	// A properly uploaded file will pass this test. There should be no reason to override this one.
 	$test_uploaded_file = 'wp_handle_upload' === $action ? @ is_uploaded_file( $file['tmp_name'] ) : @ is_file( $file['tmp_name'] );
-	if ( $test_upload && ! $test_uploaded_file ) {
+	if ( ! $test_uploaded_file ) {
 		return call_user_func( $upload_error_handler, $file, __( 'Specified file failed upload test.' ) );
 	}
 
@@ -815,7 +809,7 @@ function copy_dir($from, $to, $skip_list = array() ) {
  *
  * @param array $args (optional) Connection args, These are passed directly to the WP_Filesystem_*() classes.
  * @param string $context (optional) Context for get_filesystem_method(), See function declaration for more information.
- * @return boolean false on failure, true on success
+ * @return null|boolean false on failure, true on success
  */
 function WP_Filesystem( $args = false, $context = false ) {
 	global $wp_filesystem;

@@ -406,8 +406,6 @@ function is_comment_feed() {
  *
  * @see WP_Query::is_front_page()
  * @since 2.5.0
- * @uses is_home()
- * @uses get_option()
  *
  * @return bool True, if front of site.
  */
@@ -1574,8 +1572,9 @@ class WP_Query {
 		if ( '' !== $qv['menu_order'] ) $qv['menu_order'] = absint($qv['menu_order']);
 
 		// Fairly insane upper bound for search string lengths.
-		if ( ! empty( $qv['s'] ) && strlen( $qv['s'] ) > 1600 )
+		if ( ! is_scalar( $qv['s'] ) || ( ! empty( $qv['s'] ) && strlen( $qv['s'] ) > 1600 ) ) {
 			$qv['s'] = '';
+		}
 
 		// Compat. Map subpost to attachment.
 		if ( '' != $qv['subpost'] )
@@ -1672,7 +1671,11 @@ class WP_Query {
 			$this->parse_tax_query( $qv );
 
 			foreach ( $this->tax_query->queries as $tax_query ) {
-				if ( 'NOT IN' != $tax_query['operator'] ) {
+				if ( ! is_array( $tax_query ) ) {
+					continue;
+				}
+
+				if ( isset( $tax_query['operator'] ) && 'NOT IN' != $tax_query['operator'] ) {
 					switch ( $tax_query['taxonomy'] ) {
 						case 'category':
 							$this->is_category = true;
@@ -2208,7 +2211,7 @@ class WP_Query {
 	 * @since 4.0.0
 	 * @access protected
 	 *
-	 * @global wpdb $wpdb WordPress database access abstraction object.
+	 * @global wpdb $wpdb WordPress database abstraction object.
 	 *
 	 * @param string $orderby Alias for the field to order by.
 	 * @return string|bool Table-prefixed value to used in the ORDER clause. False otherwise.
@@ -2352,7 +2355,6 @@ class WP_Query {
 	 *
 	 * @since 1.5.0
 	 * @access public
-	 * @uses do_action_ref_array() Calls 'pre_get_posts' hook before retrieving posts.
 	 *
 	 * @return array List of posts.
 	 */
@@ -2687,7 +2689,7 @@ class WP_Query {
 			if ( empty($post_type) ) {
 				// Do a fully inclusive search for currently registered post types of queried taxonomies
 				$post_type = array();
-				$taxonomies = wp_list_pluck( $this->tax_query->queries, 'taxonomy' );
+				$taxonomies = array_keys( $this->tax_query->queried_terms );
 				foreach ( get_post_types( array( 'exclude_from_search' => false ) ) as $pt ) {
 					$object_taxonomies = $pt === 'attachment' ? get_taxonomies_for_attachments() : get_object_taxonomies( $pt );
 					if ( array_intersect( $taxonomies, $object_taxonomies ) )
@@ -2704,51 +2706,56 @@ class WP_Query {
 			}
 		}
 
-		// Back-compat
-		if ( !empty($this->tax_query->queries) ) {
-			$tax_query_in_and = wp_list_filter( $this->tax_query->queries, array( 'operator' => 'NOT IN' ), 'NOT' );
-			if ( !empty( $tax_query_in_and ) ) {
-				if ( !isset( $q['taxonomy'] ) ) {
-					foreach ( $tax_query_in_and as $a_tax_query ) {
-						if ( !in_array( $a_tax_query['taxonomy'], array( 'category', 'post_tag' ) ) ) {
-							$q['taxonomy'] = $a_tax_query['taxonomy'];
-							if ( 'slug' == $a_tax_query['field'] )
-								$q['term'] = $a_tax_query['terms'][0];
-							else
-								$q['term_id'] = $a_tax_query['terms'][0];
+		/*
+		 * Ensure that 'taxonomy', 'term', 'term_id', 'cat', and
+		 * 'category_name' vars are set for backward compatibility.
+		 */
+		if ( ! empty( $this->tax_query->queried_terms ) ) {
 
-							break;
+			/*
+			 * Set 'taxonomy', 'term', and 'term_id' to the
+			 * first taxonomy other than 'post_tag' or 'category'.
+			 */
+			if ( ! isset( $q['taxonomy'] ) ) {
+				foreach ( $this->tax_query->queried_terms as $queried_taxonomy => $queried_items ) {
+					if ( empty( $queried_items['terms'][0] ) ) {
+						continue;
+					}
+
+					if ( ! in_array( $queried_taxonomy, array( 'category', 'post_tag' ) ) ) {
+						$q['taxonomy'] = $queried_taxonomy;
+
+						if ( 'slug' === $queried_items['field'] ) {
+							$q['term'] = $queried_items['terms'][0];
+						} else {
+							$q['term_id'] = $queried_items['terms'][0];
 						}
 					}
 				}
+			}
 
-				$cat_query = wp_list_filter( $tax_query_in_and, array( 'taxonomy' => 'category' ) );
-				if ( ! empty( $cat_query ) ) {
-					$cat_query = reset( $cat_query );
-
-					if ( ! empty( $cat_query['terms'][0] ) ) {
-						$the_cat = get_term_by( $cat_query['field'], $cat_query['terms'][0], 'category' );
-						if ( $the_cat ) {
-							$this->set( 'cat', $the_cat->term_id );
-							$this->set( 'category_name', $the_cat->slug );
-						}
-						unset( $the_cat );
-					}
+			// 'cat', 'category_name', 'tag_id'
+			foreach ( $this->tax_query->queried_terms as $queried_taxonomy => $queried_items ) {
+				if ( empty( $queried_items['terms'][0] ) ) {
+					continue;
 				}
-				unset( $cat_query );
 
-				$tag_query = wp_list_filter( $tax_query_in_and, array( 'taxonomy' => 'post_tag' ) );
-				if ( ! empty( $tag_query ) ) {
-					$tag_query = reset( $tag_query );
-
-					if ( ! empty( $tag_query['terms'][0] ) ) {
-						$the_tag = get_term_by( $tag_query['field'], $tag_query['terms'][0], 'post_tag' );
-						if ( $the_tag )
-							$this->set( 'tag_id', $the_tag->term_id );
-						unset( $the_tag );
+				if ( 'category' === $queried_taxonomy ) {
+					$the_cat = get_term_by( $queried_items['field'], $queried_items['terms'][0], 'category' );
+					if ( $the_cat ) {
+						$this->set( 'cat', $the_cat->term_id );
+						$this->set( 'category_name', $the_cat->slug );
 					}
+					unset( $the_cat );
 				}
-				unset( $tag_query );
+
+				if ( 'post_tag' === $queried_taxonomy ) {
+					$the_tag = get_term_by( $queried_items['field'], $queried_items['terms'][0], 'post_tag' );
+					if ( $the_tag ) {
+						$this->set( 'tag_id', $the_tag->term_id );
+					}
+					unset( $the_tag );
+				}
 			}
 		}
 
@@ -3682,8 +3689,6 @@ class WP_Query {
 	 *
 	 * @since 1.5.0
 	 * @access public
-	 * @uses $post
-	 * @uses do_action_ref_array() Calls 'loop_start' if loop has just started
 	 */
 	public function the_post() {
 		global $post;
@@ -3700,7 +3705,7 @@ class WP_Query {
 			do_action_ref_array( 'loop_start', array( &$this ) );
 
 		$post = $this->next_post();
-		setup_postdata($post);
+		$this->setup_postdata( $post );
 	}
 
 	/**
@@ -3710,7 +3715,6 @@ class WP_Query {
 	 *
 	 * @since 1.5.0
 	 * @access public
-	 * @uses do_action_ref_array() Calls 'loop_end' if loop is ended
 	 *
 	 * @return bool True if posts are available, false if end of loop.
 	 */
@@ -3768,7 +3772,6 @@ class WP_Query {
 	 * @since 2.2.0
 	 * @access public
 	 * @global object $comment Current comment.
-	 * @uses do_action() Calls 'comment_loop_start' hook when first comment is processed.
 	 */
 	public function the_comment() {
 		global $comment;
@@ -4270,8 +4273,6 @@ class WP_Query {
 	 * Otherwise the same as @see WP_Query::is_home()
 	 *
 	 * @since 3.1.0
-	 * @uses is_home()
-	 * @uses get_option()
 	 *
 	 * @return bool True, if front of site.
 	 */
@@ -4535,6 +4536,68 @@ class WP_Query {
 	}
 
 	/**
+	 * Set up global post data.
+	 *
+	 * @since 4.1.0
+	 *
+	 * @param object $post Post data.
+	 * @return bool True when finished.
+	 */
+	public function setup_postdata( $post ) {
+		global $id, $authordata, $currentday, $currentmonth, $page, $pages, $multipage, $more, $numpages;
+
+		$id = (int) $post->ID;
+
+		$authordata = get_userdata($post->post_author);
+
+		$currentday = mysql2date('d.m.y', $post->post_date, false);
+		$currentmonth = mysql2date('m', $post->post_date, false);
+		$numpages = 1;
+		$multipage = 0;
+		$page = $this->get( 'page' );
+		if ( ! $page )
+			$page = 1;
+
+		// Force full post content when viewing the permalink for the $post, or
+		// when on an RSS feed. Otherwise respect the 'more' tag.
+		if ( $post->ID === get_queried_object_id() && ( $this->is_page() || $this->is_single() ) ) {
+			$more = 1;
+		} else if ( $this->is_feed() ) {
+			$more = 1;
+		} else {
+			$more = 0;
+		}
+
+		$content = $post->post_content;
+		if ( false !== strpos( $content, '<!--nextpage-->' ) ) {
+			if ( $page > 1 )
+				$more = 1;
+			$content = str_replace( "\n<!--nextpage-->\n", '<!--nextpage-->', $content );
+			$content = str_replace( "\n<!--nextpage-->", '<!--nextpage-->', $content );
+			$content = str_replace( "<!--nextpage-->\n", '<!--nextpage-->', $content );
+			// Ignore nextpage at the beginning of the content.
+			if ( 0 === strpos( $content, '<!--nextpage-->' ) )
+				$content = substr( $content, 15 );
+			$pages = explode('<!--nextpage-->', $content);
+			$numpages = count($pages);
+			if ( $numpages > 1 )
+				$multipage = 1;
+		} else {
+			$pages = array( $post->post_content );
+		}
+
+		/**
+		 * Fires once the post data has been setup.
+		 *
+		 * @since 2.8.0
+		 *
+		 * @param WP_Post &$post The Post object (passed by reference).
+		 */
+		do_action_ref_array( 'the_post', array( &$post ) );
+
+		return true;
+	}
+	/**
 	 * After looping through a nested query, this function
 	 * restores the $post global to the current post in this query.
 	 *
@@ -4556,8 +4619,9 @@ class WP_Query {
  * Attempts to find the current slug from the past slugs.
  *
  * @since 2.1.0
+ *
  * @uses $wp_query
- * @uses $wpdb
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @return null If no link is found, null is returned.
  */
@@ -4616,51 +4680,14 @@ function wp_old_slug_redirect() {
  * @since 1.5.0
  *
  * @param object $post Post data.
- * @uses do_action_ref_array() Calls 'the_post'
  * @return bool True when finished.
  */
 function setup_postdata( $post ) {
-	global $id, $authordata, $currentday, $currentmonth, $page, $pages, $multipage, $more, $numpages;
+	global $wp_query;
 
-	$id = (int) $post->ID;
-
-	$authordata = get_userdata($post->post_author);
-
-	$currentday = mysql2date('d.m.y', $post->post_date, false);
-	$currentmonth = mysql2date('m', $post->post_date, false);
-	$numpages = 1;
-	$multipage = 0;
-	$page = get_query_var('page');
-	if ( ! $page )
-		$page = 1;
-	if ( is_single() || is_page() || is_feed() )
-		$more = 1;
-	$content = $post->post_content;
-	if ( false !== strpos( $content, '<!--nextpage-->' ) ) {
-		if ( $page > 1 )
-			$more = 1;
-		$content = str_replace( "\n<!--nextpage-->\n", '<!--nextpage-->', $content );
-		$content = str_replace( "\n<!--nextpage-->", '<!--nextpage-->', $content );
-		$content = str_replace( "<!--nextpage-->\n", '<!--nextpage-->', $content );
-		// Ignore nextpage at the beginning of the content.
-		if ( 0 === strpos( $content, '<!--nextpage-->' ) )
-			$content = substr( $content, 15 );
-		$pages = explode('<!--nextpage-->', $content);
-		$numpages = count($pages);
-		if ( $numpages > 1 )
-			$multipage = 1;
-	} else {
-		$pages = array( $post->post_content );
+	if ( ! empty( $wp_query ) && $wp_query instanceof WP_Query ) {
+		return $wp_query->setup_postdata( $post );
 	}
 
-	/**
-	 * Fires once the post data has been setup.
-	 *
-	 * @since 2.8.0
-	 *
-	 * @param WP_Post &$post The Post object (passed by reference).
-	 */
-	do_action_ref_array( 'the_post', array( &$post ) );
-
-	return true;
+	return false;
 }

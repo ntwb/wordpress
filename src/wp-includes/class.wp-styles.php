@@ -110,7 +110,7 @@ class WP_Styles extends WP_Dependencies {
 		if ( $this->do_concat ) {
 			$this->print_html .= $tag;
 			if ( $inline_style = $this->print_inline_style( $handle, false ) )
-				$this->print_html .= sprintf( "<style type='text/css'>\n%s\n</style>\n", $inline_style );
+				$this->print_html .= sprintf( "<style id='%s-inline-css' type='text/css'>\n%s\n</style>\n", esc_attr( $handle ), $inline_style );
 		} else {
 			echo $tag;
 			$this->print_inline_style( $handle );
@@ -120,12 +120,14 @@ class WP_Styles extends WP_Dependencies {
 	}
 
 	public function add_inline_style( $handle, $code ) {
-		if ( !$code )
+		if ( ! $code ) {
 			return false;
+		}
 
 		$after = $this->get_data( $handle, 'after' );
-		if ( !$after )
+		if ( ! $after ) {
 			$after = array();
+		}
 
 		$after[] = $code;
 
@@ -135,17 +137,17 @@ class WP_Styles extends WP_Dependencies {
 	public function print_inline_style( $handle, $echo = true ) {
 		$output = $this->get_data( $handle, 'after' );
 
-		if ( empty( $output ) )
+		if ( empty( $output ) ) {
 			return false;
+		}
 
 		$output = implode( "\n", $output );
 
-		if ( !$echo )
+		if ( ! $echo ) {
 			return $output;
+		}
 
-		echo "<style type='text/css'>\n";
-		echo "$output\n";
-		echo "</style>\n";
+		printf( "<style id='%s-inline-css' type='text/css'>\n%s\n</style>\n", esc_attr( $handle ), $output );
 
 		return true;
 	}

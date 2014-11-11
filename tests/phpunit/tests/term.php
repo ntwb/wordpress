@@ -53,235 +53,6 @@ class Tests_Term extends WP_UnitTestCase {
 		$this->assertEquals( $initial_count, wp_count_terms($this->taxonomy) );
 	}
 
-	public function test_term_exists_term_0() {
-		$this->assertSame( 0, term_exists( 0 ) );
-	}
-
-	public function test_term_exists_term_int_taxonomy_nonempty_term_exists() {
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'post_tag',
-		) );
-
-		$found = term_exists( intval( $t ), 'post_tag' );
-		$this->assertEquals( $t, $found['term_id'] );
-	}
-
-	public function test_term_exists_term_int_taxonomy_nonempty_term_does_not_exist() {
-		$this->assertNull( term_exists( 54321, 'post_tag' ) );
-	}
-
-	public function test_term_exists_term_int_taxonomy_nonempty_wrong_taxonomy() {
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'post_tag',
-		) );
-
-		$this->assertNull( term_exists( intval( $t ), 'foo' ) );
-	}
-
-	public function test_term_exists_term_int_taxonomy_empty_term_exists() {
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'post_tag',
-		) );
-
-		$found = term_exists( intval( $t ), 'post_tag' );
-		$this->assertEquals( $t, $found['term_id'] );
-	}
-
-	public function test_term_exists_term_int_taxonomy_empty_term_does_not_exist() {
-		$this->assertNull( term_exists( 54321 ) );
-	}
-
-	public function test_term_exists_unslash_term() {
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'post_tag',
-			'name' => 'I "love" WordPress\'s taxonomy system',
-		) );
-
-		$found = term_exists( 'I \"love\" WordPress\\\'s taxonomy system' );
-		$this->assertEquals( $t, $found );
-	}
-
-	public function test_term_exists_trim_term() {
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'post_tag',
-			'slug' => 'foo',
-		) );
-
-		$found = term_exists( '  foo  ' );
-		$this->assertEquals( $t, $found );
-	}
-
-	public function test_term_exists_term_trimmed_to_empty_string() {
-		$this->assertNull( term_exists( '   ' ) );
-	}
-
-	/**
-	 * @ticket 29589
-	 */
-	public function test_term_exists_existing_term_that_sanitizes_to_empty() {
-		wp_insert_term( '//', 'category' );
-		$this->assertNotEmpty( term_exists( '//' ) );
-		$this->assertNotEmpty( term_exists( '//', 'category' ) );
-
-		wp_insert_term( '&gt;&gt;', 'category' );
-		$this->assertNotEmpty( term_exists( '&gt;&gt;' ) );
-		$this->assertNotEmpty( term_exists( '&gt;&gt;', 'category' ) );
-	}
-
-	public function test_term_exists_taxonomy_nonempty_parent_nonempty_match_slug() {
-		register_taxonomy( 'foo', 'post', array(
-			'hierarchical' => true,
-		) );
-
-		$parent_term = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-		) );
-
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-			'parent' => $parent_term,
-			'slug' => 'child-term',
-		) );
-
-		$found = term_exists( 'child-term', 'foo', $parent_term );
-
-		_unregister_taxonomy( 'foo' );
-
-		$this->assertInternalType( 'array', $found );
-		$this->assertEquals( $t, $found['term_id'] );
-	}
-
-	/**
-	 * @ticket 29851
-	 */
-	public function test_term_exists_taxonomy_nonempty_parent_0_should_return_false_for_child_term() {
-		register_taxonomy( 'foo', 'post', array(
-			'hierarchical' => true,
-		) );
-
-		$parent_term = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-		) );
-
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-			'parent' => $parent_term,
-			'slug' => 'child-term',
-		) );
-
-		$found = term_exists( 'child-term', 'foo', 0 );
-
-		_unregister_taxonomy( 'foo' );
-
-		$this->assertSame( null, $found['term_id'] );
-	}
-
-	public function test_term_exists_taxonomy_nonempty_parent_nonempty_match_name() {
-		register_taxonomy( 'foo', 'post', array(
-			'hierarchical' => true,
-		) );
-
-		$parent_term = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-		) );
-
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-			'parent' => $parent_term,
-			'name' => 'Child Term',
-		) );
-
-		$found = term_exists( 'Child Term', 'foo', $parent_term );
-
-		_unregister_taxonomy( 'foo' );
-
-		$this->assertInternalType( 'array', $found );
-		$this->assertEquals( $t, $found['term_id'] );
-	}
-
-	public function test_term_exists_taxonomy_nonempty_parent_empty_match_slug() {
-		register_taxonomy( 'foo', 'post', array() );
-
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-			'slug' => 'kewl-dudez',
-		) );
-
-		$found = term_exists( 'kewl-dudez', 'foo' );
-
-		_unregister_taxonomy( 'foo' );
-
-		$this->assertInternalType( 'array', $found );
-		$this->assertEquals( $t, $found['term_id'] );
-	}
-
-	public function test_term_exists_taxonomy_nonempty_parent_empty_match_name() {
-		register_taxonomy( 'foo', 'post', array() );
-
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-			'name' => 'Kewl Dudez',
-		) );
-
-		$found = term_exists( 'Kewl Dudez', 'foo' );
-
-		_unregister_taxonomy( 'foo' );
-
-		$this->assertInternalType( 'array', $found );
-		$this->assertEquals( $t, $found['term_id'] );
-	}
-
-	public function test_term_exists_taxonomy_empty_parent_empty_match_slug() {
-		register_taxonomy( 'foo', 'post', array() );
-
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-			'name' => 'juicy-fruit',
-		) );
-
-		$found = term_exists( 'juicy-fruit' );
-
-		_unregister_taxonomy( 'foo' );
-
-		$this->assertInternalType( 'string', $found );
-		$this->assertEquals( $t, $found );
-	}
-
-	public function test_term_exists_taxonomy_empty_parent_empty_match_name() {
-		register_taxonomy( 'foo', 'post', array() );
-
-		$t = $this->factory->term->create( array(
-			'taxonomy' => 'foo',
-			'name' => 'Juicy Fruit',
-		) );
-
-		$found = term_exists( 'Juicy Fruit' );
-
-		_unregister_taxonomy( 'foo' );
-
-		$this->assertInternalType( 'string', $found );
-		$this->assertEquals( $t, $found );
-	}
-
-	function test_term_exists_known() {
-		// insert a term
-		$term = rand_str();
-		$t = wp_insert_term( $term, $this->taxonomy );
-		$this->assertInternalType( 'array', $t );
-		$this->assertEquals( $t['term_id'], term_exists($t['term_id']) );
-		$this->assertEquals( $t['term_id'], term_exists($term) );
-
-		// clean up
-		$this->assertTrue( wp_delete_term($t['term_id'], $this->taxonomy) );
-	}
-
-	function test_term_exists_unknown() {
-		$this->assertNull( term_exists(rand_str()) );
-		$this->assertEquals( 0, term_exists(0) );
-		$this->assertEquals( 0, term_exists('') );
-		$this->assertEquals( 0, term_exists(NULL) );
-	}
-
 	public function test_wp_insert_term_taxonomy_does_not_exist() {
 		$found = wp_insert_term( 'foo', 'bar' );
 
@@ -455,6 +226,93 @@ class Tests_Term extends WP_UnitTestCase {
 		$this->assertFalse( is_wp_error( $term20 ) );
 	}
 
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_insert_term_duplicate_slug_same_taxonomy() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		$t = $this->factory->term->create( array(
+			'name' => 'Foo',
+			'slug' => 'foo',
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$term = get_term( $t, 'wptests_tax' );
+
+		$created = wp_insert_term( 'Foo 2', 'wptests_tax', array(
+			'slug' => 'foo',
+		) );
+
+		$created_term = get_term( $created['term_id'], 'wptests_tax' );
+		$this->assertSame( 'foo-2', $created_term->slug );
+
+		_unregister_taxonomy( 'wptests_tax', 'post' );
+	}
+
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_insert_term_duplicate_slug_different_taxonomy() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		register_taxonomy( 'wptests_tax_2', 'post' );
+		$t = $this->factory->term->create( array(
+			'name' => 'Foo',
+			'slug' => 'foo',
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$term = get_term( $t, 'wptests_tax' );
+
+		$created = wp_insert_term( 'Foo 2', 'wptests_tax_2', array(
+			'slug' => 'foo',
+		) );
+
+		$this->assertFalse( is_wp_error( $created ) );
+
+		$new_term = get_term( $created['term_id'], 'wptests_tax_2' );
+
+		$this->assertSame( 'foo', $new_term->slug );
+
+		_unregister_taxonomy( 'wptests_tax', 'post' );
+	}
+
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_insert_term_duplicate_slug_different_taxonomy_before_410_schema_change() {
+
+		$db_version = get_option( 'db_version' );
+		update_option( 'db_version', 30055 );
+
+		register_taxonomy( 'wptests_tax', 'post' );
+		register_taxonomy( 'wptests_tax_2', 'post' );
+		$t = $this->factory->term->create( array(
+			'name' => 'Foo',
+			'slug' => 'foo',
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$term = get_term( $t, 'wptests_tax' );
+
+		$created = wp_insert_term( 'Foo 2', 'wptests_tax_2', array(
+			'slug' => 'foo',
+		) );
+
+		$this->assertFalse( is_wp_error( $created ) );
+
+		$new_term = get_term( $created['term_id'], 'wptests_tax_2' );
+
+		/*
+		 * As of 4.1, we no longer create a shared term, but we also do not
+		 * allow for duplicate slugs.
+		 */
+		$this->assertSame( 'foo-2', $new_term->slug );
+		$this->assertNotEquals( $new_term->term_id, $term->term_id );
+
+		_unregister_taxonomy( 'wptests_tax', 'post' );
+		update_option( 'db_version', $db_version );
+	}
+
 	public function test_wp_insert_term_alias_of_no_term_group() {
 		register_taxonomy( 'wptests_tax', 'post' );
 		$t1 = $this->factory->term->create( array(
@@ -580,6 +438,19 @@ class Tests_Term extends WP_UnitTestCase {
 
 		$this->assertTrue( is_wp_error( $found ) );
 		$this->assertEquals( $existing_term, $found->get_error_data() );
+	}
+
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_insert_term_should_not_create_shared_term() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		register_taxonomy( 'wptests_tax_2', 'post' );
+
+		$t1 = wp_insert_term( 'Foo', 'wptests_tax' );
+		$t2 = wp_insert_term( 'Foo', 'wptests_tax_2' );
+
+		$this->assertNotEquals( $t1['term_id'], $t2['term_id'] );
 	}
 
 	public function test_wp_insert_term_should_return_term_id_and_term_taxonomy_id() {
@@ -764,6 +635,141 @@ class Tests_Term extends WP_UnitTestCase {
 		$term = get_term( $t, 'wptests_tax' );
 		$this->assertSame( 'foo-bar', $term->slug );
 		_unregister_taxonomy( 'wptests_tax' );
+	}
+
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_update_term_duplicate_slug_same_taxonomy() {
+		register_taxonomy( 'wptests_tax', 'post' );
+
+		$t1 = $this->factory->term->create( array(
+			'name' => 'Foo',
+			'slug' => 'foo',
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$t2 = $this->factory->term->create( array(
+			'name' => 'Foo',
+			'slug' => 'bar',
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$updated = wp_update_term( $t2, 'wptests_tax', array(
+			'slug' => 'foo',
+		) );
+
+		$this->assertWPError( $updated );
+		$this->assertSame( 'duplicate_term_slug', $updated->get_error_code() );
+	}
+
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_update_term_duplicate_slug_different_taxonomy() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		register_taxonomy( 'wptests_tax_2', 'post' );
+
+		$t1 = $this->factory->term->create( array(
+			'name' => 'Foo',
+			'slug' => 'foo',
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$t2 = $this->factory->term->create( array(
+			'name' => 'Foo',
+			'slug' => 'bar',
+			'taxonomy' => 'wptests_tax_2',
+		) );
+
+		$updated = wp_update_term( $t2, 'wptests_tax_2', array(
+			'slug' => 'foo',
+		) );
+
+		$this->assertWPError( $updated );
+		$this->assertSame( 'duplicate_term_slug', $updated->get_error_code() );
+	}
+
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_update_term_should_split_shared_term() {
+		global $wpdb;
+
+		register_taxonomy( 'wptests_tax', 'post' );
+		register_taxonomy( 'wptests_tax_2', 'post' );
+
+		$t1 = wp_insert_term( 'Foo', 'wptests_tax' );
+		$t2 = wp_insert_term( 'Foo', 'wptests_tax_2' );
+
+		// Manually modify because split terms shouldn't naturally occur.
+		$wpdb->update( $wpdb->term_taxonomy,
+			array( 'term_id' => $t1['term_id'] ),
+			array( 'term_taxonomy_id' => $t2['term_taxonomy_id'] ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		$posts = $this->factory->post->create_many( 2 );
+		wp_set_object_terms( $posts[0], array( 'Foo' ), 'wptests_tax' );
+		wp_set_object_terms( $posts[1], array( 'Foo' ), 'wptests_tax_2' );
+
+		// Verify that the terms are shared.
+		$t1_terms = wp_get_object_terms( $posts[0], 'wptests_tax' );
+		$t2_terms = wp_get_object_terms( $posts[1], 'wptests_tax_2' );
+		$this->assertSame( $t1_terms[0]->term_id, $t2_terms[0]->term_id );
+
+		wp_update_term( $t2_terms[0]->term_id, 'wptests_tax_2', array(
+			'name' => 'New Foo',
+		) );
+
+		$t1_terms = wp_get_object_terms( $posts[0], 'wptests_tax' );
+		$t2_terms = wp_get_object_terms( $posts[1], 'wptests_tax_2' );
+		$this->assertNotEquals( $t1_terms[0]->term_id, $t2_terms[0]->term_id );
+	}
+
+	/**
+	 * @ticket 5809
+	 */
+	public function test_wp_update_term_should_not_split_shared_term_before_410_schema_change() {
+		global $wpdb;
+
+		$db_version = get_option( 'db_version' );
+		update_option( 'db_version', 30055 );
+
+		register_taxonomy( 'wptests_tax', 'post' );
+		register_taxonomy( 'wptests_tax_2', 'post' );
+
+		$t1 = wp_insert_term( 'Foo', 'wptests_tax' );
+		$t2 = wp_insert_term( 'Foo', 'wptests_tax_2' );
+
+		// Manually modify because split terms shouldn't naturally occur.
+		$wpdb->update( $wpdb->term_taxonomy,
+			array( 'term_id' => $t1['term_id'] ),
+			array( 'term_taxonomy_id' => $t2['term_taxonomy_id'] ),
+			array( '%d' ),
+			array( '%d' )
+		);
+
+		$posts = $this->factory->post->create_many( 2 );
+		wp_set_object_terms( $posts[0], array( 'Foo' ), 'wptests_tax' );
+		wp_set_object_terms( $posts[1], array( 'Foo' ), 'wptests_tax_2' );
+
+		// Verify that the term is shared.
+		$t1_terms = wp_get_object_terms( $posts[0], 'wptests_tax' );
+		$t2_terms = wp_get_object_terms( $posts[1], 'wptests_tax_2' );
+		$this->assertSame( $t1_terms[0]->term_id, $t2_terms[0]->term_id );
+
+		wp_update_term( $t2_terms[0]->term_id, 'wptests_tax_2', array(
+			'name' => 'New Foo',
+		) );
+
+		// Term should still be shared.
+		$t1_terms = wp_get_object_terms( $posts[0], 'wptests_tax' );
+		$t2_terms = wp_get_object_terms( $posts[1], 'wptests_tax_2' );
+		$this->assertSame( $t1_terms[0]->term_id, $t2_terms[0]->term_id );
+
+		update_option( 'db_version', $db_version );
 	}
 
 	public function test_wp_update_term_alias_of_no_term_group() {
@@ -1004,6 +1010,33 @@ class Tests_Term extends WP_UnitTestCase {
 		$cached_children = get_option( 'wptests_tax_children' );
 		$this->assertNotEmpty( $cached_children[ $t2 ] );
 		$this->assertTrue( in_array( $found['term_id'], $cached_children[ $t2 ] ) );
+	}
+
+	/**
+	 * @ticket 29911
+	 */
+	public function test_wp_delete_term_should_invalidate_cache_for_child_terms() {
+		register_taxonomy( 'wptests_tax', 'post', array(
+			'hierarchical' => true,
+		) );
+
+		$parent = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$child = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+			'parent' => $parent,
+			'slug' => 'foo',
+		) );
+
+		// Prime the cache.
+		$child_term = get_term( $child, 'wptests_tax' );
+		$this->assertSame( $parent, $child_term->parent );
+
+		wp_delete_term( $parent, 'wptests_tax' );
+		$child_term = get_term( $child, 'wptests_tax' );
+		$this->assertSame( 0, $child_term->parent );
 	}
 
 	/**
@@ -1277,6 +1310,69 @@ class Tests_Term extends WP_UnitTestCase {
 		$this->assertTrue( is_wp_error($result) );
 	}
 
+	public function test_wp_set_object_terms_append_true() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		$p = $this->factory->post->create();
+		$t1 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+		$t2 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$added1 = wp_set_object_terms( $p, array( $t1 ), 'wptests_tax' );
+		$this->assertNotEmpty( $added1 );
+		$this->assertEqualSets( array( $t1 ), wp_get_object_terms( $p, 'wptests_tax', array( 'fields' => 'ids' ) ) );
+
+		$added2 = wp_set_object_terms( $p, array( $t2 ), 'wptests_tax', true );
+		$this->assertNotEmpty( $added2 );
+		$this->assertEqualSets( array( $t1, $t2 ), wp_get_object_terms( $p, 'wptests_tax', array( 'fields' => 'ids' ) ) );
+
+		_unregister_taxonomy( 'wptests_tax' );
+	}
+
+	public function test_wp_set_object_terms_append_false() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		$p = $this->factory->post->create();
+		$t1 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+		$t2 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$added1 = wp_set_object_terms( $p, array( $t1 ), 'wptests_tax' );
+		$this->assertNotEmpty( $added1 );
+		$this->assertEqualSets( array( $t1 ), wp_get_object_terms( $p, 'wptests_tax', array( 'fields' => 'ids' ) ) );
+
+		$added2 = wp_set_object_terms( $p, array( $t2 ), 'wptests_tax', false );
+		$this->assertNotEmpty( $added2 );
+		$this->assertEqualSets( array( $t2 ), wp_get_object_terms( $p, 'wptests_tax', array( 'fields' => 'ids' ) ) );
+
+		_unregister_taxonomy( 'wptests_tax' );
+	}
+
+	public function test_wp_set_object_terms_append_default_to_false() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		$p = $this->factory->post->create();
+		$t1 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+		$t2 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		$added1 = wp_set_object_terms( $p, array( $t1 ), 'wptests_tax' );
+		$this->assertNotEmpty( $added1 );
+		$this->assertEqualSets( array( $t1 ), wp_get_object_terms( $p, 'wptests_tax', array( 'fields' => 'ids' ) ) );
+
+		$added2 = wp_set_object_terms( $p, array( $t2 ), 'wptests_tax' );
+		$this->assertNotEmpty( $added2 );
+		$this->assertEqualSets( array( $t2 ), wp_get_object_terms( $p, 'wptests_tax', array( 'fields' => 'ids' ) ) );
+
+		_unregister_taxonomy( 'wptests_tax' );
+	}
+
 	function test_change_object_terms_by_id() {
 		// set some terms on an object; then change them while leaving one intact
 
@@ -1502,52 +1598,6 @@ class Tests_Term extends WP_UnitTestCase {
 		// clean up
 		foreach ( array( $a, $b, $c, $d, $e, $f ) as $t )
 			$this->assertTrue( wp_delete_term( $t['term_id'], $this->taxonomy ) );
-	}
-
-	/**
-	 * @ticket 5809
-	 */
-	function test_update_shared_term() {
-		$random_tax = __FUNCTION__;
-
-		register_taxonomy( $random_tax, 'post' );
-
-		$post_id = $this->factory->post->create();
-
-		$old_name = 'Initial';
-
-		$t1 = wp_insert_term( $old_name, 'category' );
-		$t2 = wp_insert_term( $old_name, 'post_tag' );
-
-		$this->assertEquals( $t1['term_id'], $t2['term_id'] );
-
-		wp_set_post_categories( $post_id, array( $t1['term_id'] ) );
-		wp_set_post_tags( $post_id, array( (int) $t2['term_id'] ) );
-
-		$new_name = 'Updated';
-
-		// create the term in a third taxonomy, just to keep things interesting
-		$t3 = wp_insert_term( $old_name, $random_tax );
-		wp_set_post_terms( $post_id, array( (int) $t3['term_id'] ), $random_tax );
-		$this->assertPostHasTerms( $post_id, array( $t3['term_id'] ), $random_tax );
-
-		$t2_updated = wp_update_term( $t2['term_id'], 'post_tag', array(
-			'name' => $new_name
-		) );
-
-		$this->assertNotEquals( $t2_updated['term_id'], $t3['term_id'] );
-
-		// make sure the terms have split
-		$this->assertEquals( $old_name, get_term_field( 'name', $t1['term_id'], 'category' ) );
-		$this->assertEquals( $new_name, get_term_field( 'name', $t2_updated['term_id'], 'post_tag' ) );
-
-		// and that they are still assigned to the correct post
-		$this->assertPostHasTerms( $post_id, array( $t1['term_id'] ), 'category' );
-		$this->assertPostHasTerms( $post_id, array( $t2_updated['term_id'] ), 'post_tag' );
-		$this->assertPostHasTerms( $post_id, array( $t3['term_id'] ), $random_tax );
-
-		// clean up
-		unset( $GLOBALS['wp_taxonomies'][ $random_tax ] );
 	}
 
 	/**

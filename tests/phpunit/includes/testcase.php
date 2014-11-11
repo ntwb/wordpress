@@ -70,6 +70,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 		remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
 		remove_filter( 'wp_die_handler', array( $this, 'get_wp_die_handler' ) );
 		$this->_restore_hooks();
+		wp_set_current_user( 0 );
 	}
 
 	function clean_up_global_scope() {
@@ -164,6 +165,16 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 		$wpdb->query( 'START TRANSACTION;' );
 		add_filter( 'query', array( $this, '_create_temporary_tables' ) );
 		add_filter( 'query', array( $this, '_drop_temporary_tables' ) );
+	}
+
+	/**
+	 * Commit the queries in a transaction.
+	 *
+	 * @since 4.1.0
+	 */
+	public static function commit_transaction() {
+		global $wpdb;
+		$wpdb->query( 'COMMIT;' );
 	}
 
 	function _create_temporary_tables( $query ) {
@@ -368,7 +379,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 		if ( empty( $tmp_dir ) ) {
 			$tmp_dir = '/tmp';
 		}
-		$tmp_dir = realpath( $dir );
+		$tmp_dir = realpath( $tmp_dir );
 		return tempnam( $tmp_dir, 'wpunit' );
 	}
 

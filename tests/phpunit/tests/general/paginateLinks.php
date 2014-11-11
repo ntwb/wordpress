@@ -3,11 +3,21 @@
 class Tests_Paginate_Links extends WP_UnitTestCase {
 
 	private $i18n_count = 0;
+	private $permalink_structure = '';
 
 	function setUp() {
 		parent::setUp();
+		global $wp_rewrite;
 
 		$this->go_to( home_url( '/' ) );
+
+		$this->permalink_structure = $wp_rewrite->permalink_structure;
+		$wp_rewrite->set_permalink_structure( get_option( 'permalink_structure' ) );
+	}
+
+	function tearDown() {
+		global $wp_rewrite;
+		$wp_rewrite->set_permalink_structure( $this->permalink_structure );
 	}
 
 	function test_defaults() {
@@ -178,7 +188,10 @@ EXPECTED;
 	}
 
 	function add_query_arg( $url ) {
-		return add_query_arg( array( 'foo' => 'bar' ), $url );
+		return add_query_arg( array(
+			'foo' => 'bar',
+			's'   => 'search+term',
+		), $url );
 	}
 
 	/**
@@ -198,13 +211,13 @@ EXPECTED;
 		$document = new DOMDocument();
 		$document->preserveWhiteSpace = false;
 
-		// All links should have foo=bar arguments:
+		// All links should have foo=bar arguments and be escaped:
 		$data = array(
-			0 => home_url( '/?foo=bar' ),
-			1 => home_url( '/?foo=bar' ),
-			3 => home_url( '/?paged=3&foo=bar' ),
-			5 => home_url( '/?paged=5&foo=bar' ),
-			6 => home_url( '/?paged=3&foo=bar' ),
+			0 => home_url( '/?foo=bar&s=search+term' ),
+			1 => home_url( '/?foo=bar&s=search+term' ),
+			3 => home_url( '/?paged=3&foo=bar&s=search+term' ),
+			5 => home_url( '/?paged=5&foo=bar&s=search+term' ),
+			6 => home_url( '/?paged=3&foo=bar&s=search+term' ),
 		);
 
 		foreach ( $data as $index => $expected_href ) {

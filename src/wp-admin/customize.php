@@ -53,8 +53,6 @@ do_action( 'customize_controls_init' );
 wp_enqueue_script( 'customize-controls' );
 wp_enqueue_style( 'customize-controls' );
 
-wp_enqueue_script( 'accordion' );
-
 /**
  * Enqueue Customizer control scripts.
  *
@@ -129,10 +127,10 @@ do_action( 'customize_controls_print_scripts' );
 			$cannot_expand = ! ( $wp_customize->is_theme_active() || $screenshot || $wp_customize->theme()->get('Description') );
 		?>
 
-		<div id="widgets-right"><!-- For Widget Customizer, many widgets try to look for instances under div#widgets-right, so we have to add that ID to a container div in the customizer for compat -->
-		<div class="wp-full-overlay-sidebar-content accordion-container" tabindex="-1">
+		<div id="widgets-right"><!-- For Widget Customizer, many widgets try to look for instances under div#widgets-right, so we have to add that ID to a container div in the Customizer for compat -->
+		<div class="wp-full-overlay-sidebar-content" tabindex="-1">
 			<div id="customize-info" class="accordion-section <?php if ( $cannot_expand ) echo ' cannot-expand'; ?>">
-				<div class="accordion-section-title" aria-label="<?php esc_attr_e( 'Theme Customizer Options' ); ?>" tabindex="0">
+				<div class="accordion-section-title" aria-label="<?php esc_attr_e( 'Customizer Options' ); ?>" tabindex="0">
 					<span class="preview-notice"><?php
 						if ( ! $wp_customize->is_theme_active() ) {
 							/* translators: %s is the theme name in the Customize/Live Preview pane */
@@ -160,13 +158,9 @@ do_action( 'customize_controls_print_scripts' );
 				<?php endif; ?>
 			</div>
 
-			<div id="customize-theme-controls"><ul>
-				<?php
-				foreach ( $wp_customize->containers() as $container ) {
-					$container->maybe_render();
-				}
-				?>
-			</ul></div>
+			<div id="customize-theme-controls">
+				<ul><?php // Panels and sections are managed here via JavaScript ?></ul>
+			</div>
 		</div>
 		</div>
 
@@ -180,6 +174,9 @@ do_action( 'customize_controls_print_scripts' );
 	<div id="customize-preview" class="wp-full-overlay-main"></div>
 	<?php
 
+	// Render control templates.
+	$wp_customize->render_control_templates();
+
 	/**
 	 * Print Customizer control scripts in the footer.
 	 *
@@ -189,7 +186,7 @@ do_action( 'customize_controls_print_scripts' );
 
 	/*
 	 * If the frontend and the admin are served from the same domain, load the
-	 * preview over ssl if the customizer is being loaded over ssl. This avoids
+	 * preview over ssl if the Customizer is being loaded over ssl. This avoids
 	 * insecure content warnings. This is not attempted if the admin and frontend
 	 * are on different domains to avoid the case where the frontend doesn't have
 	 * ssl certs. Domain mapping plugins can allow other urls in these conditions
@@ -226,7 +223,7 @@ do_action( 'customize_controls_print_scripts' );
 		'customize-login' => 1
 	), wp_login_url() );
 
-	// Prepare customizer settings to pass to Javascript.
+	// Prepare Customizer settings to pass to Javascript.
 	$settings = array(
 		'theme'    => array(
 			'stylesheet' => $wp_customize->get_stylesheet(),
@@ -249,10 +246,13 @@ do_action( 'customize_controls_print_scripts' );
 		),
 		'settings' => array(),
 		'controls' => array(),
+		'panels'   => array(),
+		'sections' => array(),
 		'nonce'    => array(
 			'save'    => wp_create_nonce( 'save-customize_' . $wp_customize->get_stylesheet() ),
 			'preview' => wp_create_nonce( 'preview-customize_' . $wp_customize->get_stylesheet() )
 		),
+		'autofocus' => array(),
 	);
 
 	// Prepare Customize Setting objects to pass to Javascript.
@@ -263,15 +263,39 @@ do_action( 'customize_controls_print_scripts' );
 		);
 	}
 
-	// Prepare Customize Control objects to pass to Javascript.
+	// Prepare Customize Control objects to pass to JavaScript.
 	foreach ( $wp_customize->controls() as $id => $control ) {
-		$control->to_json();
-		$settings['controls'][ $id ] = $control->json;
+		$settings['controls'][ $id ] = $control->json();
+	}
+
+	// Prepare Customize Section objects to pass to JavaScript.
+	foreach ( $wp_customize->sections() as $id => $section ) {
+		$settings['sections'][ $id ] = $section->json();
+	}
+
+	// Prepare Customize Panel objects to pass to JavaScript.
+	foreach ( $wp_customize->panels() as $id => $panel ) {
+		$settings['panels'][ $id ] = $panel->json();
+		foreach ( $panel->sections as $section_id => $section ) {
+			$settings['sections'][ $section_id ] = $section->json();
+		}
+	}
+
+	// Pass to frontend the Customizer construct being deeplinked
+	if ( isset( $_GET['autofocus'] ) ) {
+		$autofocus = wp_unslash( $_GET['autofocus'] );
+		if ( is_array( $autofocus ) ) {
+			foreach ( $autofocus as $type => $id ) {
+				if ( isset( $settings[ $type . 's' ][ $id ] ) ) {
+					$settings['autofocus'][ $type ] = $id;
+				}
+			}
+		}
 	}
 
 	?>
 	<script type="text/javascript">
-		var _wpCustomizeSettings = <?php echo json_encode( $settings ); ?>;
+		var _wpCustomizeSettings = <?php echo wp_json_encode( $settings ); ?>;
 	</script>
 </div>
 </body>

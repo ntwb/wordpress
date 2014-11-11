@@ -289,7 +289,7 @@ function wp_popular_terms_checklist( $taxonomy, $default = 0, $number = 10, $ech
  *
  * @since 2.5.1
  *
- * @param unknown_type $link_id
+ * @param int $link_id
  */
 function wp_link_category_checklist( $link_id = 0 ) {
 	$default = 1;
@@ -324,7 +324,7 @@ function wp_link_category_checklist( $link_id = 0 ) {
  *
  * @since 2.7.0
  *
- * @param unknown_type $post
+ * @param WP_Post $post
  */
 function get_inline_data($post) {
 	$post_type_object = get_post_type_object($post->post_type);
@@ -396,9 +396,10 @@ function get_inline_data($post) {
  *
  * @since 2.7.0
  *
- * @param unknown_type $position
- * @param unknown_type $checkbox
- * @param unknown_type $mode
+ * @param string|int $position
+ * @param bool $checkbox
+ * @param string $mode
+ * @param bool $table_row
  */
 function wp_comment_reply($position = '1', $checkbox = false, $mode = 'single', $table_row = true) {
 
@@ -518,7 +519,7 @@ function wp_comment_trashnotice() {
  *
  * @since 1.2.0
  *
- * @param unknown_type $meta
+ * @param array $meta
  */
 function list_meta( $meta ) {
 	// Exit if no meta
@@ -561,9 +562,9 @@ function list_meta( $meta ) {
  *
  * @since 2.5.0
  *
- * @param unknown_type $entry
- * @param unknown_type $count
- * @return unknown
+ * @param array $entry
+ * @param int   $count
+ * @return string
  */
 function _list_meta_row( $entry, &$count ) {
 	static $update_nonce = false;
@@ -1004,25 +1005,25 @@ function do_meta_boxes( $screen, $context, $object ) {
 
 	printf('<div id="%s-sortables" class="meta-box-sortables">', htmlspecialchars($context));
 
-	$i = 0;
-	do {
-		// Grab the ones the user has manually sorted. Pull them out of their previous context/priority and into the one the user chose
-		if ( !$already_sorted && $sorted = get_user_option( "meta-box-order_$page" ) ) {
-			foreach ( $sorted as $box_context => $ids ) {
-				foreach ( explode(',', $ids ) as $id ) {
-					if ( $id && 'dashboard_browser_nag' !== $id )
-						add_meta_box( $id, null, null, $screen, $box_context, 'sorted' );
+	// Grab the ones the user has manually sorted. Pull them out of their previous context/priority and into the one the user chose
+	if ( ! $already_sorted && $sorted = get_user_option( "meta-box-order_$page" ) ) {
+		foreach ( $sorted as $box_context => $ids ) {
+			foreach ( explode( ',', $ids ) as $id ) {
+				if ( $id && 'dashboard_browser_nag' !== $id ) {
+					add_meta_box( $id, null, null, $screen, $box_context, 'sorted' );
 				}
 			}
 		}
-		$already_sorted = true;
+	}
 
-		if ( !isset($wp_meta_boxes) || !isset($wp_meta_boxes[$page]) || !isset($wp_meta_boxes[$page][$context]) )
-			break;
+	$already_sorted = true;
 
-		foreach ( array('high', 'sorted', 'core', 'default', 'low') as $priority ) {
-			if ( isset($wp_meta_boxes[$page][$context][$priority]) ) {
-				foreach ( (array) $wp_meta_boxes[$page][$context][$priority] as $box ) {
+	$i = 0;
+
+	if ( isset( $wp_meta_boxes[ $page ][ $context ] ) ) {
+		foreach ( array( 'high', 'sorted', 'core', 'default', 'low' ) as $priority ) {
+			if ( isset( $wp_meta_boxes[ $page ][ $context ][ $priority ]) ) {
+				foreach ( (array) $wp_meta_boxes[ $page ][ $context ][ $priority ] as $box ) {
 					if ( false == $box || ! $box['title'] )
 						continue;
 					$i++;
@@ -1038,7 +1039,7 @@ function do_meta_boxes( $screen, $context, $object ) {
 				}
 			}
 		}
-	} while(0);
+	}
 
 	echo "</div>";
 
@@ -1111,13 +1112,11 @@ function do_accordion_sections( $screen, $context, $object ) {
 	<?php
 	$i = 0;
 	$first_open = false;
-	do {
-		if ( ! isset( $wp_meta_boxes ) || ! isset( $wp_meta_boxes[$page] ) || ! isset( $wp_meta_boxes[$page][$context] ) )
-			break;
 
+	if ( isset( $wp_meta_boxes[ $page ][ $context ] ) ) {
 		foreach ( array( 'high', 'core', 'default', 'low' ) as $priority ) {
-			if ( isset( $wp_meta_boxes[$page][$context][$priority] ) ) {
-				foreach ( $wp_meta_boxes[$page][$context][$priority] as $box ) {
+			if ( isset( $wp_meta_boxes[ $page ][ $context ][ $priority ] ) ) {
+				foreach ( $wp_meta_boxes[ $page ][ $context ][ $priority ] as $box ) {
 					if ( false == $box || ! $box['title'] )
 						continue;
 					$i++;
@@ -1144,7 +1143,7 @@ function do_accordion_sections( $screen, $context, $object ) {
 				}
 			}
 		}
-	} while(0);
+	}
 	?>
 		</ul><!-- .outer-border -->
 	</div><!-- .accordion-container -->
@@ -1272,7 +1271,7 @@ function do_settings_sections( $page ) {
  * @since 2.7.0
  *
  * @param string $page Slug title of the admin page who's settings fields you want to show.
- * @param section $section Slug title of the settings section who's fields you want to show.
+ * @param string $section Slug title of the settings section who's fields you want to show.
  */
 function do_settings_fields($page, $section) {
 	global $wp_settings_fields;
@@ -1430,7 +1429,7 @@ function settings_errors( $setting = '', $sanitize = false, $hide_on_update = fa
  *
  * @since 2.7.0
  *
- * @param unknown_type $found_action
+ * @param string $found_action
  */
 function find_posts_div($found_action = '') {
 ?>
@@ -1468,7 +1467,6 @@ function find_posts_div($found_action = '') {
  * The password is passed through {@link esc_attr()} to ensure that it
  * is safe for placing in an html attribute.
  *
- * @uses attr
  * @since 2.7.0
  */
 function the_post_password() {
@@ -1501,7 +1499,6 @@ function _draft_or_post_title( $post = 0 ) {
  * A simple wrapper to display the "s" parameter in a GET URI. This function
  * should only be used when {@link the_search_query()} cannot.
  *
- * @uses attr
  * @since 2.7.0
  *
  */
@@ -1954,7 +1951,7 @@ final class WP_Internal_Pointers {
 		<script type="text/javascript">
 		//<![CDATA[
 		(function($){
-			var options = <?php echo json_encode( $args ); ?>, setup;
+			var options = <?php echo wp_json_encode( $args ); ?>, setup;
 
 			if ( ! options )
 				return;
@@ -2029,7 +2026,7 @@ final class WP_Internal_Pointers {
 		}
 
 		$content  = '<h3>' . __( 'New Feature: Live Widget Previews' ) . '</h3>';
-		$content .= '<p>' . __( 'Add, edit, and play around with your widgets from the theme customizer.' ) . ' ' . __( 'Preview your changes in real-time and only save them when you&#8217;re ready.' ) . '</p>';
+		$content .= '<p>' . __( 'Add, edit, and play around with your widgets from the Customizer.' ) . ' ' . __( 'Preview your changes in real-time and only save them when you&#8217;re ready.' ) . '</p>';
 
 		if ( 'themes' === get_current_screen()->id ) {
 			$selector = '.theme.active .customize';

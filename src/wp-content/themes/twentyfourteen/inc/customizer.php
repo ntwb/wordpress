@@ -1,6 +1,6 @@
 <?php
 /**
- * Twenty Fourteen Theme Customizer support
+ * Twenty Fourteen Customizer support
  *
  * @package WordPress
  * @subpackage Twenty_Fourteen
@@ -8,11 +8,11 @@
  */
 
 /**
- * Implement Theme Customizer additions and adjustments.
+ * Implement Customizer additions and adjustments.
  *
  * @since Twenty Fourteen 1.0
  *
- * @param WP_Customize_Manager $wp_customize Theme Customizer object.
+ * @param WP_Customize_Manager $wp_customize Customizer object.
  */
 function twentyfourteen_customize_register( $wp_customize ) {
 	// Add postMessage support for site title and description.
@@ -37,12 +37,13 @@ function twentyfourteen_customize_register( $wp_customize ) {
 
 	// Add the featured content section in case it's not already there.
 	$wp_customize->add_section( 'featured_content', array(
-		'title'       => __( 'Featured Content', 'twentyfourteen' ),
-		'description' => sprintf( __( 'Use a <a href="%1$s">tag</a> to feature your posts. If no posts match the tag, <a href="%2$s">sticky posts</a> will be displayed instead.', 'twentyfourteen' ),
+		'title'           => __( 'Featured Content', 'twentyfourteen' ),
+		'description'     => sprintf( __( 'Use a <a href="%1$s">tag</a> to feature your posts. If no posts match the tag, <a href="%2$s">sticky posts</a> will be displayed instead.', 'twentyfourteen' ),
 			esc_url( add_query_arg( 'tag', _x( 'featured', 'featured content default tag slug', 'twentyfourteen' ), admin_url( 'edit.php' ) ) ),
 			admin_url( 'edit.php?show_sticky=1' )
 		),
-		'priority'    => 130,
+		'priority'        => 130,
+		'active_callback' => 'is_front_page',
 	) );
 
 	// Add the featured content layout setting and control.
@@ -80,7 +81,7 @@ function twentyfourteen_sanitize_layout( $layout ) {
 }
 
 /**
- * Bind JS handlers to make Theme Customizer preview reload changes asynchronously.
+ * Bind JS handlers to make Customizer preview reload changes asynchronously.
  *
  * @since Twenty Fourteen 1.0
  */

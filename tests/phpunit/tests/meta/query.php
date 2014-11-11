@@ -40,7 +40,7 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 			array(),
 		) );
 
-		$this->assertSame( array( array() ), $query->queries );
+		$this->assertSame( array(), $query->queries );
 	}
 
 	/**
@@ -73,7 +73,7 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 
 		$sql = $query->get_sql( 'post', $wpdb->posts, 'ID' );
 
-		$this->assertEquals( 2, substr_count( $sql['join'], 'INNER JOIN' ) );
+		$this->assertEquals( 1, substr_count( $sql['join'], 'INNER JOIN' ) );
 	}
 
 	/**
@@ -104,9 +104,12 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 		$this->assertEquals( $expected0, $query->queries[0] );
 
 		$expected1 = array(
-			'key' => 'foo1',
-			'compare' => 'baz1',
-			'value' => 'bar1',
+			'relation' => 'OR',
+			array(
+				'key' => 'foo1',
+				'compare' => 'baz1',
+				'value' => 'bar1',
+			),
 		);
 		$this->assertEquals( $expected1, $query->queries[1] );
 	}
@@ -153,19 +156,44 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 		$query = new WP_Meta_Query();
 
 		// just meta_value
-		$query->parse_query_vars( array( 'meta_key' => 'abc' ) );
-
-		$this->assertEquals( array( array( 'key' => 'abc' ) ), $query->queries );
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'key' => 'abc',
+			),
+		);
+		$query->parse_query_vars( array(
+			'meta_key' => 'abc',
+		) );
+		$this->assertEquals( $expected, $query->queries );
 
 		// meta_key & meta_value
-		$query->parse_query_vars( array( 'meta_key' => 'abc', 'meta_value' => 'def' ) );
-
-		$this->assertEquals( array( array( 'key' => 'abc', 'value' => 'def' ) ), $query->queries );
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'key' => 'abc',
+				'value' => 'def',
+			),
+		);
+		$query->parse_query_vars( array(
+			'meta_key' => 'abc',
+			'meta_value' => 'def',
+		) );
+		$this->assertEquals( $expected, $query->queries );
 
 		// meta_compare
-		$query->parse_query_vars( array( 'meta_key' => 'abc', 'meta_compare' => '=>' ) );
-
-		$this->assertEquals( array( array( 'key' => 'abc', 'compare' => '=>' ) ), $query->queries );
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'key' => 'abc',
+				'compare' => '=>',
+			),
+		);
+		$query->parse_query_vars( array(
+			'meta_key' => 'abc',
+			'meta_compare' => '=>',
+		) );
+		$this->assertEquals( $expected, $query->queries );
 	}
 
 	/**
@@ -202,6 +230,229 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 		$this->assertEquals( 'CHAR', $query->get_cast_for_type( 'ANYTHING ELSE' ) );
 	}
 
+	public function test_sanitize_query_single_query() {
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+		);
+
+		$q = new WP_Meta_Query();
+		$found = $q->sanitize_query( array(
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+		) );
+
+		$this->assertEquals( $expected, $found );
+	}
+
+	public function test_sanitize_query_multiple_first_order_queries_relation_default() {
+		$expected = array(
+			'relation' => 'AND',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		);
+
+		$q = new WP_Meta_Query();
+		$found = $q->sanitize_query( array(
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		) );
+
+		$this->assertEquals( $expected, $found );
+	}
+
+	public function test_sanitize_query_multiple_first_order_queries_relation_or() {
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		);
+
+		$q = new WP_Meta_Query();
+		$found = $q->sanitize_query( array(
+			'relation' => 'OR',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		) );
+
+		$this->assertEquals( $expected, $found );
+	}
+
+	public function test_sanitize_query_multiple_first_order_queries_relation_or_lowercase() {
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		);
+
+		$q = new WP_Meta_Query();
+		$found = $q->sanitize_query( array(
+			'relation' => 'or',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		) );
+
+		$this->assertEquals( $expected, $found );
+	}
+
+	public function test_sanitize_query_multiple_first_order_queries_invalid_relation() {
+		$expected = array(
+			'relation' => 'AND',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		);
+
+		$q = new WP_Meta_Query();
+		$found = $q->sanitize_query( array(
+			'relation' => 'FOO',
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+			array(
+				'key' => 'foo2',
+				'value' => 'bar2',
+			),
+		) );
+
+		$this->assertEquals( $expected, $found );
+	}
+
+	public function test_sanitize_query_single_query_which_is_a_nested_query() {
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'relation' => 'AND',
+				array(
+					'key' => 'foo',
+					'value' => 'bar',
+				),
+				array(
+					'key' => 'foo2',
+					'value' => 'bar2',
+				),
+			)
+		);
+
+		$q = new WP_Meta_Query();
+		$found = $q->sanitize_query( array(
+			array(
+				array(
+					'key' => 'foo',
+					'value' => 'bar',
+				),
+				array(
+					'key' => 'foo2',
+					'value' => 'bar2',
+				),
+			),
+		) );
+
+		$this->assertEquals( $expected, $found );
+	}
+
+	public function test_sanitize_query_multiple_nested_queries() {
+		$expected = array(
+			'relation' => 'OR',
+			array(
+				'relation' => 'AND',
+				array(
+					'key' => 'foo',
+					'value' => 'bar',
+				),
+				array(
+					'key' => 'foo2',
+					'value' => 'bar2',
+				),
+			),
+			array(
+				'relation' => 'AND',
+				array(
+					'key' => 'foo3',
+					'value' => 'bar3',
+				),
+				array(
+					'key' => 'foo4',
+					'value' => 'bar4',
+				),
+			),
+		);
+
+		$q = new WP_Meta_Query();
+		$found = $q->sanitize_query( array(
+			'relation' => 'OR',
+			array(
+				array(
+					'key' => 'foo',
+					'value' => 'bar',
+				),
+				array(
+					'key' => 'foo2',
+					'value' => 'bar2',
+				),
+			),
+			array(
+				array(
+					'key' => 'foo3',
+					'value' => 'bar3',
+				),
+				array(
+					'key' => 'foo4',
+					'value' => 'bar4',
+				),
+			),
+		) );
+
+		$this->assertEquals( $expected, $found );
+	}
+
 	/**
 	 * Invalid $type will fail to get a table from _get_meta_table()
 	 */
@@ -228,12 +479,7 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 
 		$sql = $query->get_sql( 'post', $wpdb->posts, 'ID', $this );
 
-		// We should have 2 joins - one for my_first_key and one for my_second_key
-		$this->assertEquals( 2, substr_count( $sql['join'], 'INNER JOIN' ) );
-
-		// The WHERE should check my_third_key against an unaliased table
-		$this->assertEquals( 1, substr_count( $sql['where'], "$wpdb->postmeta.meta_key = 'my_third_key'" ) );
-
+		$this->assertEquals( 3, substr_count( $sql['join'], 'JOIN' ) );
 	}
 
 	/**
@@ -247,7 +493,7 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 		) );
 		$sql = $query->get_sql( 'post', $wpdb->posts, 'ID', $this );
 
-		$this->assertEquals( 1, substr_count( $sql['where'], "CAST($wpdb->postmeta.meta_value AS CHAR) = '')" ) );
+		$this->assertEquals( 1, substr_count( $sql['where'], "CAST($wpdb->postmeta.meta_value AS CHAR) = ''" ) );
 	}
 
 	/**
@@ -297,9 +543,6 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 
 		// NOT EXISTS compare queries are not key-only so should not be non-aliased
 		$this->assertSame( 0, substr_count( $sql['where'], "$wpdb->postmeta.meta_key = 'baz'" ) );
-
-		// When a value exists, it's not a key-only query
-		$this->assertSame( 0, substr_count( $sql['where'], "$wpdb->postmeta.meta_key = 'barry'" ) );
 
 		// 'AND' queries don't have key-only queries
 		$query2 = new WP_Meta_Query( array(
@@ -558,7 +801,9 @@ class Tests_Meta_Query extends WP_UnitTestCase {
 		) );
 
 		$sql = $query->get_sql( 'post', $wpdb->posts, 'ID', $this );
-		$this->assertContains( "{$wpdb->postmeta}.meta_key = 'exclude'\nOR", $sql['where'] );
+
+		// Use regex because we don't care about the whitespace before OR.
+		$this->assertRegExp( "/{$wpdb->postmeta}\.meta_key = \'exclude\'\s+OR/", $sql['where'] );
 		$this->assertNotContains( "{$wpdb->postmeta}.post_id IS NULL", $sql['where'] );
 	}
 }

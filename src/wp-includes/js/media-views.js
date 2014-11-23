@@ -3016,6 +3016,9 @@
 
 			// Browse our library of attachments.
 			this.content.set( view );
+
+			// Trigger the controller to set focus
+			this.trigger( 'edit:selection', this );
 		},
 
 		editImageContent: function() {
@@ -5096,6 +5099,7 @@
 			'click .close':                   'removeFromLibrary',
 			'click .check':                   'checkClickHandler',
 			'click a':                        'preventDefault',
+			'keydown .close':                 'removeFromLibrary',
 			'keydown':                        'toggleSelectionHandler'
 		},
 
@@ -5537,6 +5541,11 @@
 		 * @param {Object} event
 		 */
 		removeFromLibrary: function( event ) {
+			// Catch enter and space events
+			if ( 'keydown' === event.type && 13 !== event.keyCode && 32 !== event.keyCode ) {
+				return;
+			}
+
 			// Stop propagation so the model isn't selected.
 			event.stopPropagation();
 
@@ -6236,7 +6245,7 @@
 			});
 
 			this.listenTo( this.controller, 'toggle:upload:attachment', _.bind( this.toggleUploader, this ) );
-
+			this.controller.on( 'edit:selection', this.editSelection );
 			this.createToolbar();
 			if ( this.options.sidebar ) {
 				this.createSidebar();
@@ -6255,6 +6264,11 @@
 
 			this.collection.on( 'add remove reset', this.updateContent, this );
 		},
+
+		editSelection: function( modal ) {
+			modal.$( '.media-button-backToLibrary' ).focus();
+		},
+
 		/**
 		 * @returns {wp.media.view.AttachmentsBrowser} Returns itself to allow chaining
 		 */
@@ -7012,6 +7026,13 @@
 		tagName:   'div',
 		className: 'attachment-details',
 		template:  media.template('attachment-details'),
+
+		attributes: function() {
+			return {
+				'tabIndex':     0,
+				'data-id':      this.model.get( 'id' )
+			};
+		},
 
 		events: {
 			'change [data-setting]':          'updateSetting',

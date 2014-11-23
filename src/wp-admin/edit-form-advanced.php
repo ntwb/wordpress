@@ -388,7 +388,7 @@ if ( isset( $post_new_file ) && current_user_can( $post_type_object->cap->create
 	echo ' <a href="' . esc_url( admin_url( $post_new_file ) ) . '" class="add-new-h2">' . esc_html( $post_type_object->labels->add_new ) . '</a>';
 ?></h2>
 <?php if ( $notice ) : ?>
-<div id="notice" class="error"><p id="has-newer-autosave"><?php echo $notice ?></p></div>
+<div id="notice" class="notice notice-warning"><p id="has-newer-autosave"><?php echo $notice ?></p></div>
 <?php endif; ?>
 <?php if ( $message ) : ?>
 <div id="message" class="updated"><p><?php echo $message; ?></p></div>
@@ -459,7 +459,7 @@ do_action( 'edit_form_top', $post ); ?>
 	 */
 	?>
 	<label class="screen-reader-text" id="title-prompt-text" for="title"><?php echo apply_filters( 'enter_title_here', __( 'Enter title here' ), $post ); ?></label>
-	<input type="text" name="post_title" size="30" value="<?php echo esc_attr( htmlspecialchars( $post->post_title ) ); ?>" id="title" autocomplete="off" />
+	<input type="text" name="post_title" size="30" value="<?php echo esc_attr( htmlspecialchars( $post->post_title ) ); ?>" id="title" spellcheck="true" autocomplete="off" />
 </div>
 <?php
 /**
@@ -512,7 +512,6 @@ if ( post_type_supports($post_type, 'editor') ) {
 <div id="postdivrich" class="postarea<?php if ( $_wp_editor_expand ) { echo ' wp-editor-expand'; } ?>">
 
 <?php wp_editor( $post->post_content, 'content', array(
-	'dfw' => true,
 	'drag_drop_upload' => true,
 	'tabfocus_elements' => 'content-html,save-post',
 	'editor_height' => 300,

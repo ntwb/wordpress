@@ -1,6 +1,6 @@
 <?php
 /**
- * The template for displaying link post formats.
+ * The template for displaying link post formats
  *
  * Used for both single and index/archive/search.
  *
@@ -37,12 +37,15 @@
 				'after'       => '</div>',
 				'link_before' => '<span>',
 				'link_after'  => '</span>',
+				'pagelink'    => '<span class="screen-reader-text">' . esc_html__( 'Page', 'twentyfifteen' ) . ' </span>%',
+				'separator'   => '<span class="screen-reader-text">, </span>',
 			) );
 		?>
 	</div>
 	<!-- .entry-content -->
 
 	<?php
+		// Author bio.
 		if ( is_single() && get_the_author_meta( 'description' ) ) :
 			get_template_part( 'author-bio' );
 		endif;
@@ -53,4 +56,5 @@
 		<?php edit_post_link( esc_html__( 'Edit', 'twentyfifteen' ), '<span class="edit-link">', '</span>' ); ?>
 	</footer>
 	<!-- .entry-footer -->
+
 </article><!-- #post-## -->

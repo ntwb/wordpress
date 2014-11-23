@@ -2312,7 +2312,6 @@ function get_allowed_mime_types( $user = null ) {
  * @param string $action The nonce action.
  */
 function wp_nonce_ays( $action ) {
-	$title = __( 'WordPress Failure Notice' );
 	if ( 'log-out' == $action ) {
 		$html = sprintf( __( 'You are attempting to log out of %s' ), get_bloginfo( 'name' ) ) . '</p><p>';
 		$redirect_to = isset( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : '';
@@ -2323,25 +2322,51 @@ function wp_nonce_ays( $action ) {
 			$html .= "</p><p><a href='" . esc_url( remove_query_arg( 'updated', wp_get_referer() ) ) . "'>" . __( 'Please try again.' ) . "</a>";
 	}
 
-	wp_die( $html, $title, array('response' => 403) );
+	wp_die( $html, __( 'WordPress Failure Notice' ), 403 );
 }
 
 /**
  * Kill WordPress execution and display HTML message with error message.
  *
- * This function complements the die() PHP function. The difference is that
+ * This function complements the `die()` PHP function. The difference is that
  * HTML will be displayed to the user. It is recommended to use this function
- * only, when the execution should not continue any further. It is not
- * recommended to call this function very often and try to handle as many errors
- * as possible silently.
+ * only when the execution should not continue any further. It is not recommended
+ * to call this function very often, and try to handle as many errors as possible
+ * silently or more gracefully.
+ *
+ * As a shorthand, the desired HTTP response code may be passed as an integer to
+ * the `$title` parameter (the default title would apply) or the `$args` parameter.
  *
  * @since 2.0.4
+ * @since 4.1.0 The `$title` and `$args` parameters were changed to optionally accept
+ *              an integer to be used as the response code.
  *
- * @param string       $message Optional. Error message. Default empty.
- * @param string       $title   Optional. Error title. Default empty.
- * @param string|array $args    Optional. Arguments to control behavior. Default empty array.
+ * @param string|WP_Error  $message Optional. Error message. If this is a {@see WP_Error} object,
+ *                                  the error's messages are used. Default empty.
+ * @param string|int       $title   Optional. Error title. If `$message` is a `WP_Error` object,
+ *                                  error data with the key 'title' may be used to specify the title.
+ *                                  If `$title` is an integer, then it is treated as the response
+ *                                  code. Default empty.
+ * @param string|array|int $args {
+ *     Optional. Arguments to control behavior. If `$args` is an integer, then it is treated
+ *     as the response code. Default empty array.
+ *
+ *     @type int    $response       The HTTP response code. Default 500.
+ *     @type bool   $back_link      Whether to include a link to go back. Default false.
+ *     @type string $text_direction The text direction. This is only useful internally, when WordPress
+ *                                  is still loading and the site's locale is not set up yet. Accepts 'rtl'.
+ *                                  Default is the value of {@see is_rtl()}.
+ * }
  */
 function wp_die( $message = '', $title = '', $args = array() ) {
+
+	if ( is_int( $args ) ) {
+		$args = array( 'response' => $args );
+	} elseif ( is_int( $title ) ) {
+		$args  = array( 'response' => $title );
+		$title = '';
+	}
+
 	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
 		/**
 		 * Filter callback for killing WordPress execution for AJAX requests.
@@ -2779,15 +2804,32 @@ function wp_send_json_success( $data = null ) {
 /**
  * Send a JSON response back to an Ajax request, indicating failure.
  *
+ * If the `$data` parameter is a `WP_Error` object, the errors within the object are processed
+ * and output as an array of error codes and corresponding messages. All other types are
+ * output without further processing.
+ *
  * @since 3.5.0
+ * @since 4.1.0 The `$data` parameter is now processed if a `WP_Error` object is passed in.
  *
  * @param mixed $data Data to encode as JSON, then print and die.
  */
 function wp_send_json_error( $data = null ) {
 	$response = array( 'success' => false );
 
-	if ( isset( $data ) )
-		$response['data'] = $data;
+	if ( isset( $data ) ) {
+		if ( is_wp_error( $data ) ) {
+			$result = array();
+			foreach ( $data->errors as $code => $messages ) {
+				foreach ( $messages as $message ) {
+					$result[] = array( 'code' => $code, 'message' => $message );
+				}
+			}
+
+			$response['data'] = $result;
+		} else {
+			$response['data'] = $data;
+		}
+	}
 
 	wp_send_json( $response );
 }
@@ -4121,13 +4163,15 @@ function wp_scheduled_delete() {
  * If the file data is not within that first 8kiB, then the author should correct
  * their plugin file and move the data headers to the top.
  *
- * @see http://codex.wordpress.org/File_Header
+ * @link http://codex.wordpress.org/File_Header
  *
  * @since 2.9.0
+ *
  * @param string $file            Path to the file.
  * @param array  $default_headers List of headers, in the format array('HeaderKey' => 'Header Name').
  * @param string $context         Optional. If specified adds filter hook "extra_{$context}_headers".
  *                                Default empty.
+ * @return array Array of file headers in `HeaderKey => Header Value` format.
  */
 function get_file_data( $file, $default_headers, $context = '' ) {
 	// We don't need to write to the file, so just open for reading.

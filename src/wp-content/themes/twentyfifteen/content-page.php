@@ -1,6 +1,6 @@
 <?php
 /**
- * The template used for displaying page content.
+ * The template used for displaying page content
  *
  * @package WordPress
  * @subpackage Twenty_Fifteen
@@ -9,7 +9,10 @@
 ?>
 
 <article id="post-<?php the_ID(); ?>" <?php post_class(); ?>>
-	<?php twentyfifteen_post_thumbnail(); ?>
+	<?php
+		// Post thumbnail.
+		twentyfifteen_post_thumbnail();
+	?>
 
 	<header class="entry-header">
 		<?php the_title( '<h1 class="entry-title">', '</h1>' ); ?>
@@ -23,6 +26,8 @@
 				'after'       => '</div>',
 				'link_before' => '<span>',
 				'link_after'  => '</span>',
+				'pagelink'    => '<span class="screen-reader-text">' . esc_html__( 'Page', 'twentyfifteen' ) . ' </span>%',
+				'separator'   => '<span class="screen-reader-text">, </span>',
 			) );
 		?>
 	</div><!-- .entry-content -->

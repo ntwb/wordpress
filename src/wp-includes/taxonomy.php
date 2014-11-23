@@ -4092,13 +4092,102 @@ function _split_shared_term( $term_id, $term_taxonomy_id ) {
 		array( 'term_taxonomy_id' => $term_taxonomy_id )
 	);
 
+	// Reassign child terms to the new parent.
+	$term_taxonomy = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $wpdb->term_taxonomy WHERE term_taxonomy_id = %d", $term_taxonomy_id ) );
+	$children_tt_ids = $wpdb->get_col( $wpdb->prepare( "SELECT term_taxonomy_id FROM $wpdb->term_taxonomy WHERE taxonomy = %s AND parent = %d", $term_taxonomy->taxonomy, $term_id ) );
+
+	if ( ! empty( $children_tt_ids ) ) {
+		foreach ( $children_tt_ids as $child_tt_id ) {
+			$wpdb->update( $wpdb->term_taxonomy,
+				array( 'parent' => $new_term_id ),
+				array( 'term_taxonomy_id' => $child_tt_id )
+			);
+			clean_term_cache( $term_id, $term_taxonomy->taxonomy );
+		}
+	} else {
+		// If the term has no children, we must force its taxonomy cache to be rebuilt separately.
+		clean_term_cache( $new_term_id, $term_taxonomy->taxonomy );
+	}
+
 	// Clean the cache for term taxonomies formerly shared with the current term.
 	$shared_term_taxonomies = $wpdb->get_row( $wpdb->prepare( "SELECT taxonomy FROM $wpdb->term_taxonomy WHERE term_id = %d", $term_id ) );
 	foreach ( (array) $shared_term_taxonomies as $shared_term_taxonomy ) {
 		clean_term_cache( $term_id, $shared_term_taxonomy );
 	}
 
+	// Keep a record of term_ids that have been split, keyed by old term_id.
+	$split_term_data = get_option( '_split_terms_' . $term_taxonomy->taxonomy, array() );
+	$split_term_data[ $term_id ] = $new_term_id;
+	update_option( '_split_terms_' . $term_taxonomy->taxonomy, $split_term_data );
+
+	/**
+	 * Fires after a previously shared taxonomy term is split into two separate terms.
+	 *
+	 * @since 4.1.0
+	 *
+	 * @param int    $term_id          ID of the formerly shared term.
+	 * @param int    $new_term_id      ID of the new term created for the $term_taxonomy_id.
+	 * @param int    $term_taxonomy_id ID for the term_taxonomy row affected by the split.
+	 * @param string $taxonomy         Taxonomy for the split term.
+	 */
+	do_action( 'split_shared_term', $term_id, $new_term_id, $term_taxonomy_id, $term_taxonomy->taxonomy );
+
 	return $new_term_id;
+}
+
+/**
+ * Check default categories when a term gets split to see if any of them need
+ * to be updated.
+ *
+ * @since 4.1.0
+ * @access private
+ *
+ * @param int    $term_id          ID of the formerly shared term.
+ * @param int    $new_term_id      ID of the new term created for the $term_taxonomy_id.
+ * @param int    $term_taxonomy_id ID for the term_taxonomy row affected by the split.
+ * @param string $taxonomy         Taxonomy for the split term.
+ */
+function _wp_check_split_default_terms( $term_id, $new_term_id, $term_taxonomy_id, $taxonomy ) {
+	if ( 'category' == $taxonomy ) {
+		foreach ( array( 'default_category', 'default_link_category', 'default_email_category' ) as $option ) {
+			if ( $term_id == get_option( $option, -1 ) ) {
+				update_option( $option, $new_term_id );
+			}
+		}
+	}
+}
+
+/**
+ * Check menu items when a term gets split to see if any of them need to be
+ * updated.
+ *
+ * @since 4.1.0
+ * @access private
+ *
+ * @param int    $term_id          ID of the formerly shared term.
+ * @param int    $new_term_id      ID of the new term created for the $term_taxonomy_id.
+ * @param int    $term_taxonomy_id ID for the term_taxonomy row affected by the split.
+ * @param string $taxonomy         Taxonomy for the split term.
+ */
+function _wp_check_split_terms_in_menus( $term_id, $new_term_id, $term_taxonomy_id, $taxonomy ) {
+	global $wpdb;
+	$post_ids = $wpdb->get_col( $wpdb->prepare(
+		"SELECT m1.post_id
+		FROM {$wpdb->postmeta} AS m1
+			INNER JOIN {$wpdb->postmeta} AS m2 ON m2.post_id=m1.post_id
+			INNER JOIN {$wpdb->postmeta} AS m3 ON m3.post_id=m1.post_id
+		WHERE ( m1.meta_key = '_menu_item_type' AND m1.meta_value = 'taxonomy' )
+			AND ( m2.meta_key = '_menu_item_object' AND m2.meta_value = '%s' )
+			AND ( m3.meta_key = '_menu_item_object_id' AND m3.meta_value = %d )",
+		$taxonomy,
+		$term_id
+	) );
+
+	if ( $post_ids ) {
+		foreach ( $post_ids as $post_id ) {
+			update_post_meta( $post_id, '_menu_item_object_id', $new_term_id, $term_id );
+		}
+	}
 }
 
 /**
@@ -4255,7 +4344,6 @@ function get_the_taxonomies( $post = 0, $args = array() ) {
 	$args = wp_parse_args( $args, array(
 		/* translators: %s: taxonomy label, %l: list of terms formatted as per $term_template */
 		'template' => __( '%s: %l.' ),
-		/* translators: %1$s: term link, %2$s: term name */
 		'term_template' => '<a href="%1$s">%2$s</a>',
 	) );
 

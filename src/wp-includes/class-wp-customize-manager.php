@@ -515,6 +515,9 @@ final class WP_Customize_Manager {
 		}
 		foreach ( $this->panels as $id => $panel ) {
 			$settings['activePanels'][ $id ] = $panel->active();
+			foreach ( $panel->sections as $id => $section ) {
+				$settings['activeSections'][ $id ] = $section->active();
+			}
 		}
 		foreach ( $this->sections as $id => $section ) {
 			$settings['activeSections'][ $id ] = $section->active();
@@ -965,6 +968,8 @@ final class WP_Customize_Manager {
 
 		/* Control Types (custom control classes) */
 		$this->register_control_type( 'WP_Customize_Color_Control' );
+		$this->register_control_type( 'WP_Customize_Upload_Control' );
+		$this->register_control_type( 'WP_Customize_Image_Control' );
 
 		/* Site Title & Tagline */
 

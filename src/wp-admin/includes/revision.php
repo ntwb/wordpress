@@ -73,7 +73,30 @@ function wp_get_revision_ui_diff( $post, $compare_from, $compare_to ) {
 		/** This filter is documented in wp-admin/includes/revision.php */
 		$content_to = apply_filters( "_wp_post_revision_field_$field", $compare_to->$field, $field, $compare_to, 'to' );
 
-		$diff = wp_text_diff( $content_from, $content_to, array( 'show_split_view' => true ) );
+		$args = array(
+			'show_split_view' => false
+		);
+
+		/**
+		 * Filter revisions text diff options.
+		 *
+		 * Filter the options passed to {@see wp_text_diff()} when viewing a post revision.
+		 *
+		 * @since 4.1.0
+		 *
+		 * @param array   $args {
+		 *     Associative array of options to pass to {@see wp_text_diff()}.
+		 *
+		 *     @type bool $show_split_view False for split view (two columns), true for
+		 *                                 un-split view (single column). Default false.
+		 * }
+		 * @param string  $field        The current revision field.
+		 * @param WP_Post $compare_from The revision post to compare from.
+		 * @param WP_Post $compare_to   The revision post to compare to.
+		 */
+		$args = apply_filters( 'revision_text_diff_options', $args, $field, $compare_from, $compare_to );
+
+		$diff = wp_text_diff( $content_from, $content_to, $args );
 
 		if ( ! $diff && 'post_title' === $field ) {
 			// It's a better user experience to still show the Title, even if it didn't change.
@@ -186,6 +209,25 @@ function wp_prepare_revisions_for_js( $post, $selected_revision_id, $from = null
 			'current'    => $current,
 			'restoreUrl' => $can_restore ? $restore_link : false,
 		);
+	}
+
+	/**
+	 * If we only have one revision, the initial revision is missing; This happens
+	 * when we have an autsosave and the user has clicked 'View the Autosave'
+	 */
+	if ( 1 === sizeof( $revisions ) ) {
+		$revisions[ $post->ID ] = array(
+			'id'         => $post->ID,
+			'title'      => get_the_title( $post->ID ),
+			'author'     => $authors[ $post->post_author ],
+			'date'       => date_i18n( __( 'M j, Y @ G:i' ), strtotime( $post->modified ) ),
+			'dateShort'  => date_i18n( _x( 'j M @ G:i', 'revision date short format' ), strtotime( $post->modified ) ),
+			'timeAgo'    => sprintf( __( '%s ago' ), human_time_diff( strtotime( $post->post_modified_gmt ), $now_gmt ) ),
+			'autosave'   => false,
+			'current'    => true,
+			'restoreUrl' => false,
+		);
+		$current_id = $post->ID;
 	}
 
 	/*

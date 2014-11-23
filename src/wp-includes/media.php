@@ -1226,6 +1226,10 @@ function wp_playlist_shortcode( $attr ) {
 
 	$id = intval( $atts['id'] );
 
+	if ( $atts['type'] !== 'audio' ) {
+		$atts['type'] = 'video';
+	}
+
 	$args = array(
 		'post_status' => 'inherit',
 		'post_type' => 'attachment',
@@ -2907,7 +2911,6 @@ function wp_enqueue_media( $args = array() ) {
 		'createNewVideoPlaylist' => __( 'Create a new video playlist' ),
 		'returnToLibrary'        => __( '&#8592; Return to library' ),
 		'allMediaItems'          => __( 'All media items' ),
-		'allMediaTypes'          => __( 'All media types' ),
 		'allDates'               => __( 'All dates' ),
 		'noItemsFound'           => __( 'No items found.' ),
 		'insertIntoPost'         => $hier ? __( 'Insert into page' ) : __( 'Insert into post' ),
@@ -2927,6 +2930,7 @@ function wp_enqueue_media( $args = array() ) {
 		'filterByDate'           => __( 'Filter by date' ),
 		'filterByType'           => __( 'Filter by type' ),
 		'searchMediaLabel'       => __( 'Search Media' ),
+		'noMedia'                => __( 'No media attachments found.' ),
 
 		// Library Details
 		'attachmentDetails'  => __( 'Attachment Details' ),
@@ -2997,10 +3001,6 @@ function wp_enqueue_media( $args = array() ) {
  		'updateVideoPlaylist'      => __( 'Update video playlist' ),
  		'addToVideoPlaylist'       => __( 'Add to video playlist' ),
  		'addToVideoPlaylistTitle'  => __( 'Add to Video Playlist' ),
-
- 		// Media Library
- 		'editMetadata' => __( 'Edit Metadata' ),
- 		'noMedia'      => __( 'No media attachments found.' ),
 	);
 
 	/**
@@ -3269,7 +3269,11 @@ function attachment_url_to_postid( $url ) {
 	global $wpdb;
 
 	$dir = wp_upload_dir();
-	$path = ltrim( $url, $dir['baseurl'] . '/' );
+	$path = $url;
+
+	if ( 0 === strpos( $path, $dir['baseurl'] . '/' ) ) {
+		$path = substr( $path, strlen( $dir['baseurl'] . '/' ) );
+	}
 
 	$sql = $wpdb->prepare(
 		"SELECT post_id FROM $wpdb->postmeta WHERE meta_key = '_wp_attached_file' AND meta_value = %s",

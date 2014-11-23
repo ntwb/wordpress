@@ -1,5 +1,5 @@
 /**
- * Live-update changed settings in real time in the Customizer preview. 
+ * Live-update changed settings in real time in the Customizer preview.
  */
 
 ( function( $ ) {
@@ -10,19 +10,21 @@
 		                    .find( '#twentyfifteen-color-scheme-css' );
 	}
 
-	// Site title and description.
+	// Site title.
 	wp.customize( 'blogname', function( value ) {
 		value.bind( function( to ) {
 			$( '.site-title a' ).text( to );
 		} );
 	} );
 
+	// Site tagline.
 	wp.customize( 'blogdescription', function( value ) {
 		value.bind( function( to ) {
 			$( '.site-description' ).text( to );
 		} );
 	} );
-	
+
+	// Color Scheme CSS.
 	wp.customize( 'color_scheme_css', function( value ) {
 		value.bind( function( to ) {
 			$style.html( to );

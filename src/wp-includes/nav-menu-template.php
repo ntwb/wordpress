@@ -88,28 +88,32 @@ class Walker_Nav_Menu extends Walker {
 		 * Filter the CSS class(es) applied to a menu item's <li>.
 		 *
 		 * @since 3.0.0
+		 * @since 4.1.0 The `$depth` parameter was added.
 		 *
 		 * @see wp_nav_menu()
 		 *
 		 * @param array  $classes The CSS classes that are applied to the menu item's <li>.
 		 * @param object $item    The current menu item.
 		 * @param array  $args    An array of wp_nav_menu() arguments.
+		 * @param int    $depth   Depth of menu item. Used for padding.
 		 */
-		$class_names = join( ' ', (array) apply_filters( 'nav_menu_css_class', array_filter( $classes ), $item, $args ) );
+		$class_names = join( ' ', (array) apply_filters( 'nav_menu_css_class', array_filter( $classes ), $item, $args, $depth ) );
 		$class_names = $class_names ? ' class="' . esc_attr( $class_names ) . '"' : '';
 
 		/**
 		 * Filter the ID applied to a menu item's <li>.
 		 *
 		 * @since 3.0.1
+		 * @since 4.1.0 The `$depth` parameter was added.
 		 *
 		 * @see wp_nav_menu()
 		 *
 		 * @param string $menu_id The ID that is applied to the menu item's <li>.
 		 * @param object $item    The current menu item.
 		 * @param array  $args    An array of wp_nav_menu() arguments.
+		 * @param int    $depth   Depth of menu item. Used for padding.
 		 */
-		$id = apply_filters( 'nav_menu_item_id', 'menu-item-'. $item->ID, $item, $args );
+		$id = apply_filters( 'nav_menu_item_id', 'menu-item-'. $item->ID, $item, $args, $depth );
 		$id = $id ? ' id="' . esc_attr( $id ) . '"' : '';
 
 		$output .= $indent . '<li' . $id . $class_names .'>';
@@ -124,6 +128,7 @@ class Walker_Nav_Menu extends Walker {
 		 * Filter the HTML attributes applied to a menu item's <a>.
 		 *
 		 * @since 3.6.0
+		 * @since 4.1.0 The `$depth` parameter was added.
 		 *
 		 * @see wp_nav_menu()
 		 *
@@ -135,10 +140,11 @@ class Walker_Nav_Menu extends Walker {
 		 *     @type string $rel    The rel attribute.
 		 *     @type string $href   The href attribute.
 		 * }
-		 * @param object $item The current menu item.
-		 * @param array  $args An array of wp_nav_menu() arguments.
+		 * @param object $item  The current menu item.
+		 * @param array  $args  An array of wp_nav_menu() arguments.
+		 * @param int    $depth Depth of menu item. Used for padding.
 		 */
-		$atts = apply_filters( 'nav_menu_link_attributes', $atts, $item, $args );
+		$atts = apply_filters( 'nav_menu_link_attributes', $atts, $item, $args, $depth );
 
 		$attributes = '';
 		foreach ( $atts as $attr => $value ) {

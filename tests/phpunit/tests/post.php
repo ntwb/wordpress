@@ -446,7 +446,9 @@ class Tests_Post extends WP_UnitTestCase {
 		// might only fail if the post ID is greater than four characters
 
 		global $wp_rewrite;
+		$wp_rewrite->init();
 		$wp_rewrite->set_permalink_structure('/%year%/%monthnum%/%day%/%postname%/');
+		$wp_rewrite->flush_rules();
 
 		$post = array(
 			'post_author' => $this->author_id,
@@ -738,61 +740,6 @@ class Tests_Post extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @ticket 19373
-	 */
-	function test_insert_programmatic_without_current_user_success() {
-		$this->_unset_current_user();
-
-		register_taxonomy( 'test_tax', 'post' );
-
-		$title = rand_str();
-		$post_data = array(
-			'post_author' => $this->author_id,
-			'post_status' => 'public',
-			'post_content' => rand_str(),
-			'post_title' => $title,
-			'tax_input' => array(
-				'test_tax' => array( 'term', 'term2', 'term3' )
-			)
-		);
-		// with sanitize set to false
-		$insert_post_id = wp_insert_post( $post_data, true, false );
-
-		$post = get_post( $insert_post_id );
-		$this->assertEquals( $post->post_author, $this->author_id );
-		$this->assertEquals( $post->post_title, $title );
-
-		$terms = wp_get_object_terms( $insert_post_id, 'test_tax' );
-		$this->assertTrue( ( is_array( $terms ) && count( $terms ) == 3 ) );
-	}
-
-	/**
-	 * @ticket 19373
-	 */
-	function test_insert_programmatic_without_current_user_fail() {
-		$this->_unset_current_user();
-
-		register_taxonomy( 'test_tax', 'post' );
-
-		$title = rand_str();
-		$post_data = array(
-			// post_author not set
-			'post_status' => 'public',
-			'post_content' => rand_str(),
-			'post_title' => $title,
-			'tax_input' => array(
-				'test_tax' => array( 'term', 'term2', 'term3' )
-			)
-		);
-		// with sanitize set to false
-		$insert_post_id = wp_insert_post( $post_data, true, false );
-
-		// should error because no default user exists and no post author is passed in
-		$this->assertInstanceOf( 'WP_Error', $insert_post_id );
-		$this->assertEquals( 'empty_author', $insert_post_id->get_error_code() );
-	}
-
-	/**
 	 * @ticket 24803
 	 */
 	function test_wp_count_posts() {
@@ -1015,5 +962,65 @@ class Tests_Post extends WP_UnitTestCase {
 
 		_unregister_post_type( 'post-type-1' );
 		_unregister_post_type( 'post-type-2' );
+	}
+
+	/**
+	 * @ticket 30339
+	 */
+	function test_wp_unique_post_slug_with_hierarchy() {
+		register_post_type( 'post-type-1', array( 'hierarchical' => true ) );
+
+		$args = array(
+			'post_type' => 'post-type-1',
+			'post_name' => 'some-slug',
+			'post_status' => 'publish',
+		);
+		$one = $this->factory->post->create( $args );
+		$args['post_name'] = 'some-slug-2';
+		$two = $this->factory->post->create( $args );
+
+		$this->assertEquals( 'some-slug', get_post( $one )->post_name );
+		$this->assertEquals( 'some-slug-2', get_post( $two )->post_name );
+
+		$this->assertEquals( 'some-slug-3', wp_unique_post_slug( 'some-slug', 0, 'publish', 'post-type-1', 0 ) );
+
+		_unregister_post_type( 'post-type-1' );
+	}
+
+	/**
+	 * @ticket 21212
+	 */
+	function test_utf8mb3_post_saves_with_emoji() {
+		global $wpdb;
+		$_wpdb = new wpdb_exposed_methods_for_testing();
+
+		if ( 'utf8' !== $_wpdb->get_col_charset( $wpdb->posts, 'post_title' ) ) {
+			$this->markTestSkipped( 'This test is only useful with the utf8 character set' );
+		}
+
+		require_once( ABSPATH . '/wp-admin/includes/post.php' );
+
+		$post_id = $this->factory->post->create();
+
+		$data = array(
+			'post_ID'      => $post_id,
+			'post_title'   => "foo\xf0\x9f\x98\x88bar",
+			'post_content' => "foo\xf0\x9f\x98\x8ebaz",
+			'post_excerpt' => "foo\xf0\x9f\x98\x90bat"
+		);
+
+		$expected = array(
+			'post_title'   => "foobar",
+			'post_content' => "foobaz",
+			'post_excerpt' => "foobat"
+		);
+
+		edit_post( $data );
+
+		$post = get_post( $post_id );
+
+		foreach( $expected as $field => $value ) {
+			$this->assertEquals( $post->$field, $value );
+		}
 	}
 }

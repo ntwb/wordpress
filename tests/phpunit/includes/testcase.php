@@ -144,7 +144,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 			}
 		}
 	}
-	
+
 	function flush_cache() {
 		global $wp_object_cache;
 		$wp_object_cache->group_ops = array();
@@ -304,6 +304,12 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 
 	protected function checkRequirements() {
 		parent::checkRequirements();
+
+		// Core tests no longer check against open Trac tickets, but others using WP_UnitTestCase may do so.
+		if ( defined( 'WP_RUN_CORE_TESTS' ) && WP_RUN_CORE_TESTS ) {
+			return;
+		}
+
 		if ( WP_TESTS_FORCE_KNOWN_BUGS )
 			return;
 		$tickets = PHPUnit_Util_Test::getTickets( get_class( $this ), $this->getName( false ) );
@@ -475,5 +481,13 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 		$uploads = wp_upload_dir();
 		$files = $this->files_in_dir( $uploads['basedir'] );
 		return $files;
+	}
+
+	/**
+	 * Helper to Convert a microtime string into a float
+	 */
+	protected function _microtime_to_float($microtime ){
+		$time_array = explode( ' ', $microtime );
+		return array_sum( $time_array );
 	}
 }

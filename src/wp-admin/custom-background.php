@@ -238,6 +238,19 @@ class Custom_Background {
 <div class="wrap" id="custom-background">
 <h2><?php _e( 'Custom Background' ); ?></h2>
 
+<?php if ( current_user_can( 'customize' ) ) { ?>
+<div class="update-nag hide-if-no-customize">
+	<p>
+		<?php
+		printf(
+			__( 'You can now manage and live-preview Custom Backgrounds in the <a href="%1$s">Customizer</a>.' ),
+			admin_url( 'customize.php?autofocus[control]=background_image' )
+		);
+		?>
+	</p>
+</div>
+<?php } ?>
+
 <?php if ( ! empty( $this->updated ) ) { ?>
 <div id="message" class="updated">
 <p><?php printf( __( 'Background updated. <a href="%s">Visit your site</a> to see how it looks.' ), home_url( '/' ) ); ?></p>
@@ -317,9 +330,9 @@ class Custom_Background {
 	</p>
 	<p>
 		<label for="choose-from-library-link"><?php _e( 'Or choose an image from your media library:' ); ?></label><br />
-		<a id="choose-from-library-link" class="button"
+		<button id="choose-from-library-link" class="button"
 			data-choose="<?php esc_attr_e( 'Choose a Background Image' ); ?>"
-			data-update="<?php esc_attr_e( 'Set as background' ); ?>"><?php _e( 'Choose Image' ); ?></a>
+			data-update="<?php esc_attr_e( 'Set as background' ); ?>"><?php _e( 'Choose Image' ); ?></button>
 	</p>
 	</form>
 </td>

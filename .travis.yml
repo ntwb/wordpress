@@ -9,15 +9,49 @@ matrix:
     - php: 5.5
       env: WP_TRAVISCI=travis:js
     - php: 5.2
-      env: WP_TRAVISCI=travis:phpunit
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
+    - php: 5.2
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
+    - php: 5.2
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
+    - php: 5.2
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
     - php: 5.3
-      env: WP_TRAVISCI=travis:phpunit
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
+    - php: 5.3
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
+    - php: 5.3
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
+    - php: 5.3
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
     - php: 5.4
-      env: WP_TRAVISCI=travis:phpunit
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
+    - php: 5.4
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
+    - php: 5.4
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
+    - php: 5.4
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
     - php: 5.5
-      env: WP_TRAVISCI=travis:phpunit
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
+    - php: 5.5
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
+    - php: 5.5
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
+    - php: 5.5
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
     - php: 5.6
-      env: WP_TRAVISCI=travis:phpunit
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
+    - php: 5.6
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
+    - php: 5.6
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
+    - php: 5.6
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
+    - php: 5.6
+      env: WP_TRAVISCI=travis:phpunit DB=MariaDB SANDBOX_FILE=mariadb-5.5.40/bintar-linux-x86_64/mariadb-5.5.40-linux-x86_64.tar.gz
+    - php: 5.6
+      env: WP_TRAVISCI=travis:phpunit DB=MariaDB SANDBOX_FILE=mariadb-10.0.14/bintar-linux-glibc_214-x86_64/mariadb-10.0.14-linux-glibc_214-x86_64.tar.gz
     - php: hhvm
       env: WP_TRAVISCI=travis:phpunit
   allow_failures:
@@ -29,11 +63,23 @@ before_install:
   - WP_CORE_DIR=/tmp/wordpress/
   - >
     if [[ "$WP_TRAVISCI" == "travis:phpunit" ]]; then
-        mysql -e "CREATE DATABASE wordpress_tests;" -uroot
+        sudo apt-get install -y perl libaio1 libaio-dev
+        curl -L https://cpanmin.us | sudo perl - App::cpanminus
+        sudo cpanm MySQL::Sandbox
+        if [[ "$DB" == "MySQL" ]]; then
+          wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MariaDB" ]]; then
+          wget https://downloads.mariadb.org/interstitial/"$SANDBOX_FILE"
+        fi
+        sudo chown -R travis:travis ~/sandboxes
+        make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm
+        ~/sandboxes/msb/use -e "CREATE DATABASE wordpress_tests;"
         cp wp-tests-config-sample.php wp-tests-config.php
         sed -i "s/youremptytestdbnamehere/wordpress_tests/" wp-tests-config.php
         sed -i "s/yourusernamehere/travis/" wp-tests-config.php
-        sed -i "s/yourpasswordhere//" wp-tests-config.php
+        sed -i "s/yourpasswordhere/travis/" wp-tests-config.php
+        sed -i "s/'localhost'/'127.0.0.1:3310'/" wp-tests-config.php
         svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
     fi
 

@@ -70,16 +70,15 @@ matrix:
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-x86_64.tar.gz
-    - php: 5.6
-      env: WP_TRAVISCI=travis:phpunit DB=MariaDB11 SANDBOX_FILE=mariadb-10.1.1-linux-x86_64.tar.gz
     - php: hhvm
+      env: WP_TRAVISCI=travis:phpunit
+    - php: hhvm-nightly
       env: WP_TRAVISCI=travis:phpunit
   allow_failures:
     - php: hhvm
+    - php: hhvm-nightly
     - php: 5.6
       env: SANDBOX_FILE=mysql-5.7.5-m15-linux-glibc2.5-x86_64.tar.gz
-    - php: 5.6
-      env: SANDBOX_FILE=mariadb-10.1.1-linux-glibc_214-x86_64.tar.gz
   fast_finish: true
 
 # Before install, failures in this section will result in build status 'errored'

@@ -69,7 +69,7 @@ matrix:
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
     - php: 5.6
-      env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.13-linux-glibc_214-x86_64.tar.gz
+      env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-x86_64.tar.gz
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB11 SANDBOX_FILE=mariadb-10.1.1-linux-glibc_214-x86_64.tar.gz
     - php: hhvm
@@ -100,7 +100,7 @@ before_install:
           wget https://downloads.mariadb.org/interstitial/mariadb-5.5.40/bintar-linux-x86_64/"$SANDBOX_FILE"
         fi
         if [[ "$DB" == "MariaDB10" ]]; then
-          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.0.13/bintar-quantal-amd64/"$SANDBOX_FILE"
+          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.0.14/bintar-linux-x86_64/"$SANDBOX_FILE"
         fi
         if [[ "$DB" == "MariaDB11" ]]; then
           wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.1.1/bintar-linux-glibc_214-x86_64/"$SANDBOX_FILE"

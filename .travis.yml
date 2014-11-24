@@ -17,9 +17,14 @@ env:
   - DB=MySQL5.1
   - DB=MySQL5.5
   - DB=MySQL5.6
-  - DB=MySQL5.7
   - DB=MariaDB5.5
   - DB=MariaDB10.0
+
+matrix:
+  include:
+    - php: 5.6
+      env: DB=MySQL5.7
+
 # Build matrix options
 matrix:
   include:

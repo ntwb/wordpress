@@ -97,7 +97,6 @@ matrix:
 #    - php: hhvm-nightly
 #      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
   allow_failures:
-    - env: DB=MySQL5.7
     - php: hhvm
     - php: hhvm-nightly
     - php: 5.6

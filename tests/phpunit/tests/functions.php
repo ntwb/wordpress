@@ -530,8 +530,19 @@ class Tests_Functions extends WP_UnitTestCase {
 	 */
 	function test_wp_json_encode() {
 		$this->assertEquals( wp_json_encode( 'a' ), '"a"' );
-		$this->assertEquals( wp_json_encode( '这' ), '"\u8fd9"' );
+	}
 
+	/**
+	 * @ticket 28786
+	 */
+	function test_wp_json_encode_utf8() {
+		$this->assertEquals( wp_json_encode( '这' ), '"\u8fd9"' );
+	}
+
+	/**
+	 * @ticket 28786
+	 */
+	function test_wp_json_encode_non_utf8() {
 		$old_charsets = $charsets = mb_detect_order();
 		if ( ! in_array( 'EUC-JP', $charsets ) ) {
 			$charsets[] = 'EUC-JP';
@@ -543,13 +554,15 @@ class Tests_Functions extends WP_UnitTestCase {
 
 		$this->assertEquals( 'aあb', $utf8 );
 
-		$this->assertEquals( wp_json_encode( $eucjp ), '"a\u3042b"' );
+		// json_encode() returns different things in different PHP versions.
+		// See: https://core.trac.wordpress.org/ticket/30471
+		if ( version_compare( PHP_VERSION, '5.5', '>=' ) ) {
+			$expected = '"a\u3042b"';
+		} else {
+			$expected = 'null';
+		}
 
-		$this->assertEquals( wp_json_encode( array( 'a' ) ), '["a"]' );
-
-		$object = new stdClass;
-		$object->a = 'b';
-		$this->assertEquals( wp_json_encode( $object ), '{"a":"b"}' );
+		$this->assertEquals( $expected, wp_json_encode( $eucjp ) );
 
 		mb_detect_order( $old_charsets );
 	}
@@ -557,7 +570,55 @@ class Tests_Functions extends WP_UnitTestCase {
 	/**
 	 * @ticket 28786
 	 */
+	function test_wp_json_encode_non_utf8_in_array() {
+		$old_charsets = $charsets = mb_detect_order();
+		if ( ! in_array( 'EUC-JP', $charsets ) ) {
+			$charsets[] = 'EUC-JP';
+			mb_detect_order( $charsets );
+		}
+
+		$eucjp = mb_convert_encoding( 'aあb', 'EUC-JP', 'UTF-8' );
+		$utf8 = mb_convert_encoding( $eucjp, 'UTF-8', 'EUC-JP' );
+
+		$this->assertEquals( 'aあb', $utf8 );
+
+		// json_encode() returns different things in different PHP versions.
+		// See: https://core.trac.wordpress.org/ticket/30471
+		if ( version_compare( PHP_VERSION, '5.5', '>=' ) ) {
+			$expected = '["c","a\u3042b"]';
+		} else {
+			$expected = '["c",null]';
+		}
+
+		$this->assertEquals( $expected, wp_json_encode( array( 'c', $eucjp ) ) );
+
+		mb_detect_order( $old_charsets );
+	}
+
+	/**
+	 * @ticket 28786
+	 */
+	function test_wp_json_encode_array() {
+		$this->assertEquals( wp_json_encode( array( 'a' ) ), '["a"]' );
+	}
+
+	/**
+	 * @ticket 28786
+	 */
+	function test_wp_json_encode_object() {
+		$object = new stdClass;
+		$object->a = 'b';
+		$this->assertEquals( wp_json_encode( $object ), '{"a":"b"}' );
+	}
+
+	/**
+	 * @ticket 28786
+	 */
 	function test_wp_json_encode_depth() {
+		if ( version_compare( PHP_VERSION, '5.5', '<' ) ) {
+			$this->markTestSkipped( 'json_encode() supports the $depth parameter in PHP 5.5+' );
+		};
+
 		$data = array( array( array( 1, 2, 3 ) ) );
 		$json = wp_json_encode( $data, 0, 1 );
 		$this->assertFalse( $json );

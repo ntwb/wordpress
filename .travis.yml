@@ -103,7 +103,7 @@ matrix:
       env: SANDBOX_FILE=mysql-5.7.5-m15-linux-glibc2.5-x86_64.tar.gz
   fast_finish: true
 
-# Before install, failures in this section will result in build status 'errored'
+# Before install, failures in this section will result in build status 'errored' #bump
 before_install:
   - set -e
   - WP_CORE_DIR=/tmp/wordpress/

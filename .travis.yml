@@ -71,7 +71,7 @@ matrix:
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-x86_64.tar.gz
     - php: 5.6
-      env: WP_TRAVISCI=travis:phpunit DB=MariaDB11 SANDBOX_FILE=mariadb-10.1.1-linux-glibc_214-x86_64.tar.gz
+      env: WP_TRAVISCI=travis:phpunit DB=MariaDB11 SANDBOX_FILE=mariadb-10.1.1-linux-x86_64.tar.gz
     - php: hhvm
       env: WP_TRAVISCI=travis:phpunit
   allow_failures:
@@ -103,7 +103,7 @@ before_install:
           wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.0.14/bintar-linux-x86_64/"$SANDBOX_FILE"
         fi
         if [[ "$DB" == "MariaDB11" ]]; then
-          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.1.1/bintar-linux-glibc_214-x86_64/"$SANDBOX_FILE"
+          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.1.1/bintar-linux-x86_64/"$SANDBOX_FILE"
         fi
         sudo chown -R travis:travis ~/sandboxes
         make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm

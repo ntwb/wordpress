@@ -65,7 +65,7 @@ matrix:
 #   - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
     - php: 5.6
-      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.7.5-m15-linux-glibc2.5-x86_64.tar.gz
+      env: WP_TRAVISCI=travis:phpunit DB=MySQL57 SANDBOX_FILE=mysql-5.7.5-m15-linux-glibc2.5-x86_64.tar.gz
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
     - php: 5.6
@@ -88,11 +88,14 @@ before_install:
         if [[ "$DB" == "MySQL" ]]; then
           wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
         fi
+        if [[ "$DB" == "MySQL57" ]]; then
+          wget http://cdn.mysql.com/Downloads/MySQL-5.7/"$SANDBOX_FILE"
+        fi
         if [[ "$DB" == "MariaDB5" ]]; then
           wget https://downloads.mariadb.org/interstitial/mariadb-5.5.40/bintar-linux-x86_64/"$SANDBOX_FILE"
         fi
         if [[ "$DB" == "MariaDB10" ]]; then
-          wget https://downloads.mariadb.org/f/mariadb-10.0.11/bintar-quantal-amd64/"$SANDBOX_FILE"
+          wget http://archive.mariadb.org//mariadb-10.0.11/bintar-quantal-amd64/"$SANDBOX_FILE"
         fi
         sudo chown -R travis:travis ~/sandboxes
         make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm

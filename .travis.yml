@@ -69,12 +69,15 @@ matrix:
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
     - php: 5.6
-      env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.11-linux-glibc_214-x86_64.tar.gz
+      env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.13-linux-glibc_214-x86_64.tar.gz
+    - php: 5.6
+      env: WP_TRAVISCI=travis:phpunit DB=MariaDB11 SANDBOX_FILE=mariadb-10.1.1-linux-glibc_214-x86_64.tar.gz
     - php: hhvm
       env: WP_TRAVISCI=travis:phpunit
   allow_failures:
     - php: hhvm
     - env: SANDBOX_FILE=mysql-5.7.5-m15-linux-glibc2.5-x86_64.tar.gz
+    - env: SANDBOX_FILE=mariadb-10.1.1-linux-glibc_214-x86_64.tar.gz
   fast_finish: true
 
 # Before install, failures in this section will result in build status 'errored'
@@ -95,7 +98,10 @@ before_install:
           wget https://downloads.mariadb.org/interstitial/mariadb-5.5.40/bintar-linux-x86_64/"$SANDBOX_FILE"
         fi
         if [[ "$DB" == "MariaDB10" ]]; then
-          wget http://archive.mariadb.org//mariadb-10.0.11/bintar-quantal-amd64/"$SANDBOX_FILE"
+          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.0.13/bintar-quantal-amd64/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MariaDB11" ]]; then
+          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.1.1/bintar-linux-glibc_214-x86_64/"$SANDBOX_FILE"
         fi
         sudo chown -R travis:travis ~/sandboxes
         make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm

@@ -89,6 +89,7 @@ before_install:
 # Before script, failures in this section will result in build status 'failed'
 before_script:
   - npm install -g grunt-cli
+  - npm update -g
   - npm install
 
 # Script, failures in this section will result in build status 'failed'

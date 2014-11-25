@@ -70,6 +70,8 @@ matrix:
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB5.5
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB10.0
+    - php: 5.6
+      env: EMOJI=;)
     - php: hhvm
       env: WP_TRAVISCI=travis:phpunit DB=MySQL5.6
     - php: hhvm-nightly
@@ -79,6 +81,8 @@ matrix:
     - php: hhvm-nightly
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MySQL5.7
+    - php: 5.6
+      env: EMOJI=;)
   fast_finish: true
 
 # Before install, failures in this section will result in build status 'errored'
@@ -120,6 +124,23 @@ before_install:
         sudo chown -R travis:travis ~/sandboxes
         make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm
         ~/sandboxes/msb/use -e "CREATE DATABASE wordpress_tests;"
+        cp wp-tests-config-sample.php wp-tests-config.php
+        sed -i "s/yourpasswordhere/travis/" wp-tests-config.php
+        sed -i "s/'localhost'/'127.0.0.1:3310'/" wp-tests-config.php
+        sed -i "s/youremptytestdbnamehere/wordpress_tests/" wp-tests-config.php
+        sed -i "s/yourusernamehere/travis/" wp-tests-config.php
+        svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
+    fi
+    if [[ "$EMOJI=" == ";)" ]]; then
+        WP_TRAVISCI=travis:phpunit
+        sudo apt-get install -y perl libaio1 libaio-dev
+        curl -L https://cpanmin.us | sudo perl - App::cpanminus
+        sudo cpanm MySQL::Sandbox
+        SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
+        wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
+        sudo chown -R travis:travis ~/sandboxes
+        make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm
+        ~/sandboxes/msb/use -e "CREATE DATABASE wordpress_tests CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
         cp wp-tests-config-sample.php wp-tests-config.php
         sed -i "s/yourpasswordhere/travis/" wp-tests-config.php
         sed -i "s/'localhost'/'127.0.0.1:3310'/" wp-tests-config.php

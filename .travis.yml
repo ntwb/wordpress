@@ -3,8 +3,6 @@
 # Tell Travis CI we're using PHP
 language: php
 
-cache: apt
-
 php:
   - 5.2
   - 5.3
@@ -15,89 +13,19 @@ php:
   - hhvm-nightly
 
 env:
-  - DB=MySQL5.0
-  - DB=MySQL5.1
-  - DB=MySQL5.5
-  - DB=MySQL5.6
-  - DB=MariaDB5.5
-  - DB=MariaDB10.0
+  - WP_TRAVISCI=travis:js
+  - DB=MySQL5.0 WP_TRAVISCI=travis:phpunit
+  - DB=MySQL5.1 WP_TRAVISCI=travis:phpunit
+  - DB=MySQL5.5 WP_TRAVISCI=travis:phpunit
+  - DB=MySQL5.6 WP_TRAVISCI=travis:phpunit
+  - DB=MariaDB5.5 WP_TRAVISCI=travis:phpunit
+  - DB=MariaDB10.0 WP_TRAVISCI=travis:phpunit
 
 matrix:
   include:
     - php: 5.6
       env: DB=MySQL5.7
 
-# Build matrix options
-matrix:
-  include:
-#   - php: 5.5
-#     env: WP_TRAVISCI=travis:js
-#   - php: 5.2
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
-#   - php: 5.2
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
-#   - php: 5.2
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
-#   - php: 5.2
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
-#   - php: 5.2
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
-#   - php: 5.2
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-glibc_214-x86_64.tar.gz
-#   - php: 5.3
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
-#   - php: 5.3
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
-#   - php: 5.3
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
-#   - php: 5.3
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
-#   - php: 5.3
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
-#   - php: 5.3
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-glibc_214-x86_64.tar.gz
-#   - php: 5.4
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
-#   - php: 5.4
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
-#   - php: 5.4
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
-#   - php: 5.4
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
-#   - php: 5.4
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
-#   - php: 5.4
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-glibc_214-x86_64.tar.gz
-#   - php: 5.5
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
-#   - php: 5.5
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
-#   - php: 5.5
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
-#   - php: 5.5
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
-#   - php: 5.5
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
-#   - php: 5.5
-#     env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-glibc_214-x86_64.tar.gz
-#   - php: 5.6
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
-#   - php: 5.6
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
-#   - php: 5.6
-#     env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
-#    - php: 5.6
-#      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
-#    - php: 5.6
-#      env: WP_TRAVISCI=travis:phpunit DB=MySQL57 SANDBOX_FILE=mysql-5.7.5-m15-linux-glibc2.5-x86_64.tar.gz
-#    - php: 5.6
-#      env: WP_TRAVISCI=travis:phpunit DB=MariaDB5 SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
-#    - php: 5.6
-#      env: WP_TRAVISCI=travis:phpunit DB=MariaDB10 SANDBOX_FILE=mariadb-10.0.14-linux-x86_64.tar.gz
-#    - php: hhvm
-#      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
-#    - php: hhvm-nightly
-#      env: WP_TRAVISCI=travis:phpunit DB=MySQL SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
   allow_failures:
     - php: hhvm
     - php: hhvm-nightly
@@ -110,40 +38,53 @@ before_install:
   - set -e
   - WP_CORE_DIR=/tmp/wordpress/
   -
-#  - >
-#    if [[ "$WP_TRAVISCI" == "travis:phpunit" ]]; then
--        sudo apt-get install -y perl libaio1 libaio-dev
--        curl -L https://cpanmin.us | sudo perl - App::cpanminus
--        sudo cpanm MySQL::Sandbox
--        if [[ "$DB" == "MariaDB5.5" ]]; then
--          SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
--          wget https://downloads.mariadb.org/interstitial/mariadb-5.5.40/bintar-linux-x86_64/"$SANDBOX_FILE"
--        fi
--        if [[ "$DB" == "MySQL" ]]; then
--          wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
--        fi
--        if [[ "$DB" == "MySQL57" ]]; then
--          wget http://cdn.mysql.com/Downloads/MySQL-5.7/"$SANDBOX_FILE"
--        fi
--        if [[ "$DB" == "MariaDB5" ]]; then
--          wget https://downloads.mariadb.org/interstitial/mariadb-5.5.40/bintar-linux-x86_64/"$SANDBOX_FILE"
--        fi
--        if [[ "$DB" == "MariaDB10" ]]; then
--          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.0.14/bintar-linux-x86_64/"$SANDBOX_FILE"
--        fi
--        if [[ "$DB" == "MariaDB11" ]]; then
--          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.1.1/bintar-linux-x86_64/"$SANDBOX_FILE"
--        fi
--        sudo chown -R travis:travis ~/sandboxes
--        make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm
--        ~/sandboxes/msb/use -e "CREATE DATABASE wordpress_tests;"
--        cp wp-tests-config-sample.php wp-tests-config.php
--        sed -i "s/youremptytestdbnamehere/wordpress_tests/" wp-tests-config.php
--        sed -i "s/yourusernamehere/travis/" wp-tests-config.php
--        sed -i "s/yourpasswordhere/travis/" wp-tests-config.php
--        sed -i "s/'localhost'/'127.0.0.1:3310'/" wp-tests-config.php
--        svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
-#    fi
+  - >
+    if [[ "$WP_TRAVISCI" == "travis:phpunit" ]]; then
+        sudo apt-get install -y perl libaio1 libaio-dev
+        curl -L https://cpanmin.us | sudo perl - App::cpanminus
+        sudo cpanm MySQL::Sandbox
+        if [[ "$DB" == "MySQL5.0" ]]; then
+          SANDBOX_FILE=mysql-5.0.96-linux-x86_64-glibc23.tar.gz
+          wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MySQL5.1" ]]; then
+          SANDBOX_FILE=mysql-5.1.72-linux-x86_64-glibc23.tar.gz
+          wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MySQL5.5" ]]; then
+          SANDBOX_FILE=mysql-5.5.39-linux2.6-x86_64.tar.gz
+          wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MySQL5.6" ]]; then
+          SANDBOX_FILE=mysql-5.6.20-linux-glibc2.5-x86_64.tar.gz
+          wget http://downloads.mysql.com/archives/get/file/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MySQL5.7" ]]; then
+          SANDBOX_FILE=mysql-5.7.5-m15-linux-glibc2.5-x86_64.tar.gz
+          wget http://cdn.mysql.com/Downloads/MySQL-5.7/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MariaDB5.5" ]]; then
+          SANDBOX_FILE=mariadb-5.5.40-linux-x86_64.tar.gz
+          wget https://downloads.mariadb.org/interstitial/mariadb-5.5.40/bintar-linux-x86_64/"$SANDBOX_FILE"
+        fi
+        if [[ "$DB" == "MariaDB10.0" ]]; then
+          SANDBOX_FILE=mariadb-10.0.14-linux-x86_64.tar.gz
+          wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.0.14/bintar-linux-x86_64/"$SANDBOX_FILE"
+        fi
+#       if [[ "$DB" == "MariaDB10.1" ]]; then
+#         SANDBOX_FILE=mariadb-10.1.1-linux-x86_64.tar.gz
+#         wget http://sfo1.mirrors.digitalocean.com/mariadb/mariadb-10.1.1/bintar-linux-x86_64/"$SANDBOX_FILE"
+#        fi
+        sudo chown -R travis:travis ~/sandboxes
+        make_sandbox "$SANDBOX_FILE" -- -u travis -p travis -P 3310 -d msb --no_confirm
+        ~/sandboxes/msb/use -e "CREATE DATABASE wordpress_tests;"
+        cp wp-tests-config-sample.php wp-tests-config.php
+        sed -i "s/youremptytestdbnamehere/wordpress_tests/" wp-tests-config.php
+        sed -i "s/yourusernamehere/travis/" wp-tests-config.php
+        sed -i "s/yourpasswordhere/travis/" wp-tests-config.php
+        sed -i "s/'localhost'/'127.0.0.1:3310'/" wp-tests-config.php
+        svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
+    fi
 
 # Before script, failures in this section will result in build status 'failed'
 before_script:

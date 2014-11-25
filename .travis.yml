@@ -6,7 +6,7 @@ language: php
 # Build matrix options
 matrix:
   include:
-    - php: 5.5
+    - php: 5.6
       env: WP_TRAVISCI=travis:js
     - php: 5.2
       env: WP_TRAVISCI=travis:phpunit DB=MySQL5.0

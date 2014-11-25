@@ -83,7 +83,6 @@ matrix:
 
 # Before install, failures in this section will result in build status 'errored'
 before_install:
-  - set -e
   - WP_CORE_DIR=/tmp/wordpress/
   - >
     if [[ "$WP_TRAVISCI" == "travis:phpunit" ]]; then

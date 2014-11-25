@@ -71,7 +71,7 @@ matrix:
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB10.0
     - php: 5.6
-      env: EMOJI=;)
+      env: EMOJI=utf8mb4
     - php: hhvm
       env: WP_TRAVISCI=travis:phpunit DB=MySQL5.6
     - php: hhvm-nightly
@@ -82,7 +82,7 @@ matrix:
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MySQL5.7
     - php: 5.6
-      env: EMOJI=;)
+      env: EMOJI=utf8mb4
   fast_finish: true
 
 # Before install, failures in this section will result in build status 'errored'
@@ -133,7 +133,7 @@ before_install:
     fi
   - pwd
   - >
-    if [[ "$EMOJI=" == ";)" ]]; then
+    if [[ "$EMOJI=" == "utf8mb4" ]]; then
         WP_TRAVISCI=travis:phpunit
         sudo apt-get install -y perl libaio1 libaio-dev
         curl -L https://cpanmin.us | sudo perl - App::cpanminus

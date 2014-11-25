@@ -131,6 +131,8 @@ before_install:
         sed -i "s/yourusernamehere/travis/" wp-tests-config.php
         svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
     fi
+  - pwd
+  - >
     if [[ "$EMOJI=" == ";)" ]]; then
         WP_TRAVISCI=travis:phpunit
         sudo apt-get install -y perl libaio1 libaio-dev

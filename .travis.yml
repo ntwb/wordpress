@@ -137,6 +137,10 @@ before_install:
         sed -i "s/'localhost'/'127.0.0.1:3310'/" wp-tests-config.php
         sed -i "s/youremptytestdbnamehere/wordpress_tests/" wp-tests-config.php
         sed -i "s/yourusernamehere/travis/" wp-tests-config.php
+        if [[ "$DB" == "utf8mb4" ]]; then
+          sed -i "s/utf8/utf8mb4/" wp-tests-config.php
+          sed -i "s/'DB_COLLATE', ''/'DB_COLLATE', 'utf8mb4_unicode_ci'/" wp-tests-config.php
+        fi
         svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
     fi
 

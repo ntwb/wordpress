@@ -71,7 +71,7 @@ matrix:
     - php: 5.6
       env: WP_TRAVISCI=travis:phpunit DB=MariaDB10.0
     - php: 5.6
-      env: WP_TRAVISCI=travis:phpunit DB==utf8mb4
+      env: WP_TRAVISCI=travis:phpunit DB=utf8mb4
     - php: hhvm
       env: WP_TRAVISCI=travis:phpunit DB=MySQL5.6
     - php: hhvm-nightly

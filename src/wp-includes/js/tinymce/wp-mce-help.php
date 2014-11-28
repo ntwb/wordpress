@@ -72,12 +72,6 @@ header('Content-Type: text/html; charset=' . get_bloginfo('charset'));
 	.keys .right {
 		text-align: right;
 	}
-
-	.macos .win,
-	.windows .mac {
-		display: none;
-	}
-
 </style>
 <?php if ( is_rtl() ) : ?>
 <style type="text/css">
@@ -94,11 +88,6 @@ header('Content-Type: text/html; charset=' . get_bloginfo('charset'));
 <?php endif; ?>
 </head>
 <body class="windows wp-core-ui">
-<script type="text/javascript">
-if ( navigator.userAgent.indexOf( 'Mac OS' ) > -1 ) {
-	document.body.className = document.body.className.replace( /windows/, 'macos' );
-}
-</script>
 
 <div class="wrap">
 
@@ -130,13 +119,6 @@ if ( navigator.userAgent.indexOf( 'Mac OS' ) > -1 ) {
 		<tr><th>w</th><td><?php _e('Distraction Free Writing mode'); ?></td><th>t</th><td><?php _e('Insert More Tag'); ?></td></tr>
 		<tr><th>p</th><td><?php _e('Insert Page Break tag'); ?></td><th>h</th><td><?php _e('Help'); ?></td></tr>
 		<tr><th>x</th><td><?php _e('Add/remove code tag'); ?></td><th> </th><td>&nbsp;</td></tr>
-	</table>
-
-	<p style="padding: 15px 10px 10px;"><?php _e('Editor width in Distraction Free Writing mode:'); ?></p>
-	<table class="keys">
-		<tr><th><span class="win">Alt +</span><span class="mac">Ctrl +</span></th><td><?php _e('Wider'); ?></td>
-			<th><span class="win">Alt -</span><span class="mac">Ctrl -</span></th><td><?php _e('Narrower'); ?></td></tr>
-		<tr><th><span class="win">Alt 0</span><span class="mac">Ctrl 0</span></th><td><?php _e('Default width'); ?></td><th></th><td></td></tr>
 	</table>
 </div>
 

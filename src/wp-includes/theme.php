@@ -871,7 +871,7 @@ function validate_current_theme() {
  *
  * @since 3.1.0
  *
- * @return array Theme modifications.
+ * @return array|null Theme modifications.
  */
 function get_theme_mods() {
 	$theme_slug = get_option( 'stylesheet' );
@@ -909,7 +909,7 @@ function get_theme_mod( $name, $default = false ) {
 		/**
 		 * Filter the theme modification, or 'theme_mod', value.
 		 *
-		 * The dynamic portion of the hook name, $name, refers to
+		 * The dynamic portion of the hook name, `$name`, refers to
 		 * the key name of the modification array. For example,
 		 * 'header_textcolor', 'header_image', and so on depending
 		 * on the theme options.
@@ -943,7 +943,7 @@ function set_theme_mod( $name, $value ) {
 	/**
 	 * Filter the theme mod value on save.
 	 *
-	 * The dynamic portion of the hook name, $name, refers to the key name of
+	 * The dynamic portion of the hook name, `$name`, refers to the key name of
 	 * the modification array. For example, 'header_textcolor', 'header_image',
 	 * and so on depending on the theme options.
 	 *
@@ -1364,7 +1364,7 @@ body.custom-background { <?php echo trim( $style ); ?> }
  *
  * @since 3.0.0
  *
- * @param mixed $stylesheet Optional. Stylesheet name or array thereof, relative to theme root.
+ * @param array|string $stylesheet Optional. Stylesheet name or array thereof, relative to theme root.
  * 	Defaults to 'editor-style.css'
  */
 function add_editor_style( $stylesheet = 'editor-style.css' ) {
@@ -1700,7 +1700,7 @@ function get_theme_support( $feature ) {
  * @since 3.0.0
  * @see add_theme_support()
  * @param string $feature the feature being added
- * @return bool Whether feature was removed.
+ * @return null|bool Whether feature was removed.
  */
 function remove_theme_support( $feature ) {
 	// Blacklist: for internal registrations not used directly by themes.
@@ -1715,6 +1715,7 @@ function remove_theme_support( $feature ) {
  *
  * @access private
  * @since 3.1.0
+ * @param string $feature
  */
 function _remove_theme_support( $feature ) {
 	global $_wp_theme_features;
@@ -1816,10 +1817,9 @@ function current_theme_supports( $feature ) {
 	/**
 	 * Filter whether the current theme supports a specific feature.
 	 *
-	 * The dynamic portion of the hook name, $feature, refers to
-	 * the specific theme feature. Possible values include 'post-formats',
-	 * 'post-thumbnails', 'custom-background', 'custom-header', 'menus',
-	 * 'automatic-feed-links', and 'html5'.
+	 * The dynamic portion of the hook name, `$feature`, refers to the specific theme
+	 * feature. Possible values include 'post-formats', 'post-thumbnails', 'custom-background',
+	 * 'custom-header', 'menus', 'automatic-feed-links', and 'html5'.
 	 *
 	 * @since 3.4.0
 	 *

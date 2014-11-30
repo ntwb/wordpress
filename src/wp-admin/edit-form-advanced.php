@@ -17,12 +17,14 @@ $_wp_editor_expand = $_content_editor_dfw = false;
  * Filter whether to enable the 'expand' functionality in the post editor.
  *
  * @since 4.0.0
+ * @since 4.1.0 Added the `$post_type` parameter.
  *
- * @param bool $expand Whether to enable the 'expand' functionality. Default true.
+ * @param bool   $expand    Whether to enable the 'expand' functionality. Default true.
+ * @param string $post_type Post type.
  */
 if ( post_type_supports( $post_type, 'editor' ) && ! wp_is_mobile() &&
 	 ! ( $is_IE && preg_match( '/MSIE [5678]/', $_SERVER['HTTP_USER_AGENT'] ) ) &&
-	 apply_filters( 'wp_editor_expand', true ) ) {
+	 apply_filters( 'wp_editor_expand', true, $post_type ) ) {
 
 	wp_enqueue_script('editor-expand');
 	$_content_editor_dfw = true;
@@ -242,7 +244,7 @@ do_action( 'add_meta_boxes', $post_type, $post );
 /**
  * Fires after all built-in meta boxes have been added, contextually for the given post type.
  *
- * The dynamic portion of the hook, $post_type, refers to the post type of the post.
+ * The dynamic portion of the hook, `$post_type`, refers to the post type of the post.
  *
  * @since 3.0.0
  *
@@ -464,7 +466,7 @@ do_action( 'edit_form_top', $post ); ?>
 </div>
 <?php
 /**
- * Fires before the permalink field.
+ * Fires before the permalink field in the edit form.
  *
  * @since 4.1.0
  *

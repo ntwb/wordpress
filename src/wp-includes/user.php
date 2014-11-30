@@ -19,8 +19,8 @@
  *
  * @since 2.5.0
  *
- * @param array $credentials Optional. User info in order to sign on.
- * @param bool $secure_cookie Optional. Whether to use secure cookie.
+ * @param array       $credentials   Optional. User info in order to sign on.
+ * @param string|bool $secure_cookie Optional. Whether to use secure cookie.
  * @return WP_User|WP_Error WP_User on success, WP_Error on failure.
  */
 function wp_signon( $credentials = array(), $secure_cookie = '' ) {
@@ -229,7 +229,7 @@ function wp_authenticate_spam_check( $user ) {
  *
  * @since 3.9.0
  *
- * @param int|bool $user The user ID (or false) as received from the
+ * @param int|bool $user_id The user ID (or false) as received from the
  *                       determine_current_user filter.
  * @return int|bool User ID if validated, false otherwise. If a user ID from
  *                  an earlier filter callback is received, that value is returned.
@@ -250,7 +250,7 @@ function wp_validate_logged_in_cookie( $user_id ) {
  * Number of posts user has written.
  *
  * @since 3.0.0
- * @since 4.1.0 Added $post_type parameter.
+ * @since 4.1.0 Added `$post_type` argument.
  *
  * @global wpdb $wpdb WordPress database object for queries.
  *
@@ -269,7 +269,7 @@ function count_user_posts( $userid, $post_type = 'post' ) {
 	 * Filter the number of posts a user has written.
 	 *
 	 * @since 2.7.0
-	 * @since 4.1.0 Added $post_type parameter.
+	 * @since 4.1.0 Added `$post_type` argument.
 	 *
 	 * @param int    $count     The user's post count.
 	 * @param int    $userid    User ID.
@@ -345,7 +345,7 @@ function get_current_user_id() {
  *
  * @param string $option     User option name.
  * @param int    $user       Optional. User ID.
- * @param bool   $deprecated Use get_option() to check for an option in the options table.
+ * @param string $deprecated Use get_option() to check for an option in the options table.
  * @return mixed User option value on success, false on failure.
  */
 function get_user_option( $option, $user = 0, $deprecated = '' ) {
@@ -371,7 +371,7 @@ function get_user_option( $option, $user = 0, $deprecated = '' ) {
 	/**
 	 * Filter a specific user option value.
 	 *
-	 * The dynamic portion of the hook name, $option, refers to the user option name.
+	 * The dynamic portion of the hook name, `$option`, refers to the user option name.
 	 *
 	 * @since 2.5.0
 	 *
@@ -485,7 +485,7 @@ class WP_User_Query {
 	 *
 	 * @since 3.1.0
 	 *
-	 * @param string|array $args Optional. The query variables.
+	 * @param null|string|array $args Optional. The query variables.
 	 * @return WP_User_Query
 	 */
 	public function __construct( $query = null ) {
@@ -1499,7 +1499,7 @@ function sanitize_user_field($field, $value, $user_id, $context) {
 			/**
 			 * Filter a user field value in the 'edit' context.
 			 *
-			 * The dynamic portion of the hook name, $field, refers to the prefixed user
+			 * The dynamic portion of the hook name, `$field`, refers to the prefixed user
 			 * field being filtered, such as 'user_login', 'user_email', 'first_name', etc.
 			 *
 			 * @since 2.9.0
@@ -1523,7 +1523,7 @@ function sanitize_user_field($field, $value, $user_id, $context) {
 			/**
 			 * Filter the value of a user field in the 'db' context.
 			 *
-			 * The dynamic portion of the hook name, $field, refers to the prefixed user
+			 * The dynamic portion of the hook name, `$field`, refers to the prefixed user
 			 * field being filtered, such as 'user_login', 'user_email', 'first_name', etc.
  			 *
 			 * @since 2.9.0
@@ -1543,7 +1543,7 @@ function sanitize_user_field($field, $value, $user_id, $context) {
 			/**
 			 * Filter the value of a user field in a standard context.
 			 *
-			 * The dynamic portion of the hook name, $field, refers to the prefixed user
+			 * The dynamic portion of the hook name, `$field`, refers to the prefixed user
 			 * field being filtered, such as 'user_login', 'user_email', 'first_name', etc.
 			 *
 			 * @since 2.9.0
@@ -2040,7 +2040,7 @@ function wp_create_user($username, $password, $email = '') {
  * @since 3.3.0
  * @access private
  *
- * @param object $user WP_User instance.
+ * @param WP_User $user WP_User instance.
  * @return array
  */
 function _get_additional_user_keys( $user ) {

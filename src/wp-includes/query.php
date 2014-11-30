@@ -176,7 +176,7 @@ function is_post_type_archive( $post_types = '' ) {
  * @since 2.0.0
  * @uses $wp_query
  *
- * @param mixed $attachment Attachment ID, title, slug, or array of such.
+ * @param int|string|array $attachment Attachment ID, title, slug, or array of such.
  * @return bool
  */
 function is_attachment( $attachment = '' ) {
@@ -276,8 +276,8 @@ function is_tag( $tag = '' ) {
  * @since 2.5.0
  * @uses $wp_query
  *
- * @param mixed $taxonomy Optional. Taxonomy slug or slugs.
- * @param mixed $term Optional. Term ID, name, slug or array of Term IDs, names, and slugs.
+ * @param string|array $taxonomy Optional. Taxonomy slug or slugs.
+ * @param int|string|array $term Optional. Term ID, name, slug or array of Term IDs, names, and slugs.
  * @return bool
  */
 function is_tax( $taxonomy = '', $term = '' ) {
@@ -2100,7 +2100,7 @@ class WP_Query {
 	 *
 	 * @since 3.7.0
 	 *
-	 * @param array Terms to check.
+	 * @param array $terms Terms to check.
 	 * @return array Terms that are not stopwords.
 	 */
 	protected function parse_search_terms( $terms ) {
@@ -4540,7 +4540,7 @@ class WP_Query {
 	 *
 	 * @since 4.1.0
 	 *
-	 * @param object $post Post data.
+	 * @param WP_Post $post Post data.
 	 * @return bool True when finished.
 	 */
 	public function setup_postdata( $post ) {
@@ -4558,8 +4558,10 @@ class WP_Query {
 		if ( ! $page )
 			$page = 1;
 
-		// Force full post content when viewing the permalink for the $post, or
-		// when on an RSS feed. Otherwise respect the 'more' tag.
+		/*
+		 * Force full post content when viewing the permalink for the $post,
+		 * or when on an RSS feed. Otherwise respect the 'more' tag.
+		 */
 		if ( $post->ID === get_queried_object_id() && ( $this->is_page() || $this->is_single() ) ) {
 			$more = 1;
 		} else if ( $this->is_feed() ) {
@@ -4575,9 +4577,11 @@ class WP_Query {
 			$content = str_replace( "\n<!--nextpage-->\n", '<!--nextpage-->', $content );
 			$content = str_replace( "\n<!--nextpage-->", '<!--nextpage-->', $content );
 			$content = str_replace( "<!--nextpage-->\n", '<!--nextpage-->', $content );
+
 			// Ignore nextpage at the beginning of the content.
 			if ( 0 === strpos( $content, '<!--nextpage-->' ) )
 				$content = substr( $content, 15 );
+
 			$pages = explode('<!--nextpage-->', $content);
 			$numpages = count($pages);
 			if ( $numpages > 1 )
@@ -4590,7 +4594,7 @@ class WP_Query {
 		 * Fires once the post data has been setup.
 		 *
 		 * @since 2.8.0
-		 * @since 4.1.0 Introduced $this parameter.
+		 * @since 4.1.0 Introduced `$this` parameter.
 		 *
 		 * @param WP_Post  &$post The Post object (passed by reference).
 		 * @param WP_Query &$this The current Query object (passed by reference).
@@ -4604,8 +4608,6 @@ class WP_Query {
 	 * restores the $post global to the current post in this query.
 	 *
 	 * @since 3.7.0
-	 *
-	 * @return bool
 	 */
 	public function reset_postdata() {
 		if ( ! empty( $this->post ) ) {

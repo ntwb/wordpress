@@ -308,7 +308,7 @@ function wp_default_scripts( &$scripts ) {
 
 	$scripts->add( 'mediaelement', "/wp-includes/js/mediaelement/mediaelement-and-player.min.js", array('jquery'), '2.15.1', 1 );
 	did_action( 'init' ) && $scripts->localize( 'mediaelement', 'mejsL10n', array(
-		'language' => substr( get_bloginfo( 'language' ), 0, 2 ),
+		'language' => get_bloginfo( 'language' ),
 		'strings'  => array(
 			'Close'               => __( 'Close' ),
 			'Fullscreen'          => __( 'Fullscreen' ),
@@ -503,7 +503,7 @@ function wp_default_scripts( &$scripts ) {
 
 		$scripts->add( 'farbtastic', '/wp-admin/js/farbtastic.js', array('jquery'), '1.2' );
 
-		$scripts->add( 'iris', '/wp-admin/js/iris.min.js', array( 'jquery-ui-draggable', 'jquery-ui-slider', 'jquery-touch-punch' ), false, 1 );
+		$scripts->add( 'iris', '/wp-admin/js/iris.min.js', array( 'jquery-ui-draggable', 'jquery-ui-slider', 'jquery-touch-punch' ), '1.0.7', 1 );
 		$scripts->add( 'wp-color-picker', "/wp-admin/js/color-picker$suffix.js", array( 'iris' ), false, 1 );
 		did_action( 'init' ) && $scripts->localize( 'wp-color-picker', 'wpColorPickerL10n', array(
 			'clear' => __( 'Clear' ),

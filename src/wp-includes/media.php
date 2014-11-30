@@ -11,28 +11,30 @@
  *
  * This is so that the image is a better fit for the editor and theme.
  *
- * The $size parameter accepts either an array or a string. The supported string
+ * The `$size` parameter accepts either an array or a string. The supported string
  * values are 'thumb' or 'thumbnail' for the given thumbnail size or defaults at
  * 128 width and 96 height in pixels. Also supported for the string value is
  * 'medium' and 'full'. The 'full' isn't actually supported, but any value other
  * than the supported will result in the content_width size or 500 if that is
  * not set.
  *
- * Finally, there is a filter named 'editor_max_image_size', that will be called
- * on the calculated array for width and height, respectively. The second
+ * Finally, there is a filter named {@see 'editor_max_image_size'}, that will be
+ * called on the calculated array for width and height, respectively. The second
  * parameter will be the value that was in the $size parameter. The returned
  * type for the hook is an array with the width as the first element and the
  * height as the second element.
  *
  * @since 2.5.0
  *
- * @param int $width Width of the image
- * @param int $height Height of the image
- * @param string|array $size Size of what the result image should be.
- * @param context Could be 'display' (like in a theme) or 'edit' (like inserting into an editor)
+ * @param int          $width   Width of the image in pixels.
+ * @param int          $height  Height of the image in pixels.
+ * @param string|array $size    Optional. Size or array of sizes of what the result image
+ *                              should be. Accepts any valid image size name. Default 'medium'.
+ * @param string       $context Optional. Could be 'display' (like in a theme) or 'edit'
+ *                              (like inserting into an editor). Default null.
  * @return array Width and height of what the result image should resize to.
  */
-function image_constrain_size_for_editor($width, $height, $size = 'medium', $context = null ) {
+function image_constrain_size_for_editor( $width, $height, $size = 'medium', $context = null ) {
 	global $content_width, $_wp_additional_image_sizes;
 
 	if ( ! $context )
@@ -214,12 +216,13 @@ function image_downsize($id, $size = 'medium') {
  *
  * @since 2.9.0
  *
+ * @global array $_wp_additional_image_sizes Associative array of additional image sizes.
+ *
  * @param string     $name   Image size identifier.
  * @param int        $width  Image width in pixels.
  * @param int        $height Image height in pixels.
  * @param bool|array $crop   Optional. Whether to crop images to specified height and width or resize.
  *                           An array can specify positioning of the crop area. Default false.
- * @return bool|array False, if no image was created. Metadata array on success.
  */
 function add_image_size( $name, $width = 0, $height = 0, $crop = false ) {
 	global $_wp_additional_image_sizes;
@@ -268,13 +271,13 @@ function remove_image_size( $name ) {
  * Registers an image size for the post thumbnail.
  *
  * @since 2.9.0
+ *
  * @see add_image_size() for details on cropping behavior.
  *
  * @param int        $width  Image width in pixels.
  * @param int        $height Image height in pixels.
  * @param bool|array $crop   Optional. Whether to crop images to specified height and width or resize.
  *                           An array can specify positioning of the crop area. Default false.
- * @return bool|array False, if no image was created. Metadata array on success.
  */
 function set_post_thumbnail_size( $width = 0, $height = 0, $crop = false ) {
 	add_image_size( 'post-thumbnail', $width, $height, $crop );
@@ -376,26 +379,33 @@ function wp_constrain_dimensions( $current_width, $current_height, $max_width=0,
 	$smaller_ratio = min( $width_ratio, $height_ratio );
 	$larger_ratio  = max( $width_ratio, $height_ratio );
 
-	if ( intval( $current_width * $larger_ratio ) > $max_width || intval( $current_height * $larger_ratio ) > $max_height )
+	if ( (int) round( $current_width * $larger_ratio ) > $max_width || (int) round( $current_height * $larger_ratio ) > $max_height ) {
  		// The larger ratio is too big. It would result in an overflow.
 		$ratio = $smaller_ratio;
-	else
+	} else {
 		// The larger ratio fits, and is likely to be a more "snug" fit.
 		$ratio = $larger_ratio;
+	}
 
 	// Very small dimensions may result in 0, 1 should be the minimum.
-	$w = max ( 1, intval( $current_width  * $ratio ) );
-	$h = max ( 1, intval( $current_height * $ratio ) );
+	$w = max ( 1, (int) round( $current_width  * $ratio ) );
+	$h = max ( 1, (int) round( $current_height * $ratio ) );
 
 	// Sometimes, due to rounding, we'll end up with a result like this: 465x700 in a 177x177 box is 117x176... a pixel short
 	// We also have issues with recursive calls resulting in an ever-changing result. Constraining to the result of a constraint should yield the original result.
 	// Thus we look for dimensions that are one pixel shy of the max value and bump them up
-	if ( $did_width && $w == $max_width - 1 )
-		$w = $max_width; // Round it up
-	if ( $did_height && $h == $max_height - 1 )
-		$h = $max_height; // Round it up
 
-	return array( $w, $h );
+	// Note: $did_width means it is possible $smaller_ratio == $width_ratio.
+	if ( $did_width && $w == $max_width - 1 ) {
+		$w = $max_width; // Round it up
+	}
+
+	// Note: $did_height means it is possible $smaller_ratio == $height_ratio.
+	if ( $did_height && $h == $max_height - 1 ) {
+		$h = $max_height; // Round it up
+	}
+
+	return apply_filters( 'wp_constrain_dimensions', array( $w, $h ), $current_width, $current_height, $max_width, $max_height );
 }
 
 /**
@@ -456,12 +466,12 @@ function image_resize_dimensions($orig_w, $orig_h, $dest_w, $dest_h, $crop = fal
 		$new_w = min($dest_w, $orig_w);
 		$new_h = min($dest_h, $orig_h);
 
-		if ( !$new_w ) {
-			$new_w = intval($new_h * $aspect_ratio);
+		if ( ! $new_w ) {
+			$new_w = (int) round( $new_h * $aspect_ratio );
 		}
 
-		if ( !$new_h ) {
-			$new_h = intval($new_w / $aspect_ratio);
+		if ( ! $new_h ) {
+			$new_h = (int) round( $new_w / $aspect_ratio );
 		}
 
 		$size_ratio = max($new_w / $orig_w, $new_h / $orig_h);
@@ -502,8 +512,9 @@ function image_resize_dimensions($orig_w, $orig_h, $dest_w, $dest_h, $crop = fal
 	}
 
 	// if the resulting image would be the same size or larger we don't want to resize it
-	if ( $new_w >= $orig_w && $new_h >= $orig_h )
+	if ( $new_w >= $orig_w && $new_h >= $orig_h && $dest_w != $orig_w && $dest_h != $orig_h ) {
 		return false;
+	}
 
 	// the return array matches the parameters to imagecopyresampled()
 	// int dst_x, int dst_y, int src_x, int src_y, int dst_w, int dst_h, int src_w, int src_h
@@ -1039,8 +1050,8 @@ function gallery_shortcode( $attr ) {
 	 *
 	 * @since 2.5.0
 	 *
-	 * @param string $gallery_style Default gallery shortcode CSS styles.
-	 * @param string $gallery_div   Opening HTML div container for the gallery shortcode output.
+	 * @param string $gallery_style Default CSS styles and opening HTML div container
+	 *                              for the gallery shortcode output.
 	 */
 	$output = apply_filters( 'gallery_style', $gallery_style . $gallery_div );
 
@@ -1938,7 +1949,7 @@ function adjacent_image_link($prev = true, $size = 'thumbnail', $text = false) {
 	/**
 	 * Filter the adjacent image link.
 	 *
-	 * The dynamic portion of the hook name, $adjacent, refers to the type of adjacency,
+	 * The dynamic portion of the hook name, `$adjacent`, refers to the type of adjacency,
 	 * either 'next', or 'previous'.
 	 *
 	 * @since 3.5.0
@@ -2026,7 +2037,7 @@ function get_taxonomies_for_attachments( $output = 'names' ) {
  *
  * @param int $width Image width
  * @param int $height Image height
- * @return image resource
+ * @return resource resource
  */
 function wp_imagecreatetruecolor($width, $height) {
 	$img = imagecreatetruecolor($width, $height);
@@ -2042,6 +2053,12 @@ function wp_imagecreatetruecolor($width, $height) {
  *
  * @since 2.9.0
  * @see WP_Embed::register_handler()
+ *
+ * @global WP_Embed $wp_embed
+ * @param string   $id
+ * @param string   $regex
+ * @param callable $callback
+ * @param int      $priority
  */
 function wp_embed_register_handler( $id, $regex, $callback, $priority = 10 ) {
 	global $wp_embed;
@@ -2053,6 +2070,10 @@ function wp_embed_register_handler( $id, $regex, $callback, $priority = 10 ) {
  *
  * @since 2.9.0
  * @see WP_Embed::unregister_handler()
+ *
+ * @global WP_Embed $wp_embed
+ * @param string $id
+ * @param int    $priority
  */
 function wp_embed_unregister_handler( $id, $priority = 10 ) {
 	global $wp_embed;
@@ -2124,7 +2145,7 @@ function wp_expand_dimensions( $example_width, $example_height, $max_width, $max
  *
  * @param string $url The URL that should be embedded.
  * @param array $args Additional arguments and parameters.
- * @return bool|string False on failure or the embed HTML on success.
+ * @return false|string False on failure or the embed HTML on success.
  */
 function wp_oembed_get( $url, $args = '' ) {
 	require_once( ABSPATH . WPINC . '/class-oembed.php' );

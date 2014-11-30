@@ -197,7 +197,7 @@ function number_format_i18n( $number, $decimals = 0 ) {
  *
  * @param int|string $bytes    Number of bytes. Note max integer size for integers.
  * @param int        $decimals Optional. Precision of number of decimal places. Default 0.
- * @return bool|string False on failure. Number string on success.
+ * @return string|false False on failure. Number string on success.
  */
 function size_format( $bytes, $decimals = 0 ) {
 	$quant = array(
@@ -641,7 +641,7 @@ function wp_get_http_headers( $url, $deprecated = false ) {
  * @global string $currentday  The day of the current post in the loop.
  * @global string $previousday The day of the previous post in the loop.
  *
- * @return int|bool 1|true when new day, 0|false if not a new day.
+ * @return int 1 when new day, 0 if not a new day.
  */
 function is_new_day() {
 	global $currentday, $previousday;
@@ -842,7 +842,7 @@ function add_magic_quotes( $array ) {
  * @see wp_safe_remote_get()
  *
  * @param string $uri URI/URL of web page to retrieve.
- * @return bool|string HTTP content. False on failure.
+ * @return false|string HTTP content. False on failure.
  */
 function wp_remote_fopen( $uri ) {
 	$parsed_url = @parse_url( $uri );
@@ -1327,9 +1327,9 @@ function is_blog_installed() {
  *
  * @since 2.0.4
  *
- * @param string $actionurl URL to add nonce action.
- * @param string $action    Optional. Nonce action name. Default -1.
- * @param string $name      Optional. Nonce name. Default '_wpnonce'.
+ * @param string     $actionurl URL to add nonce action.
+ * @param int|string $action    Optional. Nonce action name. Default -1.
+ * @param string     $name      Optional. Nonce name. Default '_wpnonce'.
  * @return string Escaped URL with nonce action added.
  */
 function wp_nonce_url( $actionurl, $action = -1, $name = '_wpnonce' ) {
@@ -1357,10 +1357,10 @@ function wp_nonce_url( $actionurl, $action = -1, $name = '_wpnonce' ) {
  *
  * @since 2.0.4
  *
- * @param string $action  Optional. Action name. Default -1.
- * @param string $name    Optional. Nonce name. Default '_wpnonce'.
- * @param bool   $referer Optional. Whether to set the referer field for validation. Default true.
- * @param bool   $echo    Optional. Whether to display or return hidden form field. Default true.
+ * @param int|string $action  Optional. Action name. Default -1.
+ * @param string     $name    Optional. Nonce name. Default '_wpnonce'.
+ * @param bool       $referer Optional. Whether to set the referer field for validation. Default true.
+ * @param bool       $echo    Optional. Whether to display or return hidden form field. Default true.
  * @return string Nonce field HTML markup.
  */
 function wp_nonce_field( $action = -1, $name = "_wpnonce", $referer = true , $echo = true ) {
@@ -1426,7 +1426,7 @@ function wp_original_referer_field( $echo = true, $jump_back_to = 'current' ) {
  *
  * @since 2.0.4
  *
- * @return string|bool False on failure. Referer URL on success.
+ * @return false|string False on failure. Referer URL on success.
  */
 function wp_get_referer() {
 	if ( ! function_exists( 'wp_validate_redirect' ) )
@@ -1447,7 +1447,7 @@ function wp_get_referer() {
  *
  * @since 2.0.4
  *
- * @return string|bool False if no original referer or original referer if set.
+ * @return string|false False if no original referer or original referer if set.
  */
 function wp_get_original_referer() {
 	if ( ! empty( $_REQUEST['_wp_original_http_referer'] ) && function_exists( 'wp_validate_redirect' ) )
@@ -1918,10 +1918,10 @@ function wp_unique_filename( $dir, $filename, $unique_filename_callback = null )
  *
  * @since 2.0.0
  *
- * @param string $name       Filename.
- * @param null   $deprecated Never used. Set to null.
- * @param mixed  $bits       File content
- * @param string $time       Optional. Time formatted in 'yyyy/mm'. Default null.
+ * @param string       $name       Filename.
+ * @param null|string  $deprecated Never used. Set to null.
+ * @param mixed        $bits       File content
+ * @param string       $time       Optional. Time formatted in 'yyyy/mm'. Default null.
  * @return array
  */
 function wp_upload_bits( $name, $deprecated, $bits, $time = null ) {
@@ -2049,7 +2049,7 @@ function wp_check_filetype( $filename, $mimes = null ) {
 	$ext = false;
 
 	foreach ( $mimes as $ext_preg => $mime_match ) {
-		$ext_preg = '!\.(' . $ext_preg . ')$!i';
+		$ext_preg = '!\.(' . $ext_preg . ')(\?.*)?$!i';
 		if ( preg_match( $ext_preg, $filename, $ext_matches ) ) {
 			$type = $mime_match;
 			$ext = $ext_matches[1];
@@ -2641,8 +2641,9 @@ function _scalar_wp_die_handler( $message = '' ) {
  * @since 4.1.0
  *
  * @param mixed $data    Variable (usually an array or object) to encode as JSON.
- * @param int   $options Options to be passed to json_encode(). Default 0.
- * @param int   $depth   Maximum depth to walk through $data. Must be greater than 0, default 512.
+ * @param int   $options Optional. Options to be passed to json_encode(). Default 0.
+ * @param int   $depth   Optional. Maximum depth to walk through $data. Must be
+ *                       greater than 0. Default 512.
  * @return bool|string The JSON encoded string, or false if it cannot be encoded.
  */
 function wp_json_encode( $data, $options = 0, $depth = 512 ) {
@@ -2806,12 +2807,14 @@ function wp_send_json_success( $data = null ) {
 /**
  * Send a JSON response back to an Ajax request, indicating failure.
  *
- * If the `$data` parameter is a `WP_Error` object, the errors within the object are processed
- * and output as an array of error codes and corresponding messages. All other types are
- * output without further processing.
+ * If the `$data` parameter is a {@see WP_Error} object, the errors
+ * within the object are processed and output as an array of error
+ * codes and corresponding messages. All other types are output
+ * without further processing.
  *
  * @since 3.5.0
- * @since 4.1.0 The `$data` parameter is now processed if a `WP_Error` object is passed in.
+ * @since 4.1.0 The `$data` parameter is now processed if a {@see WP_Error}
+ *              object is passed in.
  *
  * @param mixed $data Data to encode as JSON, then print and die.
  */
@@ -4191,8 +4194,8 @@ function get_file_data( $file, $default_headers, $context = '' ) {
 	/**
 	 * Filter extra file headers by context.
 	 *
-	 * The dynamic portion of the hook name, $context, refers to the context
-	 * where extra headers might be loaded.
+	 * The dynamic portion of the hook name, `$context`, refers to
+	 * the context where extra headers might be loaded.
 	 *
 	 * @since 2.9.0
 	 *

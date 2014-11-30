@@ -151,7 +151,7 @@ function get_template_part( $slug, $name = null ) {
 	/**
 	 * Fires before the specified template part file is loaded.
 	 *
-	 * The dynamic portion of the hook name, $slug, refers to the slug name
+	 * The dynamic portion of the hook name, `$slug`, refers to the slug name
 	 * for the generic template part.
 	 *
 	 * @since 3.0.0
@@ -718,6 +718,9 @@ function get_bloginfo( $show = '', $filter = 'raw' ) {
  *
  * @since 4.1.0
  * @access private
+ * @internal
+ *
+ * @see wp_title()
  */
 function _wp_render_title_tag() {
 	if ( ! current_theme_supports( 'title-tag' ) ) {
@@ -1855,7 +1858,7 @@ function the_date( $d = '', $before = '', $after = '', $echo = true ) {
  *
  * @param  string      $d    Optional. PHP date format defaults to the date_format option if not specified.
  * @param  int|WP_Post $post Optional. Post ID or WP_Post object. Default current post.
- * @return string|bool Date the current post was written. False on failure.
+ * @return false|string Date the current post was written. False on failure.
  */
 function get_the_date( $d = '', $post = null ) {
 	$post = get_post( $post );
@@ -1973,7 +1976,7 @@ function the_time( $d = '' ) {
  *                          was written. Either 'G', 'U', or php date format defaults
  *                          to the value specified in the time_format option. Default empty.
  * @param int|WP_Post $post WP_Post object or ID. Default is global $post object.
- * @return string|int|bool Formatted date string or Unix timestamp. False on failure.
+ * @return false|string Formatted date string or Unix timestamp. False on failure.
  */
 function get_the_time( $d = '', $post = null ) {
 	$post = get_post($post);
@@ -2011,7 +2014,7 @@ function get_the_time( $d = '', $post = null ) {
  * @param bool        $gmt       Optional. Whether to retrieve the GMT time. Default false.
  * @param int|WP_Post $post      WP_Post object or ID. Default is global $post object.
  * @param bool        $translate Whether to translate the time string. Default false.
- * @return string|int|bool Formatted date string or Unix timestamp. False on failure.
+ * @return false|string Formatted date string or Unix timestamp. False on failure.
  */
 function get_post_time( $d = 'U', $gmt = false, $post = null, $translate = false ) {
 	$post = get_post($post);
@@ -2098,7 +2101,7 @@ function get_the_modified_time($d = '') {
  * @param bool        $gmt       Optional. Whether to retrieve the GMT time. Default false.
  * @param int|WP_Post $post      WP_Post object or ID. Default is global $post object.
  * @param bool        $translate Whether to translate the time string. Default false.
- * @return string|int|bool Formatted date string or Unix timestamp. False on failure.
+ * @return false|string Formatted date string or Unix timestamp. False on failure.
  */
 function get_post_modified_time( $d = 'U', $gmt = false, $post = null, $translate = false ) {
 	$post = get_post($post);
@@ -3006,11 +3009,11 @@ function get_the_generator( $type = '' ) {
 	/**
 	 * Filter the HTML for the retrieved generator type.
 	 *
-	 * The dynamic portion of the hook name, $type, refers to the generator type.
+	 * The dynamic portion of the hook name, `$type`, refers to the generator type.
 	 *
 	 * @since 2.5.0
 	 *
-	 * @param string $gen  The HTML markup output to 'wp_head()'.
+	 * @param string $gen  The HTML markup output to {@see wp_head()}.
 	 * @param string $type The type of generator. Accepts 'html', 'xhtml', 'atom',
 	 *                     'rss2', 'rdf', 'comment', 'export'.
 	 */

@@ -26,6 +26,7 @@
     "grunt-legacy-util": "^0.2.0",
     "grunt-patch-wordpress": "~0.2.1",
     "grunt-sass": "~0.16.0",
+    "grunt-tenon": "~0.0.4",
     "matchdep": "~0.3.0"
   }
 }

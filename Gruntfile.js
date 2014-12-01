@@ -334,6 +334,56 @@ module.exports = function(grunt) {
 				args: ['-c', 'phpunit.xml.dist', '--group', 'external-http']
 			}
 		},
+		tenon: {
+			options: {
+				apiKey: "220707b36b67035ebc0413da29593329"
+			},
+			local: {
+				urls: [
+					'http://twentyfifteendemo.wordpress.com/',
+					'http://twentyfifteendemo.wordpress.com/page/2/',
+					'http://twentyfifteendemo.wordpress.com/about-twenty-fifteen/',
+					'http://twentyfifteendemo.wordpress.com/readability/',
+					'http://twentyfifteendemo.wordpress.com/image-alignment-and-styles/',
+					'http://twentyfifteendemo.wordpress.com/html-elements/',
+					'http://twentyfifteendemo.wordpress.com/a-parent-page/',
+					'http://twentyfifteendemo.wordpress.com/2014/10/28/sticky-post-with-a-featured-image/',
+					'http://twentyfifteendemo.wordpress.com/2014/10/28/standard-format-with-a-featured-image/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/the-war-of-the-worlds-bk-1/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/image-post-format-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/aside-post-format-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/gallery-post-format-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/multiple-page-post-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/multiple-page-post-example/2/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/multiple-page-post-example/3/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/video-post-format-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/quote-post-format-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/chat-post-format-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/more-tag-example/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/more-tag-example/#more-51',
+					'http://twentyfifteendemo.wordpress.com/2011/06/06/a-post-with-a-featured-image/',
+					'http://twentyfifteendemo.wordpress.com/type/image/',
+					'http://twentyfifteendemo.wordpress.com/type/aside/',
+					'http://twentyfifteendemo.wordpress.com/type/gallery/',
+					'http://twentyfifteendemo.wordpress.com/type/link/',
+					'http://twentyfifteendemo.wordpress.com/type/video/',
+					'http://twentyfifteendemo.wordpress.com/type/quote/',
+					'http://twentyfifteendemo.wordpress.com/type/status/',
+					'http://twentyfifteendemo.wordpress.com/type/chat/',
+					'http://twentyfifteendemo.wordpress.com/2014/10/28/',
+					'http://twentyfifteendemo.wordpress.com/2014/10/',
+					'http://twentyfifteendemo.wordpress.com/2014/',
+					'http://twentyfifteendemo.wordpress.com/2011/07/07/the-war-of-the-worlds-bk-1/',
+					'http://twentyfifteendemo.wordpress.com/tag/myth/',
+					'http://twentyfifteendemo.wordpress.com/tag/announcement/',
+					'http://twentyfifteendemo.wordpress.com/category/books/',
+					'http://twentyfifteendemo.wordpress.com/category/uncategorized/',
+					'http://twentyfifteendemo.wordpress.com/category/writing/',
+					'http://twentyfifteendemo.wordpress.com/author/themedemos/',
+					'http://twentyfifteendemo.wordpress.com/author/iamtakashi/'
+				]
+			}
+		},
 		uglify: {
 			core: {
 				expand: true,
@@ -502,6 +552,7 @@ module.exports = function(grunt) {
 	// Travis CI tasks.
 	grunt.registerTask('travis:js', 'Runs Javascript Travis CI tasks.', [ 'jshint:corejs', 'qunit:compiled' ]);
 	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.', 'phpunit');
+	grunt.registerTask('travis:tenon', 'Runs Tenon IO Twenty Fifteen accessibility Travis CI task.', 'tenon');
 
 	// Patch task.
 	grunt.renameTask('patch_wordpress', 'patch');

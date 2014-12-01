@@ -336,9 +336,7 @@ module.exports = function(grunt) {
 		},
 		tenon: {
 			options: {
-				apiKey: "220707b36b67035ebc0413da29593329"
-			},
-			local: {
+				apiKey: "220707b36b67035ebc0413da29593329",
 				urls: [
 					'http://twentyfifteendemo.wordpress.com/',
 					'http://twentyfifteendemo.wordpress.com/page/2/',
@@ -382,6 +380,8 @@ module.exports = function(grunt) {
 					'http://twentyfifteendemo.wordpress.com/author/themedemos/',
 					'http://twentyfifteendemo.wordpress.com/author/iamtakashi/'
 				]
+			},
+			local: {
 			}
 		},
 		uglify: {

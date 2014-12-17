@@ -336,7 +336,7 @@ module.exports = function(grunt) {
 		},
 		tenon: {
 			options: {
-				apiKey: "220707b36b67035ebc0413da29593329",
+				apiKey: '220707b36b67035ebc0413da29593329',
 				urls: [
 					'http://twentyfifteendemo.wordpress.com/',
 					'http://twentyfifteendemo.wordpress.com/page/2/',

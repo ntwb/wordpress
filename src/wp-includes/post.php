@@ -4284,25 +4284,15 @@ function get_page_by_title( $page_title, $output = OBJECT, $post_type = 'page' )
 function get_page_children( $page_id, $pages ) {
 	$page_list = array();
 	foreach ( (array) $pages as $page ) {
-		if ( $page->post_parent == $page_id || in_array( $page_id, $page->ancestors ) ) {
+		if ( $page->post_parent == $page_id ) {
 			$page_list[] = $page;
-			if ( $children = get_page_children( $page->ID, $pages, false ) ) {
+			if ( $children = get_page_children( $page->ID, $pages ) ) {
 				$page_list = array_merge( $page_list, $children );
 			}
 		}
 	}
 
-	// Ensure uniqueness.
-	$page_ids = array();
-	$unique_page_list = array();
-	foreach ( $page_list as $page_list_item ) {
-		if ( ! in_array( $page_list_item->ID, $page_ids ) ) {
-			$unique_page_list[] = $page_list_item;
-			$page_ids[] = $page_list_item->ID;
-		}
-	}
-
-	return $unique_page_list;
+	return $page_list;
 }
 
 /**
@@ -4389,35 +4379,38 @@ function get_page_uri( $page ) {
  *
  * @since 1.5.0
  *
- * @param mixed $args {
- *     Array or string of arguments. Optional.
+ * @param array|string $args {
+ *     Optional. Array or string of arguments to retrieve pages.
  *
- *     @type int    'child_of'     Page ID to return child and grandchild pages of. Default 0, or no restriction.
- *     @type string 'sort_order'   How to sort retrieved pages.
- *                                 Default 'ASC'. Accepts 'ASC', 'DESC'.
- *     @type string 'sort_column'  What columns to sort pages by, comma-separated.
- *                                 Default 'post_title'. Accepts 'post_author', 'post_date', 'post_title', 'post_name',
- *                                 'post_modified', 'post_modified_gmt', 'menu_order', 'post_parent', 'ID', 'rand',
- *                                 'comment_count'. 'post_' can be omitted for any values that start with it.
- *     @type bool   'hierarchical' Whether to return pages hierarchically. Default true.
- *     @type array  'exclude'      Array of page IDs to exclude.
- *     @type array  'include'      Array of page IDs to include. Cannot be used with 'child_of', 'parent', 'exclude',
- *                                 'meta_key', 'meta_value', or 'hierarchical'.
- *     @type string 'meta_key'     Only include pages with this meta key.
- *     @type string 'meta_value'   Only include pages with this meta value.
- *     @type string 'authors'      A comma-separated list of author IDs.
- *     @type int    'parent'       Page ID to return direct children of. 'hierarchical' must be false.
- *                                 Default -1, or no restriction.
- *     @type int    'exclude_tree' Remove all children of the given ID from returned pages.
- *     @type int    'number'       The number of pages to return. Default 0, or all pages.
- *     @type int    'offset'       The number of pages to skip before returning. Requires 'number'.
- *                                 Default 0.
- *     @type string 'post_type'    The post type to query.
- *                                 Default 'page'.
- *     @type string 'post_status'  A comma-separated list of post status types to include.
- *                                 Default 'publish'.
+ *     @type int          $child_of     Page ID to return child and grandchild pages of.
+ *                                      Default 0, or no restriction.
+ *     @type string       $sort_order   How to sort retrieved pages. Accepts 'ASC', 'DESC'. Default 'ASC'.
+ *     @type string       $sort_column  What columns to sort pages by, comma-separated. Accepts 'post_author',
+ *                                      'post_date', 'post_title', 'post_name', 'post_modified', 'menu_order',
+ *                                      'post_modified_gmt', 'post_parent', 'ID', 'rand', 'comment_count'.
+ *                                      'post_' can be omitted for any values that start with it.
+ *                                      Default 'post_title'.
+ *     @type bool         $hierarchical Whether to return pages hierarchically. Default true.
+ *     @type array        $exclude      Array of page IDs to exclude. Default empty array.
+ *     @type array        $include      Array of page IDs to include. Cannot be used with `$child_of`,
+ *                                      `$parent`, `$exclude`, `$meta_key`, `$meta_value`, or `$hierarchical`.
+ *                                      Default empty array.
+ *     @type string       $meta_key     Only include pages with this meta key. Default empty.
+ *     @type string       $meta_value   Only include pages with this meta value. Requires `$meta_key`.
+ *                                      Default empty.
+ *     @type string       $authors      A comma-separated list of author IDs. Default empty.
+ *     @type int          $parent       Page ID to return direct children of. `$hierarchical` must be false.
+ *                                      Default -1, or no restriction.
+ *     @type string|array $exclude_tree Comma-separated string or array of page IDs to exclude.
+ *                                      Default empty array.
+ *     @type int          $number       The number of pages to return. Default 0, or all pages.
+ *     @type int          $offset       The number of pages to skip before returning. Requires `$number`.
+ *                                      Default 0.
+ *     @type string       $post_type    The post type to query. Default 'page'.
+ *     @type string       $post_status  A comma-separated list of post status types to include.
+ *                                      Default 'publish'.
  * }
- * @return array List of pages matching defaults or $args.
+ * @return array List of pages matching defaults or `$args`.
  */
 function get_pages( $args = array() ) {
 	global $wpdb;
@@ -4630,9 +4623,6 @@ function get_pages( $args = array() ) {
 	// Update cache.
 	update_post_cache( $pages );
 
-	// Convert to WP_Post instances
-	$pages = array_map( 'get_post', $pages );
-
 	if ( $child_of || $hierarchical ) {
 		$pages = get_page_children($child_of, $pages);
 	}
@@ -4660,6 +4650,9 @@ function get_pages( $args = array() ) {
 	}
 
 	wp_cache_set( $cache_key, $page_structure, 'posts' );
+
+	// Convert to WP_Post instances
+	$pages = array_map( 'get_post', $pages );
 
 	/**
 	 * Filter the retrieved list of pages.

@@ -22,7 +22,7 @@ tinymce.PluginManager.add( 'wpeditimage', function( editor ) {
 	} );
 
 	editor.addButton( 'wp_img_edit', {
-		tooltip: 'Edit',
+		tooltip: 'Edit ', // trailing space is needed, used for context
 		icon: 'dashicon dashicons-edit',
 		onclick: function() {
 			editImage( editor.selection.getNode() );
@@ -302,17 +302,19 @@ tinymce.PluginManager.add( 'wpeditimage', function( editor ) {
 		}, delay );
 	} );
 
-	floatingToolbar.on( 'show', function() {
-		var self = this;
+	function hide() {
+		if ( ! toolbarIsHidden ) {
+			floatingToolbar.hide();
+		}
+	}
 
+	floatingToolbar.on( 'show', function() {
 		toolbarIsHidden = false;
 
-		setTimeout( function() {
-			if ( self._visible ) {
-				DOM.addClass( self.getEl(), 'mce-inline-toolbar-grp-active' );
-				self.reposition();
-			}
-		}, 100 );
+		if ( this._visible ) {
+			this.reposition();
+			DOM.addClass( this.getEl(), 'mce-inline-toolbar-grp-active' );
+		}
 	} );
 
 	floatingToolbar.on( 'hide', function() {
@@ -320,11 +322,12 @@ tinymce.PluginManager.add( 'wpeditimage', function( editor ) {
 		DOM.removeClass( this.getEl(), 'mce-inline-toolbar-grp-active' );
 	} );
 
-	function hide() {
-		if ( ! toolbarIsHidden ) {
-			floatingToolbar.hide();
+	floatingToolbar.on( 'keydown', function( event ) {
+		if ( event.keyCode === 27 ) {
+			hide();
+			editor.focus();
 		}
-	}
+	} );
 
 	DOM.bind( window, 'resize scroll', function() {
 		if ( ! toolbarIsHidden && editorWrapParent.hasClass( 'wp-editor-expand' ) ) {
@@ -335,7 +338,7 @@ tinymce.PluginManager.add( 'wpeditimage', function( editor ) {
 	editor.on( 'init', function() {
 		editor.dom.bind( editor.getWin(), 'scroll', hide );
 	});
-	
+
 	editor.on( 'blur hide', hide );
 
 	// 119 = F8
@@ -1124,6 +1127,12 @@ tinymce.PluginManager.add( 'wpeditimage', function( editor ) {
 			if ( floatingToolbar ) {
 				floatingToolbar.reposition();
 			}
+
+			editor.fire( 'ExecCommand', {
+				command: cmd,
+				ui: event.ui,
+				value: event.value
+			} );
 		}
 	});
 

@@ -185,7 +185,9 @@ class WP_Date_Query {
 	 * @since 4.1.0
 	 * @access public
 	 *
-	 * @param array $query A tax_query query clause.
+	 * @param array $queries
+	 * @param array $parent_query
+	 *
 	 * @return array Sanitized queries.
 	 */
 	public function sanitize_query( $queries, $parent_query = null ) {
@@ -412,7 +414,7 @@ class WP_Date_Query {
 
 		if ( $day_exists && $month_exists && $year_exists ) {
 			// 1. Checking day, month, year combination.
-			if ( ! checkdate( $date_query['month'], $date_query['day'], $date_query['year'] ) ) {
+			if ( ! wp_checkdate( $date_query['month'], $date_query['day'], $date_query['year'], sprintf( '%s-%s-%s', $date_query['year'], $date_query['month'], $date_query['day'] ) ) ) {
 				/* translators: 1: year, 2: month, 3: day of month */
 				$day_month_year_error_msg = sprintf(
 					__( 'The following values do not describe a valid date: year %1$s, month %2$s, day %3$s.' ),
@@ -429,12 +431,12 @@ class WP_Date_Query {
 			 * 2. checking day, month combination
 			 * We use 2012 because, as a leap year, it's the most permissive.
 			 */
-			if ( ! checkdate( $date_query['month'], $date_query['day'], 2012 ) ) {
+			if ( ! wp_checkdate( $date_query['month'], $date_query['day'], 2012, sprintf( '2012-%s-%s', $date_query['month'], $date_query['day'] ) ) ) {
 				/* translators: 1: month, 2: day of month */
 				$day_month_year_error_msg = sprintf(
-					__( 'The following values do not describe a valid date: month <code>%1$d</code>, day <code>%2$d</code>.' ),
-					esc_html( $date_query['month'] ),
-					esc_html( $date_query['day'] )
+					__( 'The following values do not describe a valid date: month %1$s, day %2$s.' ),
+					'<code>' . esc_html( $date_query['month'] ) . '</code>',
+					'<code>' . esc_html( $date_query['day'] ) . '</code>'
 				);
 
 				$valid = false;
@@ -777,7 +779,7 @@ class WP_Date_Query {
 	 *
 	 * @param string $compare The compare operator to use
 	 * @param string|array $value The value
-	 * @return string|int|false The value to be used in SQL or false on error.
+	 * @return string|false|int The value to be used in SQL or false on error.
 	 */
 	public function build_value( $compare, $value ) {
 		if ( ! isset( $value ) )

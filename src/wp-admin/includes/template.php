@@ -403,7 +403,7 @@ function get_inline_data($post) {
  *
  * @since 2.7.0
  *
- * @param string|int $position
+ * @param int $position
  * @param bool $checkbox
  * @param string $mode
  * @param bool $table_row
@@ -707,10 +707,10 @@ function meta_form( $post = null ) {
  *
  * @since 0.71
  *
- * @param int|bool $edit      Accepts 1|true for editing the date, 0|false for adding the date.
- * @param int|bool $for_post  Accepts 1|true for applying the date to a post, 0|false for a comment.
- * @param int|bool $tab_index The tabindex attribute to add. Default 0.
- * @param int|bool $multi     Optional. Whether the additional fields and buttons should be added.
+ * @param int $edit      Accepts 1|true for editing the date, 0|false for adding the date.
+ * @param int $for_post  Accepts 1|true for applying the date to a post, 0|false for a comment.
+ * @param int $tab_index The tabindex attribute to add. Default 0.
+ * @param int $multi     Optional. Whether the additional fields and buttons should be added.
  *                            Default 0|false.
  */
 function touch_time( $edit = 1, $for_post = 1, $tab_index = 0, $multi = 0 ) {
@@ -813,7 +813,7 @@ function page_template_dropdown( $default = '' ) {
  * @param int $parent  Optional. The parent page ID. Default 0.
  * @param int $level   Optional. Page depth level. Default 0.
  *
- * @return void|bool Boolean False if page has no children, otherwise print out html elements
+ * @return null|false Boolean False if page has no children, otherwise print out html elements
  */
 function parent_dropdown( $default = 0, $parent = 0, $level = 0 ) {
 	global $wpdb;
@@ -992,7 +992,8 @@ function add_meta_box( $id, $title, $callback, $screen = null, $context = 'advan
  *
  * @since 2.5.0
  *
- * @param string|object $screen Screen identifier
+ * @staticvar bool $already_sorted
+ * @param string|WP_Screen $screen Screen identifier
  * @param string $context box context
  * @param mixed $object gets passed to the box callback function as first parameter
  * @return int number of meta_boxes
@@ -1584,8 +1585,11 @@ if ( is_rtl() )
 
 ?>
 </head>
-<?php /** This filter is documented in wp-admin/admin-header.php */ ?>
-<body<?php if ( isset($GLOBALS['body_id']) ) echo ' id="' . $GLOBALS['body_id'] . '"'; ?> class="wp-admin wp-core-ui no-js iframe <?php echo apply_filters( 'admin_body_class', '' ) . ' ' . $admin_body_class; ?>">
+<?php
+/** This filter is documented in wp-admin/admin-header.php */
+$admin_body_classes = apply_filters( 'admin_body_class', '' );
+?>
+<body<?php if ( isset($GLOBALS['body_id']) ) echo ' id="' . $GLOBALS['body_id'] . '"'; ?> class="wp-admin wp-core-ui no-js iframe <?php echo $admin_body_classes . ' ' . $admin_body_class; ?>">
 <script type="text/javascript">
 //<![CDATA[
 (function(){
@@ -1607,7 +1611,7 @@ document.body.className = c;
 function iframe_footer() {
 	/*
 	 * We're going to hide any footer output on iFrame pages,
-	 * but run the hooks anyway since they output Javascript
+	 * but run the hooks anyway since they output JavaScript
 	 * or other needed content.
 	 */
 	 ?>
@@ -1867,19 +1871,23 @@ function _wp_admin_html_begin() {
 	if ( $is_IE )
 		@header('X-UA-Compatible: IE=edge');
 
-/**
- * Fires inside the HTML tag in the admin header.
- *
- * @since 2.2.0
- */
 ?>
 <!DOCTYPE html>
 <!--[if IE 8]>
-<html xmlns="http://www.w3.org/1999/xhtml" class="ie8 <?php echo $admin_html_class; ?>" <?php do_action( 'admin_xml_ns' ); ?> <?php language_attributes(); ?>>
+<html xmlns="http://www.w3.org/1999/xhtml" class="ie8 <?php echo $admin_html_class; ?>" <?php
+	/**
+	 * Fires inside the HTML tag in the admin header.
+	 *
+	 * @since 2.2.0
+	 */
+	do_action( 'admin_xml_ns' );
+?> <?php language_attributes(); ?>>
 <![endif]-->
 <!--[if !(IE 8) ]><!-->
-<?php /** This action is documented in wp-admin/includes/template.php */ ?>
-<html xmlns="http://www.w3.org/1999/xhtml" class="<?php echo $admin_html_class; ?>" <?php do_action( 'admin_xml_ns' ); ?> <?php language_attributes(); ?>>
+<html xmlns="http://www.w3.org/1999/xhtml" class="<?php echo $admin_html_class; ?>" <?php
+	/** This action is documented in wp-admin/includes/template.php */
+	do_action( 'admin_xml_ns' );
+?> <?php language_attributes(); ?>>
 <!--<![endif]-->
 <head>
 <meta http-equiv="Content-Type" content="<?php bloginfo('html_type'); ?>; charset=<?php echo get_option('blog_charset'); ?>" />
@@ -1948,7 +1956,7 @@ final class WP_Internal_Pointers {
 	}
 
 	/**
-	 * Print the pointer javascript data.
+	 * Print the pointer JavaScript data.
 	 *
 	 * @since 3.3.0
 	 *
@@ -2043,21 +2051,20 @@ final class WP_Internal_Pointers {
 
 	public static function pointer_wp410_dfw() {
 		// Don't show when editor-scrolling is not used.
-		if ( empty( $GLOBALS['_content_editor_dfw'] ) ) {
+		if ( empty( $GLOBALS['_wp_editor_expand'] ) ) {
 			return;
 		}
 
-		$content  = '<h3>' . __( 'Distraction Free Writing' ) . '</h3>';
-		$content .= '<p>' . __( 'Enable distraction free writing; everything fades away so you can focus. '
-			. 'Bring your admin back by moving your mouse, then start typing and it fades away.' ) . '</p>';
+		$content  = '<h3>' . __( 'Distraction-Free Writing' ) . '</h3>';
+		$content .= '<p>' . __( 'Enable distraction-free writing mode, and everything surrounding the editor will fade away when you start typing. Move your mouse out of the editor to reveal everything again.' ) . '</p>';
 
 		if ( is_rtl() ) {
-			$position = array( 'edge' => 'left', 'align' => 'left', 'my' => 'left-5 top-60' );
+			$position = array( 'edge' => 'left', 'align' => 'center', 'my' => 'left+40 top-11', 'at' => 'left top' );
 		} else {
-			$position = array( 'edge' => 'right', 'align' => 'right', 'my' => 'right+5 top-60' );
+			$position = array( 'edge' => 'right', 'align' => 'center', 'my' => 'right-40 top-11', 'at' => 'right top' );
 		}
 
-		self::print_js( 'wp410_dfw', '#content-html', array(
+		self::print_js( 'wp410_dfw', '#wp-content-wrap', array(
 			'content' => $content,
 			'position' => $position,
 		) );

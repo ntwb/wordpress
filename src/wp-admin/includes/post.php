@@ -1116,14 +1116,14 @@ function postbox_classes( $id, $page ) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Get a sample permalink based off of the post name.
  *
  * @since 2.5.0
  *
- * @param int|object $id    Post ID or post object.
- * @param string $title (optional) Title
- * @param string $name (optional) Name
- * @return array With two entries of type string
+ * @param int    $id    Post ID or post object.
+ * @param string $title Optional. Title. Default null.
+ * @param string $name  Optional. Name. Default null.
+ * @return array Array with two entries of type string.
  */
 function get_sample_permalink($id, $title = null, $name = null) {
 	$post = get_post( $id );
@@ -1185,9 +1185,9 @@ function get_sample_permalink($id, $title = null, $name = null) {
  *
  * @since 2.5.0
  *
- * @param int|object $id Post ID or post object.
- * @param string $new_title Optional. New title.
- * @param string $new_slug Optional. New slug.
+ * @param int    $id        Post ID or post object.
+ * @param string $new_title Optional. New title. Default null.
+ * @param string $new_slug  Optional. New slug. Default null.
  * @return string The HTML of the sample permalink slug editor.
  */
 function get_sample_permalink_html( $id, $new_title = null, $new_slug = null ) {
@@ -1214,12 +1214,18 @@ function get_sample_permalink_html( $id, $new_title = null, $new_slug = null ) {
 			$return .= '<span id="change-permalinks"><a href="options-permalink.php" class="button button-small" target="_blank">' . __('Change Permalinks') . "</a></span>\n";
 		}
 	} else {
-		if ( function_exists( 'mb_strlen' ) && mb_strlen( $post_name ) > 30 ) {
-			$post_name_abridged = mb_substr( $post_name, 0, 14 ) . '&hellip;' . mb_substr( $post_name, -14 );
-		} elseif ( strlen( $post_name ) > 30 ) {
-			$post_name_abridged = substr( $post_name, 0, 14 ) . '&hellip;' . substr( $post_name, -14 );
+		if ( function_exists( 'mb_strlen' ) ) {
+			if ( mb_strlen( $post_name ) > 30 ) {
+				$post_name_abridged = mb_substr( $post_name, 0, 14 ) . '&hellip;' . mb_substr( $post_name, -14 );
+			} else {
+				$post_name_abridged = $post_name;
+			}
 		} else {
-			$post_name_abridged = $post_name;
+			if ( strlen( $post_name ) > 30 ) {
+				$post_name_abridged = substr( $post_name, 0, 14 ) . '&hellip;' . substr( $post_name, -14 );
+			} else {
+				$post_name_abridged = $post_name;
+			}
 		}
 
 		$post_name_html = '<span id="editable-post-name" title="' . $title . '">' . $post_name_abridged . '</span>';
@@ -1308,7 +1314,7 @@ function _wp_post_thumbnail_html( $thumbnail_id = null, $post = null ) {
  * @since 2.5.0
  *
  * @param int $post_id ID of the post to check for editing
- * @return bool|int False: not locked or locked by current user. Int: user ID of user with lock.
+ * @return integer False: not locked or locked by current user. Int: user ID of user with lock.
  */
 function wp_check_post_lock( $post_id ) {
 	if ( !$post = get_post( $post_id ) )

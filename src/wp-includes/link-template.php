@@ -2238,7 +2238,7 @@ function the_post_navigation( $args = array() ) {
  * @global WP_Query $wp_query WordPress Query object.
  *
  * @param array $args {
- *     Optional. Default paging navigation arguments. Default empty array.
+ *     Optional. Default posts navigation arguments. Default empty array.
  *
  *     @type string $prev_text          Anchor text to display in the previous posts link.
  *                                      Default 'Older posts'.
@@ -2247,7 +2247,7 @@ function the_post_navigation( $args = array() ) {
  *     @type string $screen_reader_text Screen reader text for nav element.
  *                                      Default 'Posts navigation'.
  * }
- * @return string Markup for paging links.
+ * @return string Markup for posts links.
  */
 function get_the_posts_navigation( $args = array() ) {
 	$navigation = '';
@@ -2271,7 +2271,7 @@ function get_the_posts_navigation( $args = array() ) {
 			$navigation .= '<div class="nav-next">' . $next_link . '</div>';
 		}
 
-		$navigation = _navigation_markup( $navigation, 'paging-navigation', $args['screen_reader_text'] );
+		$navigation = _navigation_markup( $navigation, 'posts-navigation', $args['screen_reader_text'] );
 	}
 
 	return $navigation;
@@ -2303,7 +2303,7 @@ function the_posts_navigation( $args = array() ) {
  * }
  * @return string Markup for pagination links.
  */
-function get_the_pagination( $args = array() ) {
+function get_the_posts_pagination( $args = array() ) {
 	$navigation = '';
 
 	// Don't print empty markup if there's only one page.
@@ -2314,8 +2314,11 @@ function get_the_pagination( $args = array() ) {
 			'next_text'          => __( 'Next' ),
 			'screen_reader_text' => __( 'Posts navigation' ),
 		) );
-		// Make sure we get plain links, so we can work with it.
-		$args['type'] = 'plain';
+
+		// Make sure we get a string back. Plain is the next best thing.
+		if ( isset( $args['type'] ) && 'array' == $args['type'] ) {
+			$args['type'] = 'plain';
+		}
 
 		// Set up paginated links.
 		$links = paginate_links( $args );
@@ -2334,11 +2337,11 @@ function get_the_pagination( $args = array() ) {
  *
  * @since 4.1.0
  *
- * @param array $args Optional. See {@see get_the_pagination()} for available arguments.
+ * @param array $args Optional. See {@see get_the_posts_pagination()} for available arguments.
  *                    Default empty array.
  */
-function the_pagination( $args = array() ) {
-	echo get_the_pagination( $args );
+function the_posts_pagination( $args = array() ) {
+	echo get_the_posts_pagination( $args );
 }
 
 /**
@@ -2348,11 +2351,11 @@ function the_pagination( $args = array() ) {
  * @access private
  *
  * @param string $links              Navigational links.
- * @param string $class              Optional. Custom class for nav element. Default: 'paging-navigation'.
+ * @param string $class              Optional. Custom class for nav element. Default: 'posts-navigation'.
  * @param string $screen_reader_text Optional. Screen reader text for nav element. Default: 'Posts navigation'.
  * @return string Navigation template tag.
  */
-function _navigation_markup( $links, $class = 'paging-navigation', $screen_reader_text = '' ) {
+function _navigation_markup( $links, $class = 'posts-navigation', $screen_reader_text = '' ) {
 	if ( empty( $screen_reader_text ) ) {
 		$screen_reader_text = __( 'Posts navigation' );
 	}
@@ -2587,13 +2590,14 @@ function get_shortcut_link() {
  * Retrieve the home url for the current site.
  *
  * Returns the 'home' option with the appropriate protocol, 'https' if
- * is_ssl() and 'http' otherwise. If $scheme is 'http' or 'https', is_ssl() is
- * overridden.
+ * {@see is_ssl()} and 'http' otherwise. If `$scheme` is 'http' or 'https',
+ * `is_ssl()` is overridden.
  *
  * @since 3.0.0
  *
- * @param  string $path   (optional) Path relative to the home url.
- * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https', or 'relative'.
+ * @param  string $path   Optional. Path relative to the home url. Default empty.
+ * @param  string $scheme Optional. Scheme to give the home url context. Accepts
+ *                        'http', 'https', or 'relative'. Default null.
  * @return string Home url link with optional path appended.
 */
 function home_url( $path = '', $scheme = null ) {
@@ -2604,15 +2608,17 @@ function home_url( $path = '', $scheme = null ) {
  * Retrieve the home url for a given site.
  *
  * Returns the 'home' option with the appropriate protocol, 'https' if
- * is_ssl() and 'http' otherwise. If $scheme is 'http' or 'https', is_ssl() is
+ * {@see is_ssl()} and 'http' otherwise. If `$scheme` is 'http' or 'https',
+ * `is_ssl()` is
  * overridden.
  *
  * @since 3.0.0
  *
- * @param  int $blog_id   (optional) Blog ID. Defaults to current blog.
- * @param  string $path   (optional) Path relative to the home url.
- * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https', or 'relative'.
- * @return string Home url link with optional path appended.
+ * @param  int         $blog_id     Optional. Blog ID. Default null (current blog).
+ * @param  string      $path        Optional. Path relative to the home URL. Default empty.
+ * @param  string|null $orig_scheme Optional. Scheme to give the home URL context. Accepts
+ *                                  'http', 'https', 'relative', or null. Default null.
+ * @return string Home URL link with optional path appended.
 */
 function get_home_url( $blog_id = null, $path = '', $scheme = null ) {
 	$orig_scheme = $scheme;
@@ -2671,14 +2677,16 @@ function site_url( $path = '', $scheme = null ) {
  * Retrieve the site url for a given site.
  *
  * Returns the 'site_url' option with the appropriate protocol, 'https' if
- * is_ssl() and 'http' otherwise. If $scheme is 'http' or 'https', is_ssl() is
- * overridden.
+ * {@see is_ssl()} and 'http' otherwise. If `$scheme` is 'http' or 'https',
+ * `is_ssl()` is overridden.
  *
  * @since 3.0.0
  *
- * @param int $blog_id (optional) Blog ID. Defaults to current blog.
- * @param string $path Optional. Path relative to the site url.
- * @param string $scheme Optional. Scheme to give the site url context. Currently 'http', 'https', 'login', 'login_post', 'admin', or 'relative'.
+ * @param int    $blog_id Optional. Blog ID. Default null (current site).
+ * @param string $path    Optional. Path relative to the site url. Default empty.
+ * @param string $scheme  Optional. Scheme to give the site url context. Accepts
+ *                        'http', 'https', 'login', 'login_post', 'admin', or
+ *                        'relative'. Default null.
  * @return string Site url link with optional path appended.
 */
 function get_site_url( $blog_id = null, $path = '', $scheme = null ) {
@@ -2723,13 +2731,15 @@ function admin_url( $path = '', $scheme = 'admin' ) {
 }
 
 /**
- * Retrieve the url to the admin area for a given site.
+ * Retrieves the url to the admin area for a given site.
  *
  * @since 3.0.0
  *
- * @param int $blog_id (optional) Blog ID. Defaults to current blog.
- * @param string $path Optional path relative to the admin url.
- * @param string $scheme The scheme to use. Default is 'admin', which obeys force_ssl_admin() and is_ssl(). 'http' or 'https' can be passed to force those schemes.
+ * @param int    $blog_id Optional. Blog ID. Default null (current site).
+ * @param string $path    Optional. Path relative to the admin url. Default empty.
+ * @param string $scheme  Optional. The scheme to use. Accepts 'http' or 'https',
+ *                        to force those schemes. Default 'admin', which obeys
+ *                        {@see force_ssl_admin()} and {@see is_ssl()}.
  * @return string Admin url link with optional path appended.
 */
 function get_admin_url( $blog_id = null, $path = '', $scheme = 'admin' ) {
@@ -2896,16 +2906,17 @@ function network_site_url( $path = '', $scheme = null ) {
 }
 
 /**
- * Retrieve the home url for the current network.
+ * Retrieves the home url for the current network.
  *
- * Returns the home url with the appropriate protocol, 'https' if
- * is_ssl() and 'http' otherwise. If $scheme is 'http' or 'https', is_ssl() is
+ * Returns the home url with the appropriate protocol, 'https' {@see is_ssl()}
+ * and 'http' otherwise. If `$scheme` is 'http' or 'https', `is_ssl()` is
  * overridden.
  *
  * @since 3.0.0
  *
- * @param  string $path   (optional) Path relative to the home url.
- * @param  string $scheme (optional) Scheme to give the home url context. Currently 'http', 'https', or 'relative'.
+ * @param  string $path   Optional. Path relative to the home url. Default empty.
+ * @param  string $scheme Optional. Scheme to give the home url context. Accepts
+ *                        'http', 'https', or 'relative'. Default null.
  * @return string Home url link with optional path appended.
 */
 function network_home_url( $path = '', $scheme = null ) {

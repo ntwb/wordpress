@@ -441,7 +441,7 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
  * - popular_items - This string isn't used on hierarchical taxonomies. Default is Popular Tags
  * - all_items - Default is All Tags/All Categories
  * - parent_item - This string isn't used on non-hierarchical taxonomies. In hierarchical ones the default is Parent Category
- * - parent_item_colon - The same as `parent_item`, but with colon `:ё in the end
+ * - parent_item_colon - The same as `parent_item`, but with colon `:` in the end
  * - edit_item - Default is Edit Tag/Edit Category
  * - view_item - Default is View Tag/View Category
  * - update_item - Default is Update Tag/Update Category
@@ -988,7 +988,7 @@ class WP_Tax_Query {
 
 	/**
 	 * Generate SQL JOIN and WHERE clauses for a "first-order" query clause.
-
+	 *
 	 * @since 4.1.0
 	 * @access public
 	 *
@@ -1305,24 +1305,19 @@ function get_term($term, $taxonomy, $output = OBJECT, $filter = 'raw') {
 		return $error;
 	}
 
-	$incrementor = wp_cache_get( 'last_changed', 'terms' );
 	if ( is_object($term) && empty($term->filter) ) {
-		wp_cache_add( $term->term_id, $term, $taxonomy . ':terms:' . $incrementor );
-		wp_cache_add( $term->slug, $term->term_id, $taxonomy . ':slugs:' . $incrementor );
-		wp_cache_add( $term->name, $term->term_id, $taxonomy . ':names:' . $incrementor );
+		wp_cache_add( $term->term_id, $term, $taxonomy );
 		$_term = $term;
 	} else {
 		if ( is_object($term) )
 			$term = $term->term_id;
 		if ( !$term = (int) $term )
 			return null;
-		if ( ! $_term = wp_cache_get( $term, $taxonomy . ':terms:' . $incrementor ) ) {
+		if ( ! $_term = wp_cache_get( $term, $taxonomy ) ) {
 			$_term = $wpdb->get_row( $wpdb->prepare( "SELECT t.*, tt.* FROM $wpdb->terms AS t INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND t.term_id = %d LIMIT 1", $taxonomy, $term) );
 			if ( ! $_term )
 				return null;
-			wp_cache_add( $term, $_term, $taxonomy . ':terms:' . $incrementor );
-			wp_cache_add( $_term->slug, $term, $taxonomy . ':slugs:' . $incrementor );
-			wp_cache_add( $_term->name, $term, $taxonomy . ':names:' . $incrementor );
+			wp_cache_add( $term, $_term, $taxonomy );
 		}
 	}
 
@@ -1393,46 +1388,30 @@ function get_term_by($field, $value, $taxonomy, $output = OBJECT, $filter = 'raw
 	if ( ! taxonomy_exists($taxonomy) )
 		return false;
 
-	$cache = false;
-	$incrementor = wp_cache_get( 'last_changed', 'terms' );
 	if ( 'slug' == $field ) {
 		$field = 't.slug';
 		$value = sanitize_title($value);
 		if ( empty($value) )
 			return false;
-
-		$term_id = wp_cache_get( $value, $taxonomy . ':slugs:' . $incrementor );
-		if ( $term_id ) {
-			$value = $term_id;
-			$cache = true;
-		}
 	} else if ( 'name' == $field ) {
 		// Assume already escaped
 		$value = wp_unslash($value);
 		$field = 't.name';
-		$term_id = wp_cache_get( $value, $taxonomy . ':names:' . $incrementor  );
-		if ( $term_id ) {
-			$value = $term_id;
-			$cache = true;
-		}
 	} else if ( 'term_taxonomy_id' == $field ) {
 		$value = (int) $value;
 		$field = 'tt.term_taxonomy_id';
 	} else {
-		$cache = true;
-	}
-
-	if ( $cache ) {
-		$term = get_term( (int) $value, $taxonomy, $output, $filter);
-		if ( is_wp_error( $term ) ) {
+		$term = get_term( (int) $value, $taxonomy, $output, $filter );
+		if ( is_wp_error( $term ) )
 			$term = false;
-		}
-	} else {
-		$term = $wpdb->get_row( $wpdb->prepare( "SELECT t.*, tt.* FROM $wpdb->terms AS t INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND $field = %s LIMIT 1", $taxonomy, $value) );
+		return $term;
 	}
 
-	if ( !$term )
+	$term = $wpdb->get_row( $wpdb->prepare( "SELECT t.*, tt.* FROM $wpdb->terms AS t INNER JOIN $wpdb->term_taxonomy AS tt ON t.term_id = tt.term_id WHERE tt.taxonomy = %s AND $field = %s LIMIT 1", $taxonomy, $value ) );
+	if ( ! $term )
 		return false;
+
+	wp_cache_add( $term->term_id, $term, $taxonomy );
 
 	/** This filter is documented in wp-includes/taxonomy.php */
 	$term = apply_filters( 'get_term', $term, $taxonomy );
@@ -1441,10 +1420,6 @@ function get_term_by($field, $value, $taxonomy, $output = OBJECT, $filter = 'raw
 	$term = apply_filters( "get_$taxonomy", $term, $taxonomy );
 
 	$term = sanitize_term($term, $taxonomy, $filter);
-
-	wp_cache_add( $term->term_id, $term, $taxonomy . ':terms:' . $incrementor );
-	wp_cache_add( $term->slug, $term->term_id, $taxonomy . ':slugs:' . $incrementor );
-	wp_cache_add( $term->name, $term->term_id, $taxonomy . ':names:' . $incrementor );
 
 	if ( $output == OBJECT ) {
 		return $term;
@@ -1937,6 +1912,9 @@ function get_terms( $taxonomies, $args = '' ) {
 	}
 
 	$terms = $wpdb->get_results($query);
+	if ( 'all' == $_fields ) {
+		update_term_cache( $terms );
+	}
 
 	if ( empty($terms) ) {
 		wp_cache_add( $cache_key, array(), 'terms', DAY_IN_SECONDS );
@@ -2761,20 +2739,18 @@ function wp_get_object_terms($object_ids, $taxonomies, $args = array()) {
  * @since 2.3.0
  *
  * @param string       $term     The term to add or update.
- * @param string       $taxonomy The taxonomy to which to add the term
+ * @param string       $taxonomy The taxonomy to which to add the term.
  * @param array|string $args {
- *     Arguments to change values of the inserted term.
+ *     Optional. Array or string of arguments for inserting a term.
  *
- *     @type string 'alias_of'    Slug of the term to make this term an alias of.
- *                                Default empty string. Accepts a term slug.
- *     @type string 'description' The term description.
- *                                Default empty string.
- *     @type int    'parent'      The id of the parent term.
- *                                Default 0.
- *     @type string 'slug'        The term slug to use.
- *                                Default empty string.
+ *     @type string $alias_of    Slug of the term to make this term an alias of.
+ *                               Default empty string. Accepts a term slug.
+ *     @type string $description The term description. Default empty string.
+ *     @type int    $parent      The id of the parent term. Default 0.
+ *     @type string $slug        The term slug to use. Default empty string.
  * }
- * @return array|WP_Error An array containing the term_id and term_taxonomy_id, WP_Error otherwise.
+ * @return array|WP_Error An array containing the `term_id` and `term_taxonomy_id`,
+ *                        {@see WP_Error} otherwise.
  */
 function wp_insert_term( $term, $taxonomy, $args = array() ) {
 	global $wpdb;
@@ -3651,11 +3627,7 @@ function clean_object_term_cache($object_ids, $object_type) {
  * @param bool $clean_taxonomy Whether to clean taxonomy wide caches (true), or just individual term object caches (false). Default is true.
  */
 function clean_term_cache($ids, $taxonomy = '', $clean_taxonomy = true) {
-	global $_wp_suspend_cache_invalidation, $wpdb;
-
-	if ( ! empty( $_wp_suspend_cache_invalidation ) ) {
-		return;
-	}
+	global $wpdb;
 
 	if ( !is_array($ids) )
 		$ids = array($ids);
@@ -3794,22 +3766,12 @@ function update_object_term_cache($object_ids, $object_type) {
  * @param string $taxonomy Optional. Update Term to this taxonomy in cache
  */
 function update_term_cache($terms, $taxonomy = '') {
-	global $_wp_suspend_cache_invalidation;
-
-	if ( ! empty( $_wp_suspend_cache_invalidation ) ) {
-		return;
-	}
-
 	foreach ( (array) $terms as $term ) {
 		$term_taxonomy = $taxonomy;
 		if ( empty($term_taxonomy) )
 			$term_taxonomy = $term->taxonomy;
 
-		$incrementor = wp_cache_set( 'last_changed', microtime(), 'terms' );
-
-		wp_cache_add( $term->term_id, $term, $term_taxonomy . ':terms:' . $incrementor );
-		wp_cache_add( $term->slug, $term->term_id, $taxonomy . ':slugs:' . $incrementor );
-		wp_cache_add( $term->name, $term->term_id, $taxonomy . ':names:' . $incrementor );
+		wp_cache_add( $term->term_id, $term, $term_taxonomy );
 	}
 }
 

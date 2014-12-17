@@ -94,121 +94,110 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 		_unregister_taxonomy( $tax );
 	}
 
-	/**
-	 * @ticket 21760
-	 */
-	function test_get_term_by_slug_cache() {
+	public function test_get_term_should_update_term_cache_when_passed_an_object() {
 		global $wpdb;
-		$term_id = $this->factory->term->create( array( 'slug' => 'burrito', 'taxonomy' => 'post_tag' ) );
 
-		$queries = $wpdb->num_queries;
-		get_term_by( 'slug', 'burrito', 'post_tag' );
-		$initial = $queries + 1;
-		$this->assertEquals( $initial, $wpdb->num_queries );
-		$term = get_term_by( 'slug', 'burrito', 'post_tag' );
-		$this->assertEquals( $initial, $wpdb->num_queries );
+		register_taxonomy( 'wptests_tax', 'post' );
+		$term = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
 
-		$this->assertEquals( $term, wp_cache_get( $term_id, 'post_tag:terms:' . wp_cache_get( 'last_changed', 'terms' ) ) );
+		$term_object = get_term( $term, 'wptests_tax' );
+		wp_cache_delete( $term, 'wptests_tax' );
 
-		$this->assertEquals( get_term( $term_id, 'post_tag' ), $term );
-		$this->assertEquals( $initial, $wpdb->num_queries );
+		// Affirm that the cache is empty.
+		$this->assertEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+
+		$num_queries = $wpdb->num_queries;
+
+		// get_term() will only be update the cache if the 'filter' prop is unset.
+		unset( $term_object->filter );
+
+		$term_object_2 = get_term( $term_object, 'wptests_tax' );
+
+		// No new queries should have fired.
+		$this->assertSame( $num_queries, $wpdb->num_queries );
+		$this->assertEquals( $term_object, $term_object_2 );
+	}
+
+	public function test_get_term_should_update_term_cache_when_passed_a_valid_term_identifier() {
+		global $wpdb;
+
+		register_taxonomy( 'wptests_tax', 'post' );
+		$term = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		wp_cache_delete( $term, 'wptests_tax' );
+
+		// Affirm that the cache is empty.
+		$this->assertEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+
+		$num_queries = $wpdb->num_queries;
+
+		// Prime cache.
+		$term_object = get_term( $term, 'wptests_tax' );
+		$this->assertNotEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+		$this->assertSame( $num_queries + 1, $wpdb->num_queries );
+
+		$term_object_2 = get_term( $term, 'wptests_tax' );
+
+		// No new queries should have fired.
+		$this->assertSame( $num_queries + 1, $wpdb->num_queries );
+		$this->assertEquals( $term_object, $term_object_2 );
+	}
+
+	public function test_get_term_by_should_update_term_cache_when_passed_a_valid_term_identifier() {
+		global $wpdb;
+
+		register_taxonomy( 'wptests_tax', 'post' );
+		$term = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+		) );
+
+		wp_cache_delete( $term, 'wptests_tax' );
+
+		// Affirm that the cache is empty.
+		$this->assertEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+
+		$num_queries = $wpdb->num_queries;
+
+		// Prime cache.
+		$term_object = get_term_by( 'id', $term, 'wptests_tax' );
+		$this->assertNotEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+		$this->assertSame( $num_queries + 1, $wpdb->num_queries );
+
+		$term_object_2 = get_term( $term, 'wptests_tax' );
+
+		// No new queries should have fired.
+		$this->assertSame( $num_queries + 1, $wpdb->num_queries );
+		$this->assertEquals( $term_object, $term_object_2 );
 	}
 
 	/**
-	 * @ticket 21760
+	 * @ticket 30749
 	 */
-	function test_get_term_by_slug_cache_update() {
+	public function test_get_terms_should_update_cache_for_located_terms() {
 		global $wpdb;
-		$term_id = $this->factory->term->create( array( 'slug' => 'burrito', 'taxonomy' => 'post_tag' ) );
 
-		$queries = $wpdb->num_queries;
-		get_term_by( 'slug', 'burrito', 'post_tag' );
-		$initial = $queries + 1;
-		$this->assertEquals( $initial, $wpdb->num_queries );
-		$term = get_term_by( 'slug', 'burrito', 'post_tag' );
-		$this->assertEquals( $initial, $wpdb->num_queries );
+		register_taxonomy( 'wptests_tax', 'post' );
 
-		$this->assertEquals( $term, wp_cache_get( $term_id, 'post_tag:terms:' . wp_cache_get( 'last_changed', 'terms' ) ) );
+		$terms = $this->factory->term->create_many( 5, array(
+			'taxonomy' => 'wptests_tax',
+		) );
 
-		wp_update_term( $term_id, 'post_tag', array( 'name' => 'Taco' ) );
-		$this->assertNotEquals( $term, get_term( $term_id, 'post_tag' ) );
-		$after_queries = $wpdb->num_queries;
-		get_term_by( 'slug', 'burrito', 'post_tag' );
-		$this->assertEquals( $after_queries, $wpdb->num_queries );
-	}
+		$term_objects = get_terms( 'wptests_tax', array(
+			'hide_empty' => false,
+		) );
 
-	/**
-	 * @ticket 21760
-	 */
-	function test_get_term_by_name_cache() {
-		global $wpdb;
-		$term_id = $this->factory->term->create( array( 'name' => 'burrito', 'taxonomy' => 'post_tag' ) );
+		$num_queries = $wpdb->num_queries;
 
-		$queries = $wpdb->num_queries;
-		get_term_by( 'name', 'burrito', 'post_tag' );
-		$initial = $queries + 1;
-		$this->assertEquals( $initial, $wpdb->num_queries );
-		$term = get_term_by( 'name', 'burrito', 'post_tag' );
-		$this->assertEquals( $initial, $wpdb->num_queries );
+		foreach ( $terms as $term_id ) {
+			get_term( $term_id, 'wptests_tax' );
+		}
 
-		$this->assertEquals( get_term( $term_id, 'post_tag' ), $term );
-		$this->assertEquals( $initial, $wpdb->num_queries );
-	}
+		$this->assertSame( $num_queries, $wpdb->num_queries );
 
-	/**
-	 * @ticket 21760
-	 */
-	function test_get_term_by_name_cache_update() {
-		global $wpdb;
-		$term_id = $this->factory->term->create( array( 'name' => 'burrito', 'taxonomy' => 'post_tag' ) );
-
-		$queries = $wpdb->num_queries;
-		get_term_by( 'name', 'burrito', 'post_tag' );
-		$initial = $queries + 1;
-		$this->assertEquals( $initial, $wpdb->num_queries );
-		$term = get_term_by( 'name', 'burrito', 'post_tag' );
-		$this->assertEquals( $initial, $wpdb->num_queries );
-
-		wp_update_term( $term_id, 'post_tag', array( 'slug' => 'Taco' ) );
-		$this->assertNotEquals( $term, get_term( $term_id, 'post_tag' ) );
-		$after_queries = $wpdb->num_queries;
-		get_term_by( 'name', 'burrito', 'post_tag' );
-		$this->assertEquals( $after_queries, $wpdb->num_queries );
-	}
-
-	/**
-	 * @ticket 21760
-	 */
-	function test_invalidating_term_caches_should_fail_when_invalidation_is_suspended() {
-		$slug = 'taco';
-		$name = 'Taco';
-		$taxonomy = 'post_tag';
-		$cache_key_slug = $slug;
-		$cache_key_name = $name;
-
-		$term_id = $this->factory->term->create( array( 'slug' => $slug, 'name' => $name, 'taxonomy' => $taxonomy ) );
-
-		$last_changed = wp_cache_get( 'last_changed', 'terms' );
-
-		$term = get_term_by( 'slug', $slug, $taxonomy );
-
-		// Verify the term is cached by ID, slug and name
-		$this->assertEquals( $term, wp_cache_get( $term_id, $taxonomy . ':terms:' . wp_cache_get( 'last_changed', 'terms' ) ) );
-		$this->assertSame( $term_id, wp_cache_get( $cache_key_slug, $taxonomy . ':slugs:' . wp_cache_get( 'last_changed', 'terms' ) ) );
-		$this->assertSame( $term_id, wp_cache_get( $cache_key_name, $taxonomy . ':names:' . wp_cache_get( 'last_changed', 'terms' ) ) );
-
-		$suspend = wp_suspend_cache_invalidation();
-		clean_term_cache( $term_id, $taxonomy );
-
-		// Verify that the cached value still matches the correct value
-		$this->assertEquals( $term, wp_cache_get( $term_id, $taxonomy . ':terms:' . wp_cache_get( 'last_changed', 'terms' ) ) );
-		$this->assertSame( $term_id, wp_cache_get( $cache_key_slug, $taxonomy . ':slugs:' . wp_cache_get( 'last_changed', 'terms' ) ) );
-		$this->assertSame( $term_id, wp_cache_get( $cache_key_name, $taxonomy . ':names:' . wp_cache_get( 'last_changed', 'terms' ) ) );
-
-		// Verify that last changed has not been updated as part of an invalidation routine
-		$this->assertSame( $last_changed, wp_cache_get( 'last_changed', 'terms' ) );
-
-		// Clean up.
-		wp_suspend_cache_invalidation( $suspend );
+		_unregister_taxonomy( 'wptests_tax' );
 	}
 }

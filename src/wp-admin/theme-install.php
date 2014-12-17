@@ -105,10 +105,11 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 	/**
 	 * Filter the tabs shown on the Add Themes screen.
 	 *
-	 * This filter is for backwards compatibility only,
-	 * for the suppression of the upload tab.
+	 * This filter is for backwards compatibility only, for the suppression
+	 * of the upload tab.
 	 *
 	 * @since 2.8.0
+	 *
 	 * @param array $tabs The tabs shown on the Add Themes screen. Default is 'upload'.
 	 */
 	$tabs = apply_filters( 'install_themes_tabs', array( 'upload' => __( 'Upload Theme' ) ) );
@@ -145,11 +146,7 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 		<?php
 		$feature_list = get_theme_feature_list();
 		foreach ( $feature_list as $feature_name => $features ) {
-			if ( $feature_name === 'Features' || $feature_name === __( 'Features' ) ) { // hack hack hack
-				echo '<div class="filter-group wide">';
-			} else {
-				echo '<div class="filter-group">';
-			}
+			echo '<div class="filter-group">';
 			$feature_name = esc_html( $feature_name );
 			echo '<h4>' . $feature_name . '</h4>';
 			echo '<ol class="feature-group">';

@@ -176,7 +176,7 @@ function is_post_type_archive( $post_types = '' ) {
  * @since 2.0.0
  * @uses $wp_query
  *
- * @param int|string|array $attachment Attachment ID, title, slug, or array of such.
+ * @param int|string|array|object $attachment Attachment ID, title, slug, or array of such.
  * @return bool
  */
 function is_attachment( $attachment = '' ) {
@@ -3869,14 +3869,18 @@ class WP_Query {
 					$term = get_term_by( 'slug', $this->get( 'tag' ), 'post_tag' );
 				}
 			} else {
-				$tax_query_in_and = wp_list_filter( $this->tax_query->queries, array( 'operator' => 'NOT IN' ), 'NOT' );
-				$query = reset( $tax_query_in_and );
+				// For other tax queries, grab the first term from the first clause.
+				$tax_query_in_and = wp_list_filter( $this->tax_query->queried_terms, array( 'operator' => 'NOT IN' ), 'NOT' );
+
+				$queried_taxonomies = array_keys( $tax_query_in_and );
+				$matched_taxonomy = reset( $queried_taxonomies );
+				$query = $tax_query_in_and[ $matched_taxonomy ];
 
 				if ( $query['terms'] ) {
 					if ( 'term_id' == $query['field'] ) {
-						$term = get_term( reset( $query['terms'] ), $query['taxonomy'] );
+						$term = get_term( reset( $query['terms'] ), $matched_taxonomy );
 					} else {
-						$term = get_term_by( $query['field'], reset( $query['terms'] ), $query['taxonomy'] );
+						$term = get_term_by( $query['field'], reset( $query['terms'] ), $matched_taxonomy );
 					}
 				}
 			}

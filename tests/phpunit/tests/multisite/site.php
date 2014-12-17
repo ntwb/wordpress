@@ -36,8 +36,7 @@ class Tests_Multisite_Site extends WP_UnitTestCase {
 		wp_cache_set( 'switch-test', $current_blog_id, 'switch-test' );
 		$this->assertEquals( $current_blog_id, wp_cache_get( 'switch-test', 'switch-test' ) );
 
-		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
-		$blog_id = $this->factory->blog->create( array( 'user_id' => $user_id, 'path' => '/test_blogpath', 'title' => 'Test Title' ) );
+		$blog_id = $this->factory->blog->create();
 
 		$cap_key = wp_get_current_user()->cap_key;
 		switch_to_blog( $blog_id );
@@ -317,159 +316,228 @@ class Tests_Multisite_Site extends WP_UnitTestCase {
 		$this->assertLessThan( 2, $time_difference );
 	}
 
+	/**
+	 * If `update_blog_details()` is called with any kind of empty arguments, it
+	 * should return false.
+	 */
+	function test_update_blog_details_with_empty_args() {
+		$result = update_blog_details( 1, array() );
+		$this->assertFalse( $result );
+	}
+
+	/**
+	 * If the ID passed is not that of a current site, we should expect false.
+	 */
+	function test_update_blog_details_invalid_blog_id() {
+		$result = update_blog_details( 999, array( 'domain' => 'example.com' ) );
+		$this->assertFalse( $result );
+	}
+	
 	function test_update_blog_details() {
-		global $test_action_counter;
+		$blog_id = $this->factory->blog->create();
 
-		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
-		$blog_id = $this->factory->blog->create( array( 'user_id' => $user_id, 'path' => '/test_blogpath', 'title' => 'Test Title' ) );
-		$this->assertInternalType( 'int', $blog_id );
+		$result = update_blog_details( $blog_id, array( 'domain' => 'example.com', 'path' => 'my_path/' ) );
 
-		$result = update_blog_details( $blog_id, array('domain' => 'example.com', 'path' => 'my_path/') );
 		$this->assertTrue( $result );
 
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( 'example.com', $blog->domain );
 		$this->assertEquals( 'my_path/', $blog->path );
 		$this->assertEquals( '0', $blog->spam );
-
-		$result = update_blog_details( $blog_id, array('domain' => 'example2.com','spam' => 1) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( 'example2.com', $blog->domain );
-		$this->assertEquals( 'my_path/', $blog->path );
-		$this->assertEquals( '1', $blog->spam );
-
-		$result = update_blog_details( $blog_id );
-		$this->assertFalse( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( 'example2.com', $blog->domain );
-		$this->assertEquals( 'my_path/', $blog->path );
-		$this->assertEquals( '1', $blog->spam );
-
-		$test_action_counter = 0;
-
-		add_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'spam' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->spam );
-		$this->assertEquals( 1, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'spam' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->spam );
-		$this->assertEquals( 1, $test_action_counter );
-		remove_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		add_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'spam' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->spam );
-		$this->assertEquals( 2, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'spam' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->spam );
-		$this->assertEquals( 2, $test_action_counter );
-		remove_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		add_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'archived' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->archived );
-		$this->assertEquals( 3, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'archived' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->archived );
-		$this->assertEquals( 3, $test_action_counter );
-		remove_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		add_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'archived' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->archived );
-		$this->assertEquals( 4, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'archived' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->archived );
-		$this->assertEquals( 4, $test_action_counter );
-		remove_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		add_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'deleted' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->deleted );
-		$this->assertEquals( 5, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'deleted' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->deleted );
-		$this->assertEquals( 5, $test_action_counter );
-		remove_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		add_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'deleted' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->deleted );
-		$this->assertEquals( 6, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'deleted' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->deleted );
-		$this->assertEquals( 6, $test_action_counter );
-		remove_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		add_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'mature' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->mature );
-		$this->assertEquals( 7, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'mature' => 1 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->mature );
-		$this->assertEquals( 7, $test_action_counter );
-		remove_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		add_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_details( $blog_id, array( 'mature' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->mature );
-		$this->assertEquals( 8, $test_action_counter );
-
-		// Same again
-		$result = update_blog_details( $blog_id, array( 'mature' => 0 ) );
-		$this->assertTrue( $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->mature );
-		$this->assertEquals( 8, $test_action_counter );
-		remove_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
 	}
 
-	function _action_counter_cb( $blog_id ) {
+	function test_update_blog_details_make_ham_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'spam' => 1 ) );
+
+		add_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'spam' => 0 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '0', $blog->spam );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'spam' stays the same.
+		update_blog_details( $blog_id, array( 'spam' => 0 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '0', $blog->spam );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_details_make_spam_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'spam' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->spam );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'spam' stays the same.
+		update_blog_details( $blog_id, array( 'spam' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->spam );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_details_archive_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'archived' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->archived );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'archived' stays the same.
+		update_blog_details( $blog_id, array( 'archived' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->archived );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_details_unarchive_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'archived' => 1 ) );
+
+		add_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'archived' => 0 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '0', $blog->archived );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'archived' stays the same.
+		update_blog_details( $blog_id, array( 'archived' => 0 ) );
+		$blog = get_blog_details( $blog_id );
+		$this->assertEquals( '0', $blog->archived );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_details_make_delete_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'deleted' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->deleted );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'deleted' stays the same.
+		update_blog_details( $blog_id, array( 'deleted' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->deleted );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_details_make_undelete_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'deleted' => 1 ) );
+
+		add_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'deleted' => 0 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '0', $blog->deleted );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'deleted' stays the same.
+		update_blog_details( $blog_id, array( 'deleted' => 0 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '0', $blog->deleted );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_details_mature_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'mature' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->mature );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'mature' stays the same.
+		update_blog_details( $blog_id, array( 'mature' => 1 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '1', $blog->mature );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_details_unmature_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'mature' => 1 ) );
+
+		add_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_details( $blog_id, array( 'mature' => 0 ) );
+
+		$blog = get_blog_details( $blog_id );
+		$this->assertEquals( '0', $blog->mature );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should not fire if the status of 'mature' stays the same.
+		update_blog_details( $blog_id, array( 'mature' => 0 ) );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '0', $blog->mature );
+		$this->assertEquals( 1, $test_action_counter );
+
+		remove_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	/**
+	 * Provide a counter to determine that hooks are firing when intended.
+	 */
+	function _action_counter_cb() {
 		global $test_action_counter;
 		$test_action_counter++;
 	}
@@ -502,188 +570,230 @@ class Tests_Multisite_Site extends WP_UnitTestCase {
 		$this->assertEquals( $blog, wp_cache_get( $blog_id, 'blog-details' ) );
 	}
 
+	/**
+	 * Updating a field returns the sme value that was passed.
+	 */
 	function test_update_blog_status() {
+		$result = update_blog_status( 1, 'spam', 0 );
+		$this->assertEquals( 0, $result );
+	}
+
+	/**
+	 * Updating an invalid field returns the same value that was passed.
+	 */
+	function test_update_blog_status_invalid_status() {
+		$result = update_blog_status( 1, 'doesnotexist', 'invalid' );
+		$this->assertEquals( 'invalid', $result );
+	}
+
+	function test_update_blog_status_make_ham_blog_action() {
 		global $test_action_counter;
-
-		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
-		$blog_id = $this->factory->blog->create( array( 'user_id' => $user_id, 'path' => '/test_blogpath', 'title' => 'Test Title' ) );
-		$this->assertInternalType( 'int', $blog_id );
-
 		$test_action_counter = 0;
-		$count = 1;
 
-		add_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_status( $blog_id, 'spam', 0 );
-		$this->assertEquals( 0, $result );
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'spam' => 1 ) );
+
+		add_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'spam', 0 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '0', $blog->spam );
-		$this->assertEquals( $count, $test_action_counter );
+		$this->assertEquals( 1, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'spam', 0 );
-		$this->assertEquals( 0, $result );
+		// The action should fire if the status of 'spam' stays the same.
+		update_blog_status( $blog_id, 'spam', 0 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '0', $blog->spam );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10, 1 );
+		$this->assertEquals( 2, $test_action_counter );
 
-		$count++;
-		add_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$result = update_blog_status( $blog_id, 'spam', 1 );
-		$this->assertEquals( 1, $result );
+		remove_action( 'make_ham_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_status_make_spam_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'spam', 1 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '1', $blog->spam );
-		$this->assertEquals( $count, $test_action_counter );
+		$this->assertEquals( 1, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'spam', 1 );
-		$this->assertEquals( 1, $result );
+		// The action should fire if the status of 'spam' stays the same.
+		update_blog_status( $blog_id, 'spam', 1 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '1', $blog->spam );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10, 1 );
+		$this->assertEquals( 2, $test_action_counter );
 
-		add_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'archived', 1 );
-		$this->assertEquals( 1, $result );
+		remove_action( 'make_spam_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_status_archive_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'archived', 1 );
 		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->archived );
-		$this->assertEquals( $count, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'archived', 1 );
-		$this->assertEquals( 1, $result );
+		$this->assertEquals( '1', $blog->archived );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should fire if the status of 'archived' stays the same.
+		update_blog_status( $blog_id, 'archived', 1 );
 		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->archived );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
 
-		add_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'archived', 0 );
-		$this->assertEquals( 0, $result );
+		$this->assertEquals( '1', $blog->archived );
+		$this->assertEquals( 2, $test_action_counter );
+
+		remove_action( 'archive_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_status_unarchive_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'archived' => 1 ) );
+
+		add_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'archived', 0 );
+		$blog = get_blog_details( $blog_id );
+
+		$this->assertEquals( '0', $blog->archived );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should fire if the status of 'archived' stays the same.
+		update_blog_status( $blog_id, 'archived', 0 );
 		$blog = get_blog_details( $blog_id );
 		$this->assertEquals( '0', $blog->archived );
-		$this->assertEquals( $count, $test_action_counter );
+		$this->assertEquals( 2, $test_action_counter );
 
-		// Same again
-		$result = update_blog_status( $blog_id, 'archived', 0 );
-		$count++;
-		$this->assertEquals( 0, $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '0', $blog->archived );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10, 1 );
+		remove_action( 'unarchive_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
 
-		add_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'deleted', 1 );
-		$this->assertEquals( 1, $result );
+	function test_update_blog_status_make_delete_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'deleted', 1 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '1', $blog->deleted );
-		$this->assertEquals( $count, $test_action_counter );
+		$this->assertEquals( 1, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'deleted', 1 );
-		$this->assertEquals( 1, $result );
+		// The action should fire if the status of 'deleted' stays the same.
+		update_blog_status( $blog_id, 'deleted', 1 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '1', $blog->deleted );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
+		$this->assertEquals( 2, $test_action_counter );
 
-		add_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'deleted', 0 );
-		$this->assertEquals( 0, $result );
+		remove_action( 'make_delete_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_status_make_undelete_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'deleted' => 1 ) );
+
+		add_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'deleted', 0 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '0', $blog->deleted );
-		$this->assertEquals( $count, $test_action_counter );
+		$this->assertEquals( 1, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'deleted', 0 );
-		$this->assertEquals( 0, $result );
+		// The action should fire if the status of 'deleted' stays the same.
+		update_blog_status( $blog_id, 'deleted', 0 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '0', $blog->deleted );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10, 1 );
+		$this->assertEquals( 2, $test_action_counter );
 
-		add_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'mature', 1 );
-		$this->assertEquals( 1, $result );
+		remove_action( 'make_undelete_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_status_mature_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'mature', 1 );
 		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->mature );
-		$this->assertEquals( $count, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'mature', 1 );
-		$this->assertEquals( 1, $result );
+		$this->assertEquals( '1', $blog->mature );
+		$this->assertEquals( 1, $test_action_counter );
+
+		// The action should fire if the status of 'mature' stays the same.
+		update_blog_status( $blog_id, 'mature', 1 );
 		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->mature );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
 
-		add_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'mature', 0 );
-		$this->assertEquals( 0, $result );
+		$this->assertEquals( '1', $blog->mature );
+		$this->assertEquals( 2, $test_action_counter );
+
+		remove_action( 'mature_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_status_unmature_blog_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+		update_blog_details( $blog_id, array( 'mature' => 1 ) );
+
+		add_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'mature', 0 );
+
 		$blog = get_blog_details( $blog_id );
 		$this->assertEquals( '0', $blog->mature );
-		$this->assertEquals( $count, $test_action_counter );
+		$this->assertEquals( 1, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'mature', 0 );
-		$this->assertEquals( 0, $result );
+		// The action should fire if the status of 'mature' stays the same.
+		update_blog_status( $blog_id, 'mature', 0 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '0', $blog->mature );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10, 1 );
+		$this->assertEquals( 2, $test_action_counter );
 
-		add_action( 'update_blog_public', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'public', 0 );
-		$this->assertEquals( 0, $result );
+		remove_action( 'unmature_blog', array( $this, '_action_counter_cb' ), 10 );
+	}
+
+	function test_update_blog_status_update_blog_public_action() {
+		global $test_action_counter;
+		$test_action_counter = 0;
+
+		$blog_id = $this->factory->blog->create();
+
+		add_action( 'update_blog_public', array( $this, '_action_counter_cb' ), 10 );
+		update_blog_status( $blog_id, 'public', 0 );
+
 		$blog = get_blog_details( $blog_id );
 		$this->assertEquals( '0', $blog->public );
-		$this->assertEquals( $count, $test_action_counter );
+		$this->assertEquals( 1, $test_action_counter );
 
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'public', 0 );
-		$this->assertEquals( 0, $result );
+		// The action should fire if the status of 'mature' stays the same.
+		update_blog_status( $blog_id, 'public', 0 );
 		$blog = get_blog_details( $blog_id );
+
 		$this->assertEquals( '0', $blog->public );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'update_blog_public', array( $this, '_action_counter_cb' ), 10, 1 );
+		$this->assertEquals( 2, $test_action_counter );
 
-		add_action( 'update_blog_public', array( $this, '_action_counter_cb' ), 10, 1 );
-		$count++;
-		$result = update_blog_status( $blog_id, 'public', 1 );
-		$this->assertEquals( 1, $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->public );
-		$this->assertEquals( $count, $test_action_counter );
-
-		// Same again
-		$count++;
-		$result = update_blog_status( $blog_id, 'public', 1 );
-		$this->assertEquals( 1, $result );
-		$blog = get_blog_details( $blog_id );
-		$this->assertEquals( '1', $blog->public );
-		$this->assertEquals( $count, $test_action_counter );
-		remove_action( 'update_blog_public', array( $this, '_action_counter_cb' ), 10, 1 );
-
-		// Updating a dummy field returns the value passed. Go fig.
-		$result = update_blog_status( $blog_id, 'doesnotexist', 1 );
-		$this->assertEquals( 1, $result );
+		remove_action( 'update_blog_public', array( $this, '_action_counter_cb' ), 10 );
 	}
 
 	/**
@@ -882,36 +992,60 @@ class Tests_Multisite_Site extends WP_UnitTestCase {
 	 * the blog ID is requested through get_blog_id_from_url().
 	 */
 	function test_get_blog_id_from_url() {
-		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
-		$blog_id = $this->factory->blog->create( array( 'user_id' => $user_id, 'path' => '/testdomainexists', 'title' => 'Test Title' ) );
-
+		$blog_id = $this->factory->blog->create();
 		$details = get_blog_details( $blog_id, false );
 		$key = md5( $details->domain . $details->path );
 
 		// Test the original response and cached response for the newly created site.
 		$this->assertEquals( $blog_id, get_blog_id_from_url( $details->domain, $details->path ) );
 		$this->assertEquals( $blog_id, wp_cache_get( $key, 'blog-id-cache' ) );
+	}
 
-		// Test the case insensitivity of the site lookup.
-		$this->assertEquals( $blog_id, get_blog_id_from_url( strtoupper( $details->domain ) , strtoupper( $details->path ) ) );
+	/**
+	 * Test the case insensitivity of the site lookup.
+	 */
+	function test_get_blog_id_from_url_is_case_insensitive() {
+		$blog_id = $this->factory->blog->create( array( 'domain' => 'example.com', 'path' => '/xyz' ) );
+		$details = get_blog_details( $blog_id, false );
 
-		// Test the first and cached responses for a non existent site.
+		$this->assertEquals( $blog_id, get_blog_id_from_url( strtoupper( $details->domain ), strtoupper( $details->path ) ) );
+	}
+
+	/**
+	 * Test the first and cached responses for a site that does not exist.
+	 */
+	function test_get_blog_id_from_url_that_does_not_exist() {
+		$blog_id = $this->factory->blog->create( array( 'path' => '/xyz' ) );
+		$details = get_blog_details( $blog_id, false );
+
 		$this->assertEquals( 0, get_blog_id_from_url( $details->domain, 'foo' ) );
 		$this->assertEquals( -1, wp_cache_get( md5( $details->domain . 'foo' ), 'blog-id-cache' ) );
+	}
 
-		// A blog ID is still available if only the 'deleted' flag is set for a site.
+	/**
+	 * A blog ID is still available if only the `deleted` flag is set for a site. The same
+	 * behavior would be expected if passing `false` explicitly to `wpmu_delete_blog()`.
+	 */
+	function test_get_blog_id_from_url_with_deleted_flag() {
+		$blog_id = $this->factory->blog->create();
+		$details = get_blog_details( $blog_id, false );
+		$key = md5( $details->domain . $details->path );
 		wpmu_delete_blog( $blog_id );
+
 		$this->assertEquals( $blog_id, get_blog_id_from_url( $details->domain, $details->path ) );
 		$this->assertEquals( $blog_id, wp_cache_get( $key, 'blog-id-cache' ) );
+	}
 
-		// Explicitly pass $drop = false (default), a blog ID will still be available.
-		wpmu_delete_blog( $blog_id, false );
-		$this->assertEquals( $blog_id, get_blog_id_from_url( $details->domain, $details->path ) );
-		$this->assertEquals( $blog_id, wp_cache_get( $key, 'blog-id-cache' ) );
-
-		// When deleted with the drop parameter at true, the cache will first be false, and then
-		// set to -1 after an attempt at get_blog_id_from_url() is made.
+	/**
+	 * When deleted with the drop parameter as true, the cache will first be false, then set to
+	 * -1 after an attempt at `get_blog_id_from_url()` is made.
+	 */
+	function test_get_blog_id_from_url_after_dropped() {
+		$blog_id = $this->factory->blog->create();
+		$details = get_blog_details( $blog_id, false );
+		$key = md5( $details->domain . $details->path );
 		wpmu_delete_blog( $blog_id, true );
+
 		$this->assertEquals( false, wp_cache_get( $key, 'blog-id-cache' ) );
 		$this->assertEquals( 0, get_blog_id_from_url( $details->domain, $details->path ) );
 		$this->assertEquals( -1, wp_cache_get( $key, 'blog-id-cache' ) );
@@ -964,8 +1098,7 @@ class Tests_Multisite_Site extends WP_UnitTestCase {
 		$this->assertEquals( gmstrftime('/%Y/%m'), $info['subdir'] );
 		$this->assertEquals( '', $info['error'] );
 
-		$user_id = $this->factory->user->create( array( 'role' => 'administrator' ) );
-		$blog_id = $this->factory->blog->create( array( 'user_id' => $user_id ) );
+		$blog_id = $this->factory->blog->create();
 
 		switch_to_blog( $blog_id );
 		$info = wp_upload_dir();
@@ -983,50 +1116,186 @@ class Tests_Multisite_Site extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @ticket 18119
+	 * Tests to handle the possibilities provided for in `get_space_allowed()`,
+	 * which is used when checking for upload quota limits. Originally part of
+	 * ticket #18119.
 	 */
-	function test_upload_is_user_over_quota() {
-		$default_space_allowed = 100;
-		$echo = false;
+	function test_get_space_allowed_default() {
+		$this->assertEquals( 100, get_space_allowed() );
+	}
 
-		$this->assertFalse( upload_is_user_over_quota( $echo ) );
-		$this->assertTrue( is_upload_space_available() );
+	/**
+	 * When an individual site's option is defined, it is used over the option
+	 * defined at the network level.
+	 */
+	function test_get_space_allowed_from_blog_option() {
+		update_option( 'blog_upload_space', 123 );
+		update_site_option( 'blog_upload_space', 200 );
+		$this->assertEquals( 123, get_space_allowed() );
+	}
 
-		update_site_option('upload_space_check_disabled', true);
-		$this->assertFalse( upload_is_user_over_quota( $echo ) );
-		$this->assertTrue( is_upload_space_available() );
+	/**
+	 * If an individual site's option is not available, the default network
+	 * level option is used as a fallback.
+	 */
+	function test_get_space_allowed_from_network_option() {
+		update_option( 'blog_upload_space', false );
+		update_site_option( 'blog_upload_space', 200 );
+		$this->assertEquals( 200, get_space_allowed() );
+	}
 
-		update_site_option( 'blog_upload_space', 0 );
-		$this->assertFalse( upload_is_user_over_quota( $echo ) );
-		$this->assertEquals( $default_space_allowed, get_space_allowed() );
-		$this->assertTrue( is_upload_space_available() );
+	/**
+	 * If neither the site or network options are available, 100 is used as
+	 * a hard coded fallback.
+	 */
+	function test_get_space_allowed_no_option_fallback() {
+		update_option( 'blog_upload_space', false );
+		update_site_option( 'blog_upload_space', false );
+		$this->assertEquals( 100, get_space_allowed() );
+	}
 
-		update_site_option('upload_space_check_disabled', false);
-		$this->assertFalse( upload_is_user_over_quota( $echo ) );
-		$this->assertTrue( is_upload_space_available() );
-
-		if ( defined( 'BLOGSUPLOADDIR' ) && ! file_exists( BLOGSUPLOADDIR ) )
-			$this->markTestSkipped( 'This test is broken when blogs.dir does not exist. ');
-
-		/*
-		This is broken when blogs.dir does not exist, as get_upload_space_available()
-		simply returns the value of blog_upload_space (converted to bytes), which would
-		be negative but still not false. When blogs.dir does exist, < 0 is returned as 0.
-		*/
-
-		update_site_option( 'blog_upload_space', -1 );
-		$this->assertTrue( upload_is_user_over_quota( $echo ) );
+	function test_get_space_allowed_negative_blog_option() {
+		update_option( 'blog_upload_space', -1 );
+		update_site_option( 'blog_upload_space', 200 );
 		$this->assertEquals( -1, get_space_allowed() );
+	}
+
+	function test_get_space_allowed_negative_site_option() {
+		update_option( 'blog_upload_space', false );
+		update_site_option( 'blog_upload_space', -1 );
+		$this->assertEquals( -1, get_space_allowed() );
+	}
+
+	/**
+	 * Provide a hardcoded amount for space used when testing upload quota,
+	 * allowed space, and available space.
+	 *
+	 * @return int
+	 */
+	function _filter_space_used() {
+		return 300;
+	}
+
+	function test_upload_is_user_over_quota_default() {
+		$this->assertFalse( upload_is_user_over_quota( false ) );
+	}
+
+	function test_upload_is_user_over_quota_check_enabled() {
+		update_site_option('upload_space_check_disabled', false);
+		$this->assertFalse( upload_is_user_over_quota( false ) );
+	}
+
+	/**
+	 * When the upload space check is disabled, using more than the available
+	 * quota is allowed.
+	 */
+	function test_upload_is_user_over_check_disabled() {
+		update_site_option( 'upload_space_check_disabled', true );
+		update_site_option( 'blog_upload_space', 100 );
+		add_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+
+		$this->assertFalse( upload_is_user_over_quota( false ) );
+
+		remove_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+	}
+
+	/**
+	 * If 0 is set for `blog_upload_space`, a fallback of 100 is used.
+	 */
+	function test_upload_is_user_over_quota_upload_space_0() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 0 );
+		$this->assertFalse( upload_is_user_over_quota( false ) );
+	}
+
+	/**
+	 * Filter the space space used as 300 to trigger a true upload quota
+	 * without requiring actual files.
+	 */
+	function test_upload_is_user_over_quota_upload_space_0_filter_space_used() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 0 );
+		add_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+
+		$this->assertTrue( upload_is_user_over_quota( false ) );
+
+		remove_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+	}
+
+	function test_upload_is_user_over_quota_upload_space_200() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 200 );
+		$this->assertFalse( upload_is_user_over_quota( false ) );
+	}
+
+	function test_upload_is_user_over_quota_upload_space_200_filter_space_used() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 200 );
+		add_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+
+		$this->assertTrue( upload_is_user_over_quota( false ) );
+
+		remove_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+	}
+
+	/**
+	 * If the space used is exactly the same as the available quota, an over
+	 * quota response is not expected.
+	 */
+	function test_upload_is_user_over_quota_upload_space_exact() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 300 );
+		add_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+
+		$this->assertFalse( upload_is_user_over_quota( false ) );
+
+		remove_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+	}
+
+	function test_upload_is_user_over_quota_upload_space_negative() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', -1 );
+		$this->assertTrue( upload_is_user_over_quota( false ) );
+	}
+
+	function test_is_upload_space_available_default() {
+		$this->assertTrue( is_upload_space_available() );
+	}
+
+	function test_is_upload_space_available_check_disabled() {
+		update_site_option( 'upload_space_check_disabled', true );
+		$this->assertTrue( is_upload_space_available() );
+	}
+
+	function test_is_upload_space_available_space_used_is_less() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 350 );
+		add_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+
+		$this->assertTrue( is_upload_space_available() );
+
+		remove_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+	}
+
+	function test_is_upload_space_available_space_used_is_more() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 250 );
+		add_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+
 		$this->assertFalse( is_upload_space_available() );
 
-		update_option( 'blog_upload_space', 0 );
-		$this->assertFalse( upload_is_user_over_quota( $echo ) );
-		$this->assertEquals( $default_space_allowed, get_space_allowed() );
-		$this->assertTrue( is_upload_space_available() );
+		remove_filter( 'pre_get_space_used', array( $this, '_filter_space_used' ) );
+	}
 
-		update_option( 'blog_upload_space', -1 );
-		$this->assertTrue( upload_is_user_over_quota( $echo ) );
-		$this->assertEquals( -1, get_space_allowed() );
+	function test_is_upload_space_available_upload_space_0() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', 0 );
+		$this->assertTrue( is_upload_space_available() );
+	}
+
+	function test_is_upload_space_available_upload_space_negative() {
+		update_site_option( 'upload_space_check_disabled', false );
+		update_site_option( 'blog_upload_space', -1 );
 		$this->assertFalse( is_upload_space_available() );
 	}
 

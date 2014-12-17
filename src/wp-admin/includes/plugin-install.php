@@ -28,11 +28,17 @@
  */
 function plugins_api($action, $args = null) {
 
-	if ( is_array($args) )
-		$args = (object)$args;
+	if ( is_array( $args ) ) {
+		$args = (object) $args;
+	}
 
-	if ( !isset($args->per_page) )
+	if ( ! isset( $args->per_page ) ) {
 		$args->per_page = 24;
+	}
+
+	if ( ! isset( $args->locale ) ) {
+		$args->locale = get_locale();
+	}
 
 	/**
 	 * Override the Plugin Install API arguments.
@@ -190,7 +196,7 @@ function install_search_form( $type_selector = true ) {
  * Upload from zip
  * @since 2.8.0
  *
- * @param string $page
+ * @param integer $page
  */
 function install_plugins_upload( $page = 1 ) {
 ?>
@@ -235,8 +241,15 @@ function install_plugins_favorites_form() {
 function display_plugins_table() {
 	global $wp_list_table;
 
-	if ( current_filter() == 'install_plugins_favorites' && empty( $_GET['user'] ) && ! get_user_option( 'wporg_favorites' ) ) {
-		return;
+	switch ( current_filter() ) {
+		case 'install_plugins_favorites' :
+			if ( empty( $_GET['user'] ) && ! get_user_option( 'wporg_favorites' ) ) {
+				return;
+			}
+			break;
+		case 'install_plugins_recommended' :
+			echo '<p>' . __( 'These suggestions are based on the plugins you and other users have installed.' ) . '</p>';
+			break;
 	}
 
 	?>
@@ -245,11 +258,12 @@ function display_plugins_table() {
 	</form>
 	<?php
 }
-add_action( 'install_plugins_search',    'display_plugins_table' );
-add_action( 'install_plugins_popular',   'display_plugins_table' );
-add_action( 'install_plugins_new',       'display_plugins_table' );
-add_action( 'install_plugins_beta',      'display_plugins_table' );
-add_action( 'install_plugins_favorites', 'display_plugins_table' );
+add_action( 'install_plugins_search',      'display_plugins_table' );
+add_action( 'install_plugins_popular',     'display_plugins_table' );
+add_action( 'install_plugins_recommended', 'display_plugins_table' );
+add_action( 'install_plugins_new',         'display_plugins_table' );
+add_action( 'install_plugins_beta',        'display_plugins_table' );
+add_action( 'install_plugins_favorites',   'display_plugins_table' );
 
 /**
  * Determine the status we can perform on a plugin.

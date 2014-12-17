@@ -118,6 +118,7 @@ do_action( 'customize_controls_print_scripts' );
 <body class="<?php echo esc_attr( $body_class ); ?>">
 <div class="wp-full-overlay expanded">
 	<form id="customize-controls" class="wrap wp-full-overlay-sidebar">
+		<div id="screen-reader-messages" aria-live="polite" aria-relevant="all" aria-role="status" aria-atomic="true" class="screen-reader-text"></div>
 
 		<div id="customize-header-actions" class="wp-full-overlay-header">
 			<?php
@@ -232,7 +233,7 @@ do_action( 'customize_controls_print_scripts' );
 		'customize-login' => 1
 	), wp_login_url() );
 
-	// Prepare Customizer settings to pass to Javascript.
+	// Prepare Customizer settings to pass to JavaScript.
 	$settings = array(
 		'theme'    => array(
 			'stylesheet' => $wp_customize->get_stylesheet(),
@@ -265,7 +266,7 @@ do_action( 'customize_controls_print_scripts' );
 		'documentTitleTmpl' => $document_title_tmpl,
 	);
 
-	// Prepare Customize Setting objects to pass to Javascript.
+	// Prepare Customize Setting objects to pass to JavaScript.
 	foreach ( $wp_customize->settings() as $id => $setting ) {
 		$settings['settings'][ $id ] = array(
 			'value'     => $setting->js_value(),

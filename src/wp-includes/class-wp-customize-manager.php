@@ -62,7 +62,7 @@ final class WP_Customize_Manager {
 	 */
 	protected $registered_control_types = array();
 
-	/** 
+	/**
 	 * $_POST values for Customize Settings.
 	 *
 	 * @var array
@@ -403,7 +403,7 @@ final class WP_Customize_Manager {
 	 *
 	 * @since 3.4.0
 	 *
-	 * @param mixed $setting A WP_Customize_Setting derived object
+	 * @param WP_Customize_Setting $setting A WP_Customize_Setting derived object
 	 * @return string $post_value Sanitized value
 	 */
 	public function post_value( $setting ) {
@@ -419,7 +419,7 @@ final class WP_Customize_Manager {
 	}
 
 	/**
-	 * Print javascript settings.
+	 * Print JavaScript settings.
 	 *
 	 * @since 3.4.0
 	 */
@@ -492,7 +492,7 @@ final class WP_Customize_Manager {
 	}
 
 	/**
-	 * Print javascript settings for preview frame.
+	 * Print JavaScript settings for preview frame.
 	 *
 	 * @since 3.4.0
 	 */
@@ -974,6 +974,7 @@ final class WP_Customize_Manager {
 		$this->register_control_type( 'WP_Customize_Color_Control' );
 		$this->register_control_type( 'WP_Customize_Upload_Control' );
 		$this->register_control_type( 'WP_Customize_Image_Control' );
+		$this->register_control_type( 'WP_Customize_Background_Image_Control' );
 
 		/* Site Title & Tagline */
 

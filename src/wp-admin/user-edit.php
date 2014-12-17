@@ -25,15 +25,6 @@ elseif ( ! get_userdata( $user_id ) )
 
 wp_enqueue_script('user-profile');
 
-wp_localize_script(
-	'user-profile',
-	'_wpSessionMangager',
-	array(
-		'user_id' => $user_id,
-		'nonce'   => wp_create_nonce( sprintf( 'destroy_sessions_%d', $user_id ) ),
-	)
-);
-
 $title = IS_PROFILE_PAGE ? __('Profile') : __('Edit User');
 if ( current_user_can('edit_users') && !IS_PROFILE_PAGE )
 	$submenu_file = 'users.php';
@@ -48,6 +39,7 @@ else
 $profile_help = '<p>' . __('Your profile contains information about you (your &#8220;account&#8221;) as well as some personal options related to using WordPress.') . '</p>' .
 	'<p>' . __('You can change your password, turn on keyboard shortcuts, change the color scheme of your WordPress administration screens, and turn off the WYSIWYG (Visual) editor, among other things. You can hide the Toolbar (formerly called the Admin Bar) from the front end of your site, however it cannot be disabled on the admin screens.') . '</p>' .
 	'<p>' . __('Your username cannot be changed, but you can use other fields to enter your real name or a nickname, and change which name to display on your posts.') . '</p>' .
+	'<p>' . __( 'You can log out of other devices, such as your phone or a public computer, by clicking the Log Out of All Other Sessions button. The button will only display if you are logged in to more than one device.' ) . '</p>' .
 	'<p>' . __('Required fields are indicated; the rest are optional. Profile information will only be displayed if your theme is set up to do so.') . '</p>' .
 	'<p>' . __('Remember to click the Update Profile button when you are finished.') . '</p>';
 
@@ -232,14 +224,14 @@ if ( ! IS_PROFILE_PAGE ) {
 	<?php }
 } ?>
 </h2>
-<?php
-/**
- * Fires inside the your-profile form tag on the user editing screen.
- *
- * @since 3.0.0
- */
-?>
-<form id="your-profile" action="<?php echo esc_url( self_admin_url( IS_PROFILE_PAGE ? 'profile.php' : 'user-edit.php' ) ); ?>" method="post" novalidate="novalidate"<?php do_action( 'user_edit_form_tag' ); ?>>
+<form id="your-profile" action="<?php echo esc_url( self_admin_url( IS_PROFILE_PAGE ? 'profile.php' : 'user-edit.php' ) ); ?>" method="post" novalidate="novalidate"<?php
+	/**
+	 * Fires inside the your-profile form tag on the user editing screen.
+	 *
+	 * @since 3.0.0
+	 */
+	do_action( 'user_edit_form_tag' );
+?>>
 <?php wp_nonce_field('update-user_' . $user_id) ?>
 <?php if ( $wp_http_referer ) : ?>
 	<input type="hidden" name="wp_http_referer" value="<?php echo esc_url($wp_http_referer); ?>" />
@@ -261,20 +253,20 @@ if ( ! IS_PROFILE_PAGE ) {
 <?php if ( count($_wp_admin_css_colors) > 1 && has_action('admin_color_scheme_picker') ) : ?>
 <tr class="user-admin-color-wrap">
 <th scope="row"><?php _e('Admin Color Scheme')?></th>
-<?php
-/**
- * Fires in the 'Admin Color Scheme' section of the user editing screen.
- *
- * The section is only enabled if a callback is hooked to the action,
- * and if there is more than one defined color scheme for the admin.
- *
- * @since 3.0.0
- * @since 3.8.1 Added `$user_id` parameter.
- *
- * @param int $user_id The user ID.
- */
-?>
-<td><?php do_action( 'admin_color_scheme_picker', $user_id ); ?></td>
+<td><?php
+	/**
+	 * Fires in the 'Admin Color Scheme' section of the user editing screen.
+	 *
+	 * The section is only enabled if a callback is hooked to the action,
+	 * and if there is more than one defined color scheme for the admin.
+	 *
+	 * @since 3.0.0
+	 * @since 3.8.1 Added `$user_id` parameter.
+	 *
+	 * @param int $user_id The user ID.
+	 */
+	do_action( 'admin_color_scheme_picker', $user_id );
+?></td>
 </tr>
 <?php
 endif; // $_wp_admin_css_colors
@@ -487,22 +479,33 @@ if ( $show_password_fields ) :
 	<p class="description"><?php _e( 'Type your new password again.' ); ?></p>
 	<br />
 	<div id="pass-strength-result"><?php _e( 'Strength indicator' ); ?></div>
-	<p class="description indicator-hint"><?php echo _wp_get_password_hint(); ?></p>
+	<p class="description indicator-hint"><?php echo wp_get_password_hint(); ?></p>
 	</td>
 </tr>
 <?php endif; ?>
 
-<?php if ( IS_PROFILE_PAGE && ( count( $sessions->get_all() ) > 1 ) ) { ?>
+<?php
+if ( IS_PROFILE_PAGE && count( $sessions->get_all() ) === 1 ) : ?>
 	<tr class="user-sessions-wrap hide-if-no-js">
 		<th>&nbsp;</th>
 		<td aria-live="assertive">
-			<div class="destroy-sessions"><button class="button button-secondary" id="destroy-sessions" data-token="<?php echo esc_attr( wp_get_session_token() ); ?>"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
+			<div class="destroy-sessions"><button disabled class="button button-secondary"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
+			<p class="description">
+				<?php _e( 'You are only logged in at this location.' ); ?>
+			</p>
+		</td>
+	</tr>
+<?php elseif ( IS_PROFILE_PAGE && count( $sessions->get_all() ) > 1 ) : ?>
+	<tr class="user-sessions-wrap hide-if-no-js">
+		<th>&nbsp;</th>
+		<td aria-live="assertive">
+			<div class="destroy-sessions"><button class="button button-secondary" id="destroy-sessions"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
 			<p class="description">
 				<?php _e( 'Left your account logged in at a public computer? Lost your phone? This will log you out everywhere except your current browser.' ); ?>
 			</p>
 		</td>
 	</tr>
-<?php } else if ( ! IS_PROFILE_PAGE && ( count( $sessions->get_all() ) > 0 ) ) { ?>
+<?php elseif ( ! IS_PROFILE_PAGE && $sessions->get_all() ) : ?>
 	<tr class="user-sessions-wrap hide-if-no-js">
 		<th>&nbsp;</th>
 		<td>
@@ -515,7 +518,7 @@ if ( $show_password_fields ) :
 			</p>
 		</td>
 	</tr>
-<?php } ?>
+<?php endif; ?>
 
 </table>
 

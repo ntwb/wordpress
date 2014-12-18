@@ -1,5 +1,11 @@
 # Travis CI Configuration File
 
+# Cached directories
+cache:
+  apt: true
+  directories:
+    - node_modules
+
 # Tell Travis CI we're using PHP
 language: php
 

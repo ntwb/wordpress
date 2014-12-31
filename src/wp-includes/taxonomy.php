@@ -1648,8 +1648,8 @@ function get_terms( $taxonomies, $args = '' ) {
 	 *
 	 * @since 3.1.0
 	 *
-	 * @param array        $args       An array of arguments.
-	 * @param string|array $taxonomies A taxonomy or array of taxonomies.
+	 * @param array $args       An array of arguments.
+	 * @param array $taxonomies An array of taxonomies.
 	 */
 	$args = apply_filters( 'get_terms_args', $args, $taxonomies );
 
@@ -1686,9 +1686,9 @@ function get_terms( $taxonomies, $args = '' ) {
 		 *
 		 * @since 2.3.0
 		 *
-		 * @param array        $cache      Cached array of terms for the given taxonomy.
-		 * @param string|array $taxonomies A taxonomy or array of taxonomies.
-		 * @param array        $args       An array of arguments to get terms.
+		 * @param array $cache      Cached array of terms for the given taxonomy.
+		 * @param array $taxonomies An array of taxonomies.
+		 * @param array $args       An array of arguments to get terms.
 		 */
 		$cache = apply_filters( 'get_terms', $cache, $taxonomies, $args );
 		return $cache;
@@ -1718,9 +1718,9 @@ function get_terms( $taxonomies, $args = '' ) {
 	 *
 	 * @since 2.8.0
 	 *
-	 * @param string       $orderby    ORDERBY clause of the terms query.
-	 * @param array        $args       An array of terms query arguments.
-	 * @param string|array $taxonomies A taxonomy or array of taxonomies.
+	 * @param string $orderby    ORDERBY clause of the terms query.
+	 * @param array  $args       An array of terms query arguments.
+	 * @param array  $taxonomies An array of taxonomies.
 	 */
 	$orderby = apply_filters( 'get_terms_orderby', $orderby, $args, $taxonomies );
 
@@ -1785,9 +1785,9 @@ function get_terms( $taxonomies, $args = '' ) {
 	 *
 	 * @since 2.3.0
 	 *
-	 * @param string       $exclusions NOT IN clause of the terms query.
-	 * @param array        $args       An array of terms query arguments.
-	 * @param string|array $taxonomies A taxonomy or array of taxonomies.
+	 * @param string $exclusions NOT IN clause of the terms query.
+	 * @param array  $args       An array of terms query arguments.
+	 * @param array  $taxonomies An array of taxonomies.
 	 */
 	$exclusions = apply_filters( 'list_terms_exclusions', $exclusions, $args, $taxonomies );
 
@@ -1877,9 +1877,9 @@ function get_terms( $taxonomies, $args = '' ) {
 	 *
 	 * @since 2.8.0
 	 *
-	 * @param array        $selects    An array of fields to select for the terms query.
-	 * @param array        $args       An array of term query arguments.
-	 * @param string|array $taxonomies A taxonomy or array of taxonomies.
+	 * @param array $selects    An array of fields to select for the terms query.
+	 * @param array $args       An array of term query arguments.
+	 * @param array $taxonomies An array of taxonomies.
 	 */
 	$fields = implode( ', ', apply_filters( 'get_terms_fields', $selects, $args, $taxonomies ) );
 
@@ -1892,9 +1892,9 @@ function get_terms( $taxonomies, $args = '' ) {
 	 *
 	 * @since 3.1.0
 	 *
-	 * @param array        $pieces     Terms query SQL clauses.
-	 * @param string|array $taxonomies A taxonomy or array of taxonomies.
-	 * @param array        $args       An array of terms query arguments.
+	 * @param array $pieces     Terms query SQL clauses.
+	 * @param array $taxonomies An array of taxonomies.
+	 * @param array $args       An array of terms query arguments.
 	 */
 	$clauses = apply_filters( 'terms_clauses', compact( $pieces ), $taxonomies, $args );
 	$fields = isset( $clauses[ 'fields' ] ) ? $clauses[ 'fields' ] : '';
@@ -4338,13 +4338,14 @@ function get_ancestors( $object_id = 0, $object_type = '', $resource_type = '' )
 	 * Filter a given object's ancestors.
 	 *
 	 * @since 3.1.0
+	 * @since 4.1.0 Introduced the `$resource_type` parameter.
 	 *
 	 * @param array  $ancestors     An array of object ancestors.
 	 * @param int    $object_id     Object ID.
 	 * @param string $object_type   Type of object.
 	 * @param string $resource_type Type of resource $object_type is.
 	 */
-	return apply_filters( 'get_ancestors', $ancestors, $object_id, $object_type );
+	return apply_filters( 'get_ancestors', $ancestors, $object_id, $object_type, $resource_type );
 }
 
 /**

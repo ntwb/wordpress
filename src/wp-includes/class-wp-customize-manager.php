@@ -628,10 +628,14 @@ final class WP_Customize_Manager {
 	 * @since 3.4.0
 	 */
 	public function save() {
-		if ( ! $this->is_preview() )
-			die;
+		if ( ! $this->is_preview() ) {
+			wp_send_json_error( 'not_preview' );
+		}
 
-		check_ajax_referer( 'save-customize_' . $this->get_stylesheet(), 'nonce' );
+		$action = 'save-customize_' . $this->get_stylesheet();
+		if ( ! check_ajax_referer( $action, 'nonce', false ) ) {
+			wp_send_json_error( 'invalid_nonce' );
+		}
 
 		// Do we have to switch themes?
 		if ( ! $this->is_theme_active() ) {
@@ -666,7 +670,19 @@ final class WP_Customize_Manager {
 		 */
 		do_action( 'customize_save_after', $this );
 
-		die;
+		/**
+		 * Filter response data for a successful customize_save Ajax request.
+		 *
+		 * This filter does not apply if there was a nonce or authentication failure.
+		 *
+		 * @since 4.2.0
+		 *
+		 * @param array                $data Additional information passed back to the 'saved'
+		 *                                   event on `wp.customize`.
+		 * @param WP_Customize_Manager $this WP_Customize_Manager instance.
+		 */
+		$response = apply_filters( 'customize_save_response', array(), $this );
+		wp_send_json_success( $response );
 	}
 
 	/**
@@ -878,7 +894,7 @@ final class WP_Customize_Manager {
 	 * @param {WP_Customize_Panel|WP_Customize_Section|WP_Customize_Control} $b Object B.
 	 * @return int
 	 */
-	protected final function _cmp_priority( $a, $b ) {
+	protected function _cmp_priority( $a, $b ) {
 		if ( $a->priority === $b->priority ) {
 			return $a->instance_number - $a->instance_number;
 		} else {
@@ -1159,7 +1175,7 @@ final class WP_Customize_Manager {
 		) );
 
 		if ( $menus ) {
-			$choices = array( 0 => __( '&mdash; Select &mdash;' ) );
+			$choices = array( '' => __( '&mdash; Select &mdash;' ) );
 			foreach ( $menus as $menu ) {
 				$choices[ $menu->term_id ] = wp_html_excerpt( $menu->name, 40, '&hellip;' );
 			}

@@ -239,10 +239,8 @@ function _cleanup_image_add_caption( $matches ) {
 function media_send_to_editor($html) {
 ?>
 <script type="text/javascript">
-/* <![CDATA[ */
 var win = window.dialogArguments || opener || parent || top;
 win.send_to_editor('<?php echo addslashes($html); ?>');
-/* ]]> */
 </script>
 <?php
 	exit;
@@ -295,17 +293,17 @@ function media_handle_upload($file_id, $post_id, $post_data = array(), $override
 			if ( ! empty( $meta['album'] ) && ! empty( $meta['artist'] ) ) {
 				/* translators: 1: audio track title, 2: album title, 3: artist name */
 				$content .= sprintf( __( '"%1$s" from %2$s by %3$s.' ), $title, $meta['album'], $meta['artist'] );
-			} else if ( ! empty( $meta['album'] ) ) {
+			} elseif ( ! empty( $meta['album'] ) ) {
 				/* translators: 1: audio track title, 2: album title */
 				$content .= sprintf( __( '"%1$s" from %2$s.' ), $title, $meta['album'] );
-			} else if ( ! empty( $meta['artist'] ) ) {
+			} elseif ( ! empty( $meta['artist'] ) ) {
 				/* translators: 1: audio track title, 2: artist name */
 				$content .= sprintf( __( '"%1$s" by %2$s.' ), $title, $meta['artist'] );
 			} else {
 				$content .= sprintf( __( '"%s".' ), $title );
 			}
 
-		} else if ( ! empty( $meta['album'] ) ) {
+		} elseif ( ! empty( $meta['album'] ) ) {
 
 			if ( ! empty( $meta['artist'] ) ) {
 				/* translators: 1: audio album title, 2: artist name */
@@ -314,7 +312,7 @@ function media_handle_upload($file_id, $post_id, $post_data = array(), $override
 				$content .= $meta['album'] . '.';
 			}
 
-		} else if ( ! empty( $meta['artist'] ) ) {
+		} elseif ( ! empty( $meta['artist'] ) ) {
 
 			$content .= $meta['artist'] . '.';
 
@@ -448,11 +446,9 @@ if ( ( is_array( $content_func ) && ! empty( $content_func[1] ) && 0 === strpos(
 wp_enqueue_style( 'ie' );
 ?>
 <script type="text/javascript">
-//<![CDATA[
 addLoadEvent = function(func){if(typeof jQuery!="undefined")jQuery(document).ready(func);else if(typeof wpOnload!='function'){wpOnload=func;}else{var oldonload=wpOnload;wpOnload=function(){oldonload();func();}}};
 var ajaxurl = '<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>', pagenow = 'media-upload-popup', adminpage = 'media-upload-popup',
 isRtl = <?php echo (int) is_rtl(); ?>;
-//]]>
 </script>
 <?php
 	/** This action is documented in wp-admin/admin-header.php */
@@ -682,10 +678,8 @@ function media_upload_form_handler() {
 
 	if ( isset($_POST['insert-gallery']) || isset($_POST['update-gallery']) ) { ?>
 		<script type="text/javascript">
-		/* <![CDATA[ */
 		var win = window.dialogArguments || opener || parent || top;
 		win.tb_remove();
-		/* ]]> */
 		</script>
 		<?php
 		exit;
@@ -1946,7 +1940,6 @@ function media_upload_type_form($type = 'file', $errors = null, $id = null) {
 <?php media_upload_form( $errors ); ?>
 
 <script type="text/javascript">
-//<![CDATA[
 jQuery(function($){
 	var preloaded = $(".media-item.preloaded");
 	if ( preloaded.length > 0 ) {
@@ -1954,7 +1947,6 @@ jQuery(function($){
 	}
 	updateMediaForm();
 });
-//]]>
 </script>
 <div id="media-items"><?php
 
@@ -2009,7 +2001,6 @@ function media_upload_type_url_form($type = null, $errors = null, $id = null) {
 <h3 class="media-title"><?php _e('Insert media from another website'); ?></h3>
 
 <script type="text/javascript">
-//<![CDATA[
 var addExtImage = {
 
 	width : '',
@@ -2099,8 +2090,6 @@ jQuery(document).ready( function($) {
 		$('table.describe').toggleClass('not-image', $('#not-image').prop('checked') );
 	});
 });
-
-//]]>
 </script>
 
 <div id="media-items">

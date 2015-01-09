@@ -359,7 +359,7 @@ function get_image_tag($id, $alt, $title, $align, $size='medium') {
  * @return array First item is the width, the second item is the height.
  */
 function wp_constrain_dimensions( $current_width, $current_height, $max_width=0, $max_height=0 ) {
-	if ( !$max_width and !$max_height )
+	if ( !$max_width && !$max_height )
 		return array( $current_width, $current_height );
 
 	$width_ratio = $height_ratio = 1.0;
@@ -1754,16 +1754,25 @@ function wp_video_shortcode( $attr, $content = '' ) {
 		}
 	}
 
+	$is_vimeo = $is_youtube = false;
 	$yt_pattern = '#^https?://(?:www\.)?(?:youtube\.com/watch|youtu\.be/)#';
+	$vimeo_pattern = '#^https?://(.+\.)?vimeo\.com/.*#';
 
 	$primary = false;
 	if ( ! empty( $atts['src'] ) ) {
-		if ( ! preg_match( $yt_pattern, $atts['src'] ) ) {
+		$is_vimeo = ( preg_match( $vimeo_pattern, $atts['src'] ) );
+		$is_youtube = (  preg_match( $yt_pattern, $atts['src'] ) );
+		if ( ! $is_youtube && ! $is_vimeo ) {
 			$type = wp_check_filetype( $atts['src'], wp_get_mime_types() );
 			if ( ! in_array( strtolower( $type['ext'] ), $default_types ) ) {
 				return sprintf( '<a class="wp-embedded-video" href="%s">%s</a>', esc_url( $atts['src'] ), esc_html( $atts['src'] ) );
 			}
 		}
+
+		if ( $is_vimeo ) {
+			wp_enqueue_script( 'froogaloop' );
+		}
+
 		$primary = true;
 		array_unshift( $default_types, 'src' );
 	} else {
@@ -1848,8 +1857,10 @@ function wp_video_shortcode( $attr, $content = '' ) {
 			if ( empty( $fileurl ) ) {
 				$fileurl = $atts[ $fallback ];
 			}
-			if ( 'src' === $fallback && preg_match( $yt_pattern, $atts['src'] ) ) {
+			if ( 'src' === $fallback && $is_youtube ) {
 				$type = array( 'type' => 'video/youtube' );
+			} elseif ( 'src' === $fallback && $is_vimeo ) {
+				$type = array( 'type' => 'video/vimeo' );
 			} else {
 				$type = wp_check_filetype( $atts[ $fallback ], wp_get_mime_types() );
 			}
@@ -1973,11 +1984,11 @@ function adjacent_image_link($prev = true, $size = 'thumbnail', $text = false) {
  * @return array Empty array on failure. List of taxonomies on success.
  */
 function get_attachment_taxonomies($attachment) {
-	if ( is_int( $attachment ) )
-		$attachment = get_post($attachment);
-	else if ( is_array($attachment) )
+	if ( is_int( $attachment ) ) {
+		$attachment = get_post( $attachment );
+	} elseif ( is_array( $attachment ) ) {
 		$attachment = (object) $attachment;
-
+	}
 	if ( ! is_object($attachment) )
 		return array();
 
@@ -2282,9 +2293,9 @@ function wp_embed_handler_googlevideo( $matches, $attr, $url, $rawattr ) {
 }
 
 /**
- * YouTube embed handler callback.
+ * YouTube iframe embed handler callback.
  *
- * Catches URLs that can be parsed but aren't supported by oEmbed.
+ * Catches YouTube iframe embed URLs that are not parsable by oEmbed but can be translated into a URL that is.
  *
  * @since 4.0.0
  *
@@ -2920,7 +2931,7 @@ function wp_enqueue_media( $args = array() ) {
 		   lack of plural support here, turn it into "selected: %d" then translate it.
 		 */
 		'selected'    => __( '%d selected' ),
-		'dragInfo'    => __( 'Drag and drop to reorder images.' ),
+		'dragInfo'    => __( 'Drag and drop to reorder media files.' ),
 
 		// Upload
 		'uploadFilesTitle'  => __( 'Upload Files' ),

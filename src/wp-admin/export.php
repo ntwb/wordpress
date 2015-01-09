@@ -24,7 +24,6 @@ $title = __('Export');
 function export_add_js() {
 ?>
 <script type="text/javascript">
-//<![CDATA[
 	jQuery(document).ready(function($){
  		var form = $('#export-filters'),
  			filters = form.find('.export-filters');
@@ -37,7 +36,6 @@ function export_add_js() {
 			}
  		});
 	});
-//]]>
 </script>
 <?php
 }
@@ -62,7 +60,7 @@ if ( isset( $_GET['download'] ) ) {
 
 	if ( ! isset( $_GET['content'] ) || 'all' == $_GET['content'] ) {
 		$args['content'] = 'all';
-	} else if ( 'posts' == $_GET['content'] ) {
+	} elseif ( 'posts' == $_GET['content'] ) {
 		$args['content'] = 'post';
 
 		if ( $_GET['cat'] )
@@ -78,7 +76,7 @@ if ( isset( $_GET['download'] ) ) {
 
 		if ( $_GET['post_status'] )
 			$args['status'] = $_GET['post_status'];
-	} else if ( 'pages' == $_GET['content'] ) {
+	} elseif ( 'pages' == $_GET['content'] ) {
 		$args['content'] = 'page';
 
 		if ( $_GET['page_author'] )

@@ -90,6 +90,13 @@ $time_format = get_option('time_format');
 
 wp_enqueue_script( 'common' );
 
+// $pagenow is set in vars.php
+// The remaining variables are imported as globals elsewhere,
+//     declared as globals here
+global $pagenow, $hook_suffix, $plugin_page, $typenow, $taxnow;
+
+$page_hook = null;
+
 $editing = false;
 
 if ( isset($_GET['page']) ) {
@@ -167,12 +174,13 @@ if ( isset($plugin_page) ) {
 }
 
 $hook_suffix = '';
-if ( isset($page_hook) )
+if ( isset( $page_hook ) ) {
 	$hook_suffix = $page_hook;
-else if ( isset($plugin_page) )
+} elseif ( isset( $plugin_page ) ) {
 	$hook_suffix = $plugin_page;
-else if ( isset($pagenow) )
+} elseif ( isset( $pagenow ) ) {
 	$hook_suffix = $pagenow;
+}
 
 set_current_screen();
 
@@ -243,7 +251,7 @@ if ( isset($plugin_page) ) {
 	include(ABSPATH . 'wp-admin/admin-footer.php');
 
 	exit();
-} else if (isset($_GET['import'])) {
+} elseif ( isset( $_GET['import'] ) ) {
 
 	$importer = $_GET['import'];
 

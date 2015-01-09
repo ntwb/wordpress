@@ -420,19 +420,17 @@ class WP_Rewrite {
 	 * Permalink structure for posts.
 	 *
 	 * @since 1.5.0
-	 * @access private
 	 * @var string
 	 */
-	var $permalink_structure;
+	public $permalink_structure;
 
 	/**
 	 * Whether to add trailing slashes.
 	 *
 	 * @since 2.2.0
-	 * @access private
 	 * @var bool
 	 */
-	var $use_trailing_slashes;
+	public $use_trailing_slashes;
 
 	/**
 	 * Base for the author permalink structure (example.com/$author_base/authorname).
@@ -501,10 +499,9 @@ class WP_Rewrite {
 	 * Pagination permalink base.
 	 *
 	 * @since 3.1.0
-	 * @access private
 	 * @var string
 	 */
-	var $pagination_base = 'page';
+	public $pagination_base = 'page';
 
 	/**
 	 * Feed permalink base.
@@ -522,7 +519,7 @@ class WP_Rewrite {
 	 * @access private
 	 * @var string
 	 */
-	var $comments_feed_structure;
+	var $comment_feed_structure;
 
 	/**
 	 * Feed request permalink structure.
@@ -542,10 +539,9 @@ class WP_Rewrite {
 	 *
 	 * @see WP_Rewrite::init()
 	 * @since 1.5.0
-	 * @access private
 	 * @var string
 	 */
-	var $front;
+	public $front;
 
 	/**
 	 * The prefix for all permalink structures.
@@ -557,10 +553,9 @@ class WP_Rewrite {
 	 * @see WP_Rewrite::init()
 	 * @see WP_Rewrite::using_index_permalinks()
 	 * @since 1.5.0
-	 * @access private
 	 * @var string
 	 */
-	var $root = '';
+	public $root = '';
 
 	/**
 	 * The name of the index file which is the entry point to all requests.
@@ -746,10 +741,9 @@ class WP_Rewrite {
 	 * Supported default feeds.
 	 *
 	 * @since 1.5.0
-	 * @access private
 	 * @var array
 	 */
-	var $feeds = array( 'feed', 'rdf', 'rss', 'rss2', 'atom' );
+	public $feeds = array( 'feed', 'rdf', 'rss', 'rss2', 'atom' );
 
 	/**
 	 * Whether permalinks are being used.
@@ -1382,11 +1376,11 @@ class WP_Rewrite {
 				$rewrite = array_merge($rewrite, array($pagematch => $pagequery));
 
 			//only on pages with comments add ../comment-page-xx/
-			if ( EP_PAGES & $ep_mask || EP_PERMALINK & $ep_mask )
+			if ( EP_PAGES & $ep_mask || EP_PERMALINK & $ep_mask ) {
 				$rewrite = array_merge($rewrite, array($commentmatch => $commentquery));
-			else if ( EP_ROOT & $ep_mask && get_option('page_on_front') )
+			} elseif ( EP_ROOT & $ep_mask && get_option('page_on_front') ) {
 				$rewrite = array_merge($rewrite, array($rootcommentmatch => $rootcommentquery));
-
+			}
 			//do endpoints
 			if ( $endpoints ) {
 				foreach ( (array) $ep_query_append as $regex => $ep) {
@@ -2042,6 +2036,12 @@ class WP_Rewrite {
 	 * @param bool $hard Whether to update .htaccess (hard flush) or just update rewrite_rules option (soft flush). Default is true (hard).
 	 */
 	public function flush_rules($hard = true) {
+		// Prevent this action from running before everyone has registered their rewrites
+		if ( ! did_action( 'wp_loaded' ) ) {
+			add_action( 'wp_loaded', array( $this, 'flush_rules' ) );
+			return;
+		}
+
 		delete_option('rewrite_rules');
 		$this->wp_rewrite_rules();
 		/**

@@ -39,7 +39,7 @@ else
 $profile_help = '<p>' . __('Your profile contains information about you (your &#8220;account&#8221;) as well as some personal options related to using WordPress.') . '</p>' .
 	'<p>' . __('You can change your password, turn on keyboard shortcuts, change the color scheme of your WordPress administration screens, and turn off the WYSIWYG (Visual) editor, among other things. You can hide the Toolbar (formerly called the Admin Bar) from the front end of your site, however it cannot be disabled on the admin screens.') . '</p>' .
 	'<p>' . __('Your username cannot be changed, but you can use other fields to enter your real name or a nickname, and change which name to display on your posts.') . '</p>' .
-	'<p>' . __( 'You can log out of other devices, such as your phone or a public computer, by clicking the Log Out of All Other Sessions button. The button will only display if you are logged in to more than one device.' ) . '</p>' .
+	'<p>' . __( 'You can log out of other devices, such as your phone or a public computer, by clicking the Log Out of All Other Sessions button.' ) . '</p>' .
 	'<p>' . __('Required fields are indicated; the rest are optional. Profile information will only be displayed if your theme is set up to do so.') . '</p>' .
 	'<p>' . __('Remember to click the Update Profile button when you are finished.') . '</p>';
 
@@ -489,7 +489,7 @@ if ( IS_PROFILE_PAGE && count( $sessions->get_all() ) === 1 ) : ?>
 	<tr class="user-sessions-wrap hide-if-no-js">
 		<th>&nbsp;</th>
 		<td aria-live="assertive">
-			<div class="destroy-sessions"><button disabled class="button button-secondary"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
+			<div class="destroy-sessions"><button type="button" disabled class="button button-secondary"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
 			<p class="description">
 				<?php _e( 'You are only logged in at this location.' ); ?>
 			</p>
@@ -499,7 +499,7 @@ if ( IS_PROFILE_PAGE && count( $sessions->get_all() ) === 1 ) : ?>
 	<tr class="user-sessions-wrap hide-if-no-js">
 		<th>&nbsp;</th>
 		<td aria-live="assertive">
-			<div class="destroy-sessions"><button class="button button-secondary" id="destroy-sessions"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
+			<div class="destroy-sessions"><button type="button" class="button button-secondary" id="destroy-sessions"><?php _e( 'Log Out of All Other Sessions' ); ?></button></div>
 			<p class="description">
 				<?php _e( 'Left your account logged in at a public computer? Lost your phone? This will log you out everywhere except your current browser.' ); ?>
 			</p>
@@ -509,7 +509,7 @@ if ( IS_PROFILE_PAGE && count( $sessions->get_all() ) === 1 ) : ?>
 	<tr class="user-sessions-wrap hide-if-no-js">
 		<th>&nbsp;</th>
 		<td>
-			<p><button class="button button-secondary" id="destroy-sessions"><?php _e( 'Log Out of All Sessions' ); ?></button></p>
+			<p><button type="button" class="button button-secondary" id="destroy-sessions"><?php _e( 'Log Out of All Sessions' ); ?></button></p>
 			<p class="description">
 				<?php
 				/* translators: 1: User's display name. */

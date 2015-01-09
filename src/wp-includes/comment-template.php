@@ -1138,7 +1138,6 @@ function comments_template( $file = '/comments.php', $separate_comments = false 
 
 	/*
 	 * Comment author information fetched from the comment cookies.
-	 * Uuses wp_get_current_commenter().
 	 */
 	$commenter = wp_get_current_commenter();
 
@@ -1168,7 +1167,7 @@ function comments_template( $file = '/comments.php', $separate_comments = false 
 
 	if ( $user_ID ) {
 		$comment_args['include_unapproved'] = array( $user_ID );
-	} else if ( ! empty( $comment_author_email ) ) {
+	} elseif ( ! empty( $comment_author_email ) ) {
 		$comment_args['include_unapproved'] = array( $comment_author_email );
 	}
 
@@ -2228,8 +2227,7 @@ function comment_form( $args = array(), $post_id = null ) {
 	 */
 	$args = wp_parse_args( $args, apply_filters( 'comment_form_defaults', $defaults ) );
 
-	?>
-		<?php if ( comments_open( $post_id ) ) : ?>
+		if ( comments_open( $post_id ) ) : ?>
 			<?php
 			/**
 			 * Fires before the comment form.

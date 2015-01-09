@@ -412,7 +412,7 @@ function get_inline_data($post) {
  * @param bool $table_row
  */
 function wp_comment_reply($position = '1', $checkbox = false, $mode = 'single', $table_row = true) {
-
+	global $wp_list_table;
 	/**
 	 * Filter the in-line comment reply-to form output in the Comments
 	 * list table.
@@ -435,10 +435,12 @@ function wp_comment_reply($position = '1', $checkbox = false, $mode = 'single', 
 		return;
 	}
 
-	if ( $mode == 'single' ) {
-		$wp_list_table = _get_list_table('WP_Post_Comments_List_Table');
-	} else {
-		$wp_list_table = _get_list_table('WP_Comments_List_Table');
+	if ( ! $wp_list_table ) {
+		if ( $mode == 'single' ) {
+			$wp_list_table = _get_list_table('WP_Post_Comments_List_Table');
+		} else {
+			$wp_list_table = _get_list_table('WP_Comments_List_Table');
+		}
 	}
 
 ?>
@@ -1547,7 +1549,6 @@ function iframe_header( $title = '', $limit_styles = false ) {
 wp_enqueue_style( 'colors' );
 ?>
 <script type="text/javascript">
-//<![CDATA[
 addLoadEvent = function(func){if(typeof jQuery!="undefined")jQuery(document).ready(func);else if(typeof wpOnload!='function'){wpOnload=func;}else{var oldonload=wpOnload;wpOnload=function(){oldonload();func();}}};
 function tb_close(){var win=window.dialogArguments||opener||parent||top;win.tb_remove();}
 var ajaxurl = '<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>',
@@ -1557,7 +1558,6 @@ var ajaxurl = '<?php echo admin_url( 'admin-ajax.php', 'relative' ); ?>',
 	thousandsSeparator = '<?php echo addslashes( $wp_locale->number_format['thousands_sep'] ); ?>',
 	decimalPoint = '<?php echo addslashes( $wp_locale->number_format['decimal_point'] ); ?>',
 	isRtl = <?php echo (int) is_rtl(); ?>;
-//]]>
 </script>
 <?php
 /** This action is documented in wp-admin/admin-header.php */
@@ -1594,13 +1594,11 @@ $admin_body_classes = apply_filters( 'admin_body_class', '' );
 ?>
 <body<?php if ( isset($GLOBALS['body_id']) ) echo ' id="' . $GLOBALS['body_id'] . '"'; ?> class="wp-admin wp-core-ui no-js iframe <?php echo $admin_body_classes . ' ' . $admin_body_class; ?>">
 <script type="text/javascript">
-//<![CDATA[
 (function(){
 var c = document.body.className;
 c = c.replace(/no-js/, 'js');
 document.body.className = c;
 })();
-//]]>
 </script>
 <?php
 }
@@ -1727,7 +1725,6 @@ function _media_states( $post ) {
 function compression_test() {
 ?>
 	<script type="text/javascript">
-	/* <![CDATA[ */
 	var testCompression = {
 		get : function(test) {
 			var x;
@@ -1774,7 +1771,6 @@ function compression_test() {
 		}
 	};
 	testCompression.check();
-	/* ]]> */
 	</script>
 <?php
 }
@@ -1852,7 +1848,7 @@ function get_submit_button( $text = null, $type = 'primary large', $name = 'subm
 		foreach ( $other_attributes as $attribute => $value ) {
 			$attributes .= $attribute . '="' . esc_attr( $value ) . '" '; // Trailing space is important
 		}
-	} else if ( !empty( $other_attributes ) ) { // Attributes provided as a string
+	} elseif ( ! empty( $other_attributes ) ) { // Attributes provided as a string
 		$attributes = $other_attributes;
 	}
 
@@ -1973,7 +1969,6 @@ final class WP_Internal_Pointers {
 
 		?>
 		<script type="text/javascript">
-		//<![CDATA[
 		(function($){
 			var options = <?php echo wp_json_encode( $args ); ?>, setup;
 
@@ -1999,7 +1994,6 @@ final class WP_Internal_Pointers {
 				$(document).ready( setup );
 
 		})( jQuery );
-		//]]>
 		</script>
 		<?php
 	}

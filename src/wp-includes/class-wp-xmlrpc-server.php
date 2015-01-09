@@ -2545,8 +2545,6 @@ class wp_xmlrpc_server extends IXR_Server {
 		// Items not escaped here will be escaped in newPost.
 		$username	= $this->escape($args[1]);
 		$password	= $this->escape($args[2]);
-		$page		= $args[3];
-		$publish	= $args[4];
 
 		if ( !$user = $this->login($username, $password) )
 			return $this->error;
@@ -3211,10 +3209,11 @@ class wp_xmlrpc_server extends IXR_Server {
 
 		if ( !$user ) {
 			$logged_in = false;
-			if ( $allow_anon && get_option('comment_registration') )
+			if ( $allow_anon && get_option('comment_registration') ) {
 				return new IXR_Error( 403, __( 'You must be registered to comment' ) );
-			else if ( !$allow_anon )
+			} elseif ( ! $allow_anon ) {
 				return $this->error;
+			}
 		} else {
 			$logged_in = true;
 		}
@@ -3634,7 +3633,7 @@ class wp_xmlrpc_server extends IXR_Server {
 
 		$formats = get_post_format_strings();
 
-		# find out if they want a list of currently supports formats
+		// find out if they want a list of currently supports formats
 		if ( isset( $args[3] ) && is_array( $args[3] ) ) {
 			if ( $args[3]['show-supported'] ) {
 				if ( current_theme_supports( 'post-formats' ) ) {
@@ -4212,7 +4211,6 @@ class wp_xmlrpc_server extends IXR_Server {
 		$username  = $args[2];
 		$password   = $args[3];
 		$content     = $args[4];
-		$publish     = $args[5];
 
 		if ( ! $user = $this->login( $username, $password ) ) {
 			return $this->error;
@@ -4278,7 +4276,6 @@ class wp_xmlrpc_server extends IXR_Server {
 		$post_ID     = (int) $args[1];
 		$username  = $args[2];
 		$password   = $args[3];
-		$publish     = $args[4];
 
 		if ( !$user = $this->login($username, $password) )
 			return $this->error;
@@ -4448,7 +4445,6 @@ class wp_xmlrpc_server extends IXR_Server {
 					break;
 				default:
 					return new IXR_Error( 401, __( 'Invalid post type' ) );
-					break;
 			}
 			$author = get_userdata( $content_struct['wp_author_id'] );
 			if ( ! $author )
@@ -4736,7 +4732,6 @@ class wp_xmlrpc_server extends IXR_Server {
 		$menu_order = $postdata['menu_order'];
 
 		// Let WordPress manage slug if none was provided.
-		$post_name = "";
 		$post_name = $postdata['post_name'];
 		if ( isset($content_struct['wp_slug']) )
 			$post_name = $content_struct['wp_slug'];
@@ -4772,7 +4767,6 @@ class wp_xmlrpc_server extends IXR_Server {
 					break;
 				default:
 					return new IXR_Error( 401, __( 'Invalid post type' ) );
-					break;
 			}
 			$post_author = $content_struct['wp_author_id'];
 		}
@@ -4873,10 +4867,11 @@ class wp_xmlrpc_server extends IXR_Server {
 		$tags_input = isset( $content_struct['mt_keywords'] ) ? $content_struct['mt_keywords'] : null;
 
 		if ( ('publish' == $post_status) ) {
-			if ( ( 'page' == $post_type ) && !current_user_can('publish_pages') )
-				return new IXR_Error(401, __('Sorry, you do not have the right to publish this page.'));
-			else if ( !current_user_can('publish_posts') )
-				return new IXR_Error(401, __('Sorry, you do not have the right to publish this post.'));
+			if ( ( 'page' == $post_type ) && ! current_user_can( 'publish_pages' ) ) {
+				return new IXR_Error( 401, __( 'Sorry, you do not have the right to publish this page.' ) );
+			} elseif ( ! current_user_can( 'publish_posts' ) ) {
+				return new IXR_Error( 401, __( 'Sorry, you do not have the right to publish this post.' ) );
+			}
 		}
 
 		if ( $post_more )
@@ -5682,8 +5677,6 @@ class wp_xmlrpc_server extends IXR_Server {
 
 		$pagelinkedfrom = $args[0];
 		$pagelinkedto   = $args[1];
-
-		$title = '';
 
 		$pagelinkedfrom = str_replace('&amp;', '&', $pagelinkedfrom);
 		$pagelinkedto = str_replace('&amp;', '&', $pagelinkedto);

@@ -325,10 +325,10 @@ function remove_all_filters( $tag, $priority = false ) {
 	global $wp_filter, $merged_filters;
 
 	if ( isset( $wp_filter[ $tag ]) ) {
-		if ( false !== $priority && isset( $wp_filter[ $tag ][ $priority ] ) ) {
-			$wp_filter[ $tag ][ $priority ] = array();
-		} else {
+		if ( false === $priority ) {
 			$wp_filter[ $tag ] = array();
+		} elseif ( isset( $wp_filter[ $tag ][ $priority ] ) ) {
+			$wp_filter[ $tag ][ $priority ] = array();
 		}
 	}
 
@@ -900,7 +900,7 @@ function _wp_filter_build_unique_id($tag, $function, $priority) {
 
 			return $obj_idx;
 		}
-	} else if ( is_string($function[0]) ) {
+	} elseif ( is_string( $function[0] ) ) {
 		// Static Calling
 		return $function[0] . '::' . $function[1];
 	}

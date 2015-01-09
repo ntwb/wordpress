@@ -74,7 +74,7 @@ function wp_install( $blog_title, $user_name, $user_email, $public, $deprecated 
 		$user_id = wp_create_user($user_name, $user_password, $user_email);
 		update_user_option($user_id, 'default_password_nag', true, true);
 		$email_password = true;
-	} else if ( !$user_id ) {
+	} elseif ( ! $user_id ) {
 		// Password has been provided
 		$message = '<em>'.__('Your chosen password.').'</em>';
 		$user_id = wp_create_user($user_name, $user_password, $user_email);
@@ -86,6 +86,8 @@ function wp_install( $blog_title, $user_name, $user_email, $public, $deprecated 
 	$user->set_role('administrator');
 
 	wp_install_defaults($user_id);
+
+	wp_install_maybe_enable_pretty_permalinks();
 
 	flush_rewrite_rules();
 
@@ -257,6 +259,75 @@ As a new WordPress user, you should go to <a href=\"%s\">your dashboard</a> to d
 		if ( !is_super_admin( $user_id ) && $user_id != 1 )
 			$wpdb->delete( $wpdb->usermeta, array( 'user_id' => $user_id , 'meta_key' => $wpdb->base_prefix.'1_capabilities' ) );
 	}
+}
+endif;
+
+if ( ! function_exists( 'wp_install_maybe_enable_pretty_permalinks' ) ) :
+/**
+ * Enable pretty permalinks if available.
+ *
+ * This function will enable pretty permalinks if it can verify they work.
+ * If all pretty permalinks formats fail to work, WordPress will fall back
+ * to ugly permalinks by setting an empty permalink structure.
+ *
+ * @since 4.2.0
+ *
+ * @global WP_Rewrite $wp_rewrite WordPress rewrite component.
+ */
+function wp_install_maybe_enable_pretty_permalinks() {
+	global $wp_rewrite;
+
+	// Bail if we alredy have permalinks enabled (Multisite)
+	if ( get_option( 'permalink_structure' ) ) {
+		return;
+	}
+
+	/*
+	 * The Permalink structures which WordPress should attempt to use.
+	 * The first is designed for mod_rewrite or nginx rewriting.
+	 * The second is PATHINFO based permalinks offered under configurations 
+	 * without rewrites enabled.
+	 */
+	$permalink_structures = array(
+		'/%year%/%monthnum%/%day%/%postname%/',
+		'/index.php/%year%/%monthnum%/%day%/%postname%/'
+	);
+
+	foreach ( (array) $permalink_structures as $permalink_structure ) {
+		// Set the desired Permalink structure to try
+		$wp_rewrite->set_permalink_structure( $permalink_structure );
+
+		/*
+	 	 * Flush rules with the hard option to force refresh of the web-server's
+	 	 * rewrite config file (e.g. .htaccess or web.config).
+	 	 */
+		$wp_rewrite->flush_rules( true );
+
+		// Test against a real WordPress Post, or if none were created, a Page URI
+		$test_url = get_permalink( 1 );
+		if ( ! $test_url ) {
+			$test_url = home_url( '/wordpress-check-for-rewrites/' );
+		}
+
+		/*
+	 	 * Send a HEAD request to a random page on the site, and check whether
+	 	 * the 'x-pingback' header is returned as expected.
+	 	 */
+		$response          = wp_remote_get( $test_url, array( 'timeout' => 5 ) );
+		$x_pingback_header = wp_remote_retrieve_header( $response, 'x-pingback' );
+		$pretty_permalinks = $x_pingback_header && $x_pingback_header === get_bloginfo( 'pingback_url' );
+
+		if ( $pretty_permalinks ) {
+			return true;
+		}
+	}
+
+	/*
+	 * If it makes it this far, Pretty Permalinks failed to activate.
+	 * Reset and allow the user to select it themselves.
+	 */
+	$wp_rewrite->set_permalink_structure( '' );
+	$wp_rewrite->flush_rules( true );
 }
 endif;
 
@@ -769,7 +840,7 @@ function upgrade_210() {
 			if ( 'static' == $status ) {
 				$status = 'publish';
 				$type = 'page';
-			} else if ( 'attachment' == $status ) {
+			} elseif ( 'attachment' == $status ) {
 				$status = 'inherit';
 				$type = 'attachment';
 			}
@@ -1645,14 +1716,14 @@ function dbDelta( $queries = '', $execute = true ) {
 
 	// Create a tablename index for an array ($cqueries) of queries
 	foreach($queries as $qry) {
-		if (preg_match("|CREATE TABLE ([^ ]*)|", $qry, $matches)) {
+		if ( preg_match( "|CREATE TABLE ([^ ]*)|", $qry, $matches ) ) {
 			$cqueries[ trim( $matches[1], '`' ) ] = $qry;
 			$for_update[$matches[1]] = 'Created table '.$matches[1];
-		} else if (preg_match("|CREATE DATABASE ([^ ]*)|", $qry, $matches)) {
-			array_unshift($cqueries, $qry);
-		} else if (preg_match("|INSERT INTO ([^ ]*)|", $qry, $matches)) {
+		} elseif ( preg_match( "|CREATE DATABASE ([^ ]*)|", $qry, $matches ) ) {
+			array_unshift( $cqueries, $qry );
+		} elseif ( preg_match( "|INSERT INTO ([^ ]*)|", $qry, $matches ) ) {
 			$iqueries[] = $qry;
-		} else if (preg_match("|UPDATE ([^ ]*)|", $qry, $matches)) {
+		} elseif ( preg_match( "|UPDATE ([^ ]*)|", $qry, $matches ) ) {
 			$iqueries[] = $qry;
 		} else {
 			// Unrecognized query type
@@ -1804,7 +1875,7 @@ function dbDelta( $queries = '', $execute = true ) {
 				$index_string = '';
 				if ($index_name == 'PRIMARY') {
 					$index_string .= 'PRIMARY ';
-				} else if($index_data['unique']) {
+				} elseif ( $index_data['unique'] ) {
 					$index_string .= 'UNIQUE ';
 				}
 				$index_string .= 'KEY ';

@@ -541,7 +541,7 @@ class WP {
  	}
 
  	/**
- 	 * Set the Headers for 404, if nothing is found for requested URL.
+	 * Set the Headers for 404, if nothing is found for requested URL.
 	 *
 	 * Issue a 404 if a request doesn't match any posts and doesn't match
 	 * any object (e.g. an existing-but-empty category, tag, author) and a 404 was not already
@@ -662,79 +662,12 @@ class WP_MatchesMapRegex {
 	public $_pattern = '(\$matches\[[1-9]+[0-9]*\])'; // magic number
 
 	/**
-	 * Make private properties readable for backwards compatibility.
-	 *
-	 * @since 4.0.0
-	 * @access public
-	 *
-	 * @param string $name Property to get.
-	 * @return mixed Property.
-	 */
-	public function __get( $name ) {
-		return $this->$name;
-	}
-
-	/**
-	 * Make private properties settable for backwards compatibility.
-	 *
-	 * @since 4.0.0
-	 * @access public
-	 *
-	 * @param string $name  Property to set.
-	 * @param mixed  $value Property value.
-	 * @return mixed Newly-set property.
-	 */
-	public function __set( $name, $value ) {
-		return $this->$name = $value;
-	}
-
-	/**
-	 * Make private properties checkable for backwards compatibility.
-	 *
-	 * @since 4.0.0
-	 * @access public
-	 *
-	 * @param string $name Property to check if set.
-	 * @return bool Whether the property is set.
-	 */
-	public function __isset( $name ) {
-		return isset( $this->$name );
-	}
-
-	/**
-	 * Make private properties un-settable for backwards compatibility.
-	 *
-	 * @since 4.0.0
-	 * @access public
-	 *
-	 * @param string $name Property to unset.
-	 */
-	public function __unset( $name ) {
-		unset( $this->$name );
-	}
-
-	/**
-	 * Make private/protected methods readable for backwards compatibility.
-	 *
-	 * @since 4.0.0
-	 * @access public
-	 *
-	 * @param callable $name      Method to call.
-	 * @param array    $arguments Arguments to pass when calling.
-	 * @return mixed|bool Return value of the callback, false otherwise.
-	 */
-	public function __call( $name, $arguments ) {
-		return call_user_func_array( array( $this, $name ), $arguments );
-	}
-
-	/**
 	 * constructor
 	 *
 	 * @param string $subject subject if regex
 	 * @param array  $matches data to use in map
-	 * @return self
 	 */
-	public function WP_MatchesMapRegex($subject, $matches) {
+	public function __construct($subject, $matches) {
 		$this->_subject = $subject;
 		$this->_matches = $matches;
 		$this->output = $this->_map();

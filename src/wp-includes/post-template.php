@@ -389,26 +389,35 @@ function post_class( $class = '', $post_id = null ) {
  *
  * The class names are many. If the post is a sticky, then the 'sticky'
  * class name. The class 'hentry' is always added to each post. If the post has a
- * post thumbnail, 'has-post-thumbnail' is added as a class. For each
- * category, the class will be added with 'category-' with category slug is
- * added. The tags are the same way as the categories with 'tag-' before the tag
- * slug. All classes are passed through the filter, 'post_class' with the list
- * of classes, followed by $class parameter value, with the post ID as the last
- * parameter.
+ * post thumbnail, 'has-post-thumbnail' is added as a class. For each taxonomy that
+ * the post belongs to, a class will be added of the format '{$taxonomy}-{$slug}' -
+ * eg 'category-foo' or 'my_custom_taxonomy-bar'. The 'post_tag' taxonomy is a special
+ * case; the class has the 'tag-' prefix instead of 'post_tag-'. All classes are
+ * passed through the filter, 'post_class' with the list of classes, followed by
+ * $class parameter value, with the post ID as the last parameter.
  *
  * @since 2.7.0
+ * @since 4.2.0 Custom taxonomy classes were added.
  *
  * @param string|array $class One or more classes to add to the class list.
  * @param int|WP_Post $post_id Optional. Post ID or post object.
  * @return array Array of classes.
  */
 function get_post_class( $class = '', $post_id = null ) {
-	$post = get_post($post_id);
+	$post = get_post( $post_id );
 
 	$classes = array();
 
-	if ( empty($post) )
+	if ( $class ) {
+		if ( ! is_array( $class ) ) {
+			$class = preg_split( '#\s+#', $class );
+		}
+		$classes = array_map( 'esc_attr', $class );
+	}
+
+	if ( ! $post ) {
 		return $classes;
+	}
 
 	$classes[] = 'post-' . $post->ID;
 	if ( ! is_admin() )
@@ -446,31 +455,26 @@ function get_post_class( $class = '', $post_id = null ) {
 	// hentry for hAtom compliance
 	$classes[] = 'hentry';
 
-	// Categories
-	if ( is_object_in_taxonomy( $post->post_type, 'category' ) ) {
-		foreach ( (array) get_the_category($post->ID) as $cat ) {
-			if ( empty($cat->slug ) )
-				continue;
-			$classes[] = 'category-' . sanitize_html_class($cat->slug, $cat->term_id);
+	// All public taxonomies
+	$taxonomies = get_taxonomies( array( 'public' => true ) );
+	foreach ( (array) $taxonomies as $taxonomy ) {
+		if ( is_object_in_taxonomy( $post->post_type, $taxonomy ) ) {
+			foreach ( (array) get_the_terms( $post->ID, $taxonomy ) as $term ) {
+				if ( empty( $term->slug ) ) {
+					continue;
+				}
+
+				// 'post_tag' uses the 'tag' prefix for backward compatibility.
+				if ( 'post_tag' == $taxonomy ) {
+					$classes[] = 'tag-' . sanitize_html_class( $term->slug, $term->term_id );
+				} else {
+					$classes[] = sanitize_html_class( $taxonomy . '-' . $term->slug, $taxonomy . '-' . $term->term_id );
+				}
+			}
 		}
 	}
 
-	// Tags
-	if ( is_object_in_taxonomy( $post->post_type, 'post_tag' ) ) {
-		foreach ( (array) get_the_tags($post->ID) as $tag ) {
-			if ( empty($tag->slug ) )
-				continue;
-			$classes[] = 'tag-' . sanitize_html_class($tag->slug, $tag->term_id);
-		}
-	}
-
-	if ( !empty($class) ) {
-		if ( !is_array( $class ) )
-			$class = preg_split('#\s+#', $class);
-		$classes = array_merge($classes, $class);
-	}
-
-	$classes = array_map('esc_attr', $classes);
+	$classes = array_map( 'esc_attr', $classes );
 
 	/**
 	 * Filter the list of CSS classes for the current post.
@@ -940,8 +944,26 @@ function the_meta() {
  * Retrieve or display list of pages as a dropdown (select list).
  *
  * @since 2.1.0
+ * @since 4.2.0 The `$value_field` argument was added.
  *
- * @param array|string $args Optional. Override default arguments.
+ * @param array|string $args {
+ *     Optional. Array or string of arguments to generate a pages drop-down element.
+ *
+ *     @type int          $depth                 Maximum depth. Default 0.
+ *     @type int          $child_of              Page ID to retrieve child pages of. Default 0.
+ *     @type int|string   $selected              Value of the option that should be selected. Default 0.
+ *     @type bool|int     $echo                  Whether to echo or return the generated markup. Accepts 0, 1,
+ *                                               or their bool equivalents. Default 1.
+ *     @type string       $name                  Value for the 'name' attribute of the select element.
+ *                                               Default 'page_id'.
+ *     @type string       $id                    Value for the 'id' attribute of the select element.
+ *                                               Defaults to the value of `$name`.
+ *     @type string       $show_option_none      Text to display for showing no pages. Default empty (does not display).
+ *     @type string       $show_option_no_change Text to display for "no change" option. Default empty (does not display).
+ *     @type string       $option_none_value     Value to use when no page is selected. Default empty.
+ *     @type string       $value_field           Post field used to populate the 'value' attribute of the option
+ *                                               elements. Accepts any valid post field. Default 'ID'.
+ * }
  * @return string HTML content, if not displaying.
  */
 function wp_dropdown_pages( $args = '' ) {
@@ -950,7 +972,8 @@ function wp_dropdown_pages( $args = '' ) {
 		'selected' => 0, 'echo' => 1,
 		'name' => 'page_id', 'id' => '',
 		'show_option_none' => '', 'show_option_no_change' => '',
-		'option_none_value' => ''
+		'option_none_value' => '',
+		'value_field' => 'ID',
 	);
 
 	$r = wp_parse_args( $args, $defaults );
@@ -1404,15 +1427,20 @@ class Walker_PageDropdown extends Walker {
 	 * @since 2.1.0
 	 *
 	 * @param string $output Passed by reference. Used to append additional content.
-	 * @param object $page Page data object.
-	 * @param int $depth Depth of page in reference to parent pages. Used for padding.
-	 * @param array $args Uses 'selected' argument for selected page to set selected HTML attribute for option element.
+	 * @param object $page   Page data object.
+	 * @param int    $depth  Depth of page in reference to parent pages. Used for padding.
+	 * @param array  $args   Uses 'selected' argument for selected page to set selected HTML attribute for option
+	 *              element. Uses 'value_field' argument to fill "value" attribute. See {@see wp_dropdown_pages()}.
 	 * @param int $id
 	 */
 	public function start_el( &$output, $page, $depth = 0, $args = array(), $id = 0 ) {
 		$pad = str_repeat('&nbsp;', $depth * 3);
 
-		$output .= "\t<option class=\"level-$depth\" value=\"$page->ID\"";
+		if ( ! isset( $args['value_field'] ) || ! isset( $page->{$args['value_field']} ) ) {
+			$args['value_field'] = 'ID';
+		}
+
+		$output .= "\t<option class=\"level-$depth\" value=\"" . esc_attr( $page->{$args['value_field']} ) . "\"";
 		if ( $page->ID == $args['selected'] )
 			$output .= ' selected="selected"';
 		$output .= '>';

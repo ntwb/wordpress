@@ -285,7 +285,10 @@ class WP_Comment_Query {
 	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
-		return call_user_func_array( array( $this, $name ), $arguments );
+		if ( 'get_search_sql' === $name ) {
+			return call_user_func_array( array( $this, $name ), $arguments );
+		}
+		return false;
 	}
 
 	/**
@@ -1922,7 +1925,17 @@ function wp_insert_comment( $commentdata ) {
 
 	$compacted = compact( 'comment_post_ID', 'comment_author', 'comment_author_email', 'comment_author_url', 'comment_author_IP', 'comment_date', 'comment_date_gmt', 'comment_content', 'comment_karma', 'comment_approved', 'comment_agent', 'comment_type', 'comment_parent', 'user_id' );
 	if ( ! $wpdb->insert( $wpdb->comments, $compacted ) ) {
-		return false;
+		$fields = array( 'comment_author', 'comment_author_email', 'comment_author_url', 'comment_content' );
+
+		foreach( $fields as $field ) {
+			if ( isset( $compacted[ $field ] ) ) {
+				$post_data[ $field ] = $wpdb->strip_invalid_text_for_column( $wpdb->comments, $field, $compacted[ $field ] );
+			}
+		}
+
+		if ( ! $wpdb->insert( $wpdb->comments, $compacted ) ) {
+			return false;
+		}
 	}
 
 	$id = (int) $wpdb->insert_id;
@@ -2202,6 +2215,12 @@ function wp_update_comment($commentarr) {
 	if ( empty( $comment ) ) {
 		return 0;
 	}
+
+	// Make sure that the comment post ID is valid (if specified).
+	if ( isset( $commentarr['comment_post_ID'] ) && ! get_post( $commentarr['comment_post_ID'] ) ) {
+		return 0;
+	}
+
 	// Escape data pulled from DB.
 	$comment = wp_slash($comment);
 
@@ -2236,7 +2255,7 @@ function wp_update_comment($commentarr) {
 
 	$comment_ID = $data['comment_ID'];
 	$comment_post_ID = $data['comment_post_ID'];
-	$keys = array( 'comment_content', 'comment_author', 'comment_author_email', 'comment_approved', 'comment_karma', 'comment_author_url', 'comment_date', 'comment_date_gmt', 'comment_parent' );
+	$keys = array( 'comment_post_ID', 'comment_content', 'comment_author', 'comment_author_email', 'comment_approved', 'comment_karma', 'comment_author_url', 'comment_date', 'comment_date_gmt', 'comment_type', 'comment_parent', 'user_id' );
 	$data = wp_array_slice_assoc( $data, $keys );
 	$rval = $wpdb->update( $wpdb->comments, $data, compact( 'comment_ID' ) );
 

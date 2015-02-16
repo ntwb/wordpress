@@ -314,6 +314,52 @@ function edit_post( $post_data = null ) {
 		$post_data = apply_filters( 'attachment_fields_to_save', $post_data, $attachment_data );
 	}
 
+	// Convert taxonomy input to term IDs, to avoid ambiguity.
+	if ( isset( $post_data['tax_input'] ) ) {
+		foreach ( (array) $post_data['tax_input'] as $taxonomy => $terms ) {
+			// Hierarchical taxonomy data is already sent as term IDs, so no conversion is necessary.
+			if ( is_taxonomy_hierarchical( $taxonomy ) ) {
+				continue;
+			}
+
+			/*
+			 * Assume that a 'tax_input' string is a comma-separated list of term names.
+			 * Some languages may use a character other than a comma as a delimiter, so we standardize on
+			 * commas before parsing the list.
+			 */
+			if ( ! is_array( $terms ) ) {
+				$comma = _x( ',', 'tag delimiter' );
+				if ( ',' !== $comma ) {
+					$terms = str_replace( $comma, ',', $terms );
+				}
+				$terms = explode( ',', trim( $terms, " \n\t\r\0\x0B," ) );
+			}
+
+			$clean_terms = array();
+			foreach ( $terms as $term ) {
+				// Empty terms are invalid input.
+				if ( empty( $term ) ) {
+					continue;
+				}
+
+				$_term = get_terms( $taxonomy, array(
+					'name' => $term,
+					'fields' => 'ids',
+					'hide_empty' => false,
+				) );
+
+				if ( ! empty( $_term ) ) {
+					$clean_terms[] = intval( $_term[0] );
+				} else {
+					// No existing term was found, so pass the string. A new term will be created.
+					$clean_terms[] = $term;
+				}
+			}
+
+			$post_data['tax_input'][ $taxonomy ] = $clean_terms;
+		}
+	}
+
 	add_meta( $post_ID );
 
 	update_post_meta( $post_ID, '_edit_last', get_current_user_id() );
@@ -733,7 +779,7 @@ function write_post() {
 //
 
 /**
- * {@internal Missing Short Description}}
+ * Add post meta data defined in $_POST superglobal for post with given ID.
  *
  * @since 1.2.0
  *
@@ -772,7 +818,7 @@ function add_meta( $post_ID ) {
 } // add_meta
 
 /**
- * {@internal Missing Short Description}}
+ * Delete post meta data by meta ID.
  *
  * @since 1.2.0
  *
@@ -803,7 +849,7 @@ function get_meta_keys() {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Get post meta data by meta ID.
  *
  * @since 2.1.0
  *
@@ -815,9 +861,7 @@ function get_post_meta_by_id( $mid ) {
 }
 
 /**
- * {@internal Missing Short Description}}
- *
- * Some postmeta stuff.
+ * Get meta data for the given post ID.
  *
  * @since 1.2.0
  *
@@ -833,7 +877,7 @@ function has_meta( $postid ) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Update post meta data by meta ID.
  *
  * @since 1.2.0
  *
@@ -1006,7 +1050,7 @@ function wp_edit_posts_query( $q = false ) {
 }
 
 /**
- * {@internal Missing Short Description}}
+ * Get all available post MIME types for a given post type.
  *
  * @since 2.5.0
  *
@@ -1154,7 +1198,7 @@ function get_sample_permalink($id, $title = null, $name = null) {
 	$original_name = $post->post_name;
 
 	// Hack: get_permalink() would return ugly permalink for drafts, so we will fake that our post is published.
-	if ( in_array( $post->post_status, array( 'draft', 'pending' ) ) ) {
+	if ( in_array( $post->post_status, array( 'draft', 'pending', 'future' ) ) ) {
 		$post->post_status = 'publish';
 		$post->post_name = sanitize_title($post->post_name ? $post->post_name : $post->post_title, $post->ID);
 	}
@@ -1504,7 +1548,7 @@ function _admin_notice_post_locked() {
 			<div class="post-locked-avatar"></div>
 			<p class="wp-tab-first" tabindex="0">
 			<span class="currently-editing"></span><br />
-			<span class="locked-saving hidden"><img src="images/wpspin_light-2x.gif" width="16" height="16" /> <?php _e('Saving revision...'); ?></span>
+			<span class="locked-saving hidden"><img src="<?php echo esc_url( admin_url( 'images/spinner-2x.gif' ) ); ?>" width="16" height="16" /> <?php _e('Saving revision...'); ?></span>
 			<span class="locked-saved hidden"><?php _e('Your latest changes were saved as a revision.'); ?></span>
 			</p>
 			<?php

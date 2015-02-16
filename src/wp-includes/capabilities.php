@@ -90,7 +90,10 @@ class WP_Roles {
 	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
-		return call_user_func_array( array( $this, $name ), $arguments );
+		if ( '_init' === $name ) {
+			return call_user_func_array( array( $this, $name ), $arguments );
+		}
+		return false;
 	}
 
 	/**
@@ -415,6 +418,18 @@ class WP_Role {
  * @since 2.0.0
  * @package WordPress
  * @subpackage User
+ *
+ * @property string $display_name
+ * @property string $nickname
+ * @property string $user_description
+ * @property string $user_email
+ * @property string $user_firstname
+ * @property string $user_lastname
+ * @property string $user_nicename
+ * @property string $user_pass
+ * @property string $user_registered
+ * @property string $user_url
+ * @property string $spam
  */
 class WP_User {
 	/**
@@ -492,7 +507,6 @@ class WP_User {
 	 * @param int|string|stdClass|WP_User $id User's ID, a WP_User object, or a user object from the DB.
 	 * @param string $name Optional. User's username
 	 * @param int $blog_id Optional Blog ID, defaults to current blog.
-	 * @return WP_User
 	 */
 	public function __construct( $id = 0, $name = '', $blog_id = '' ) {
 		if ( ! isset( self::$back_compat_keys ) ) {
@@ -507,7 +521,7 @@ class WP_User {
 			);
 		}
 
-		if ( is_a( $id, 'WP_User' ) ) {
+		if ( $id instanceof WP_User ) {
 			$this->init( $id->data, $blog_id );
 			return;
 		} elseif ( is_object( $id ) ) {
@@ -921,6 +935,8 @@ class WP_User {
 	public function add_cap( $cap, $grant = true ) {
 		$this->caps[$cap] = $grant;
 		update_user_meta( $this->ID, $this->cap_key, $this->caps );
+		$this->get_role_caps();
+		$this->update_user_level_from_caps();
 	}
 
 	/**
@@ -932,10 +948,13 @@ class WP_User {
 	 * @param string $cap Capability name.
 	 */
 	public function remove_cap( $cap ) {
-		if ( ! isset( $this->caps[$cap] ) )
+		if ( ! isset( $this->caps[ $cap ] ) ) {
 			return;
-		unset( $this->caps[$cap] );
+		}
+		unset( $this->caps[ $cap ] );
 		update_user_meta( $this->ID, $this->cap_key, $this->caps );
+		$this->get_role_caps();
+		$this->update_user_level_from_caps();
 	}
 
 	/**

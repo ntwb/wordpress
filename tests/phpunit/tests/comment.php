@@ -6,6 +6,7 @@
 class Tests_Comment extends WP_UnitTestCase {
 	function test_wp_update_comment() {
 		$post = $this->factory->post->create_and_get( array( 'post_title' => 'some-post', 'post_type' => 'post' ) );
+		$post2 = $this->factory->post->create_and_get( array( 'post_title' => 'some-post-2', 'post_type' => 'post' ) );
 		$comments = $this->factory->comment->create_post_comments( $post->ID, 5 );
 		$result = wp_update_comment( array( 'comment_ID' => $comments[0], 'comment_parent' => $comments[1] ) );
 		$this->assertEquals( 1, $result );
@@ -13,6 +14,35 @@ class Tests_Comment extends WP_UnitTestCase {
 		$this->assertEquals( $comments[1], $comment->comment_parent );
 		$result = wp_update_comment( array( 'comment_ID' => $comments[0], 'comment_parent' => $comments[1] ) );
 		$this->assertEquals( 0, $result );
+		$result = wp_update_comment( array( 'comment_ID' => $comments[0], 'comment_post_ID' => $post2->ID ) );
+		$comment = get_comment( $comments[0] );
+		$this->assertEquals( $post2->ID, $comment->comment_post_ID );
+	}
+
+	/**
+	 * @ticket 30627
+	 */
+	function test_wp_update_comment_updates_comment_type() {
+		$post_id = $this->factory->post->create();
+		$comment_id = $this->factory->comment->create( array( 'comment_post_ID' => $post_id ) );
+
+		wp_update_comment( array( 'comment_ID' => $comment_id, 'comment_type' => 'pingback' ) );
+
+		$comment = get_comment( $comment_id );
+		$this->assertEquals( 'pingback', $comment->comment_type );
+	}
+
+	/**
+	 * @ticket 30307
+	 */
+	function test_wp_update_comment_updates_user_id() {
+		$post_id = $this->factory->post->create();
+		$comment_id = $this->factory->comment->create( array( 'comment_post_ID' => $post_id ) );
+
+		wp_update_comment( array( 'comment_ID' => $comment_id, 'user_id' => 1 ) );
+
+		$comment = get_comment( $comment_id );
+		$this->assertEquals( 1, $comment->user_id );
 	}
 
 	public function test_get_approved_comments() {

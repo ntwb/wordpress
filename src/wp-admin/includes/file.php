@@ -191,11 +191,10 @@ function validate_file_to_edit( $file, $allowed_files = '' ) {
  *
  * @see wp_handle_upload_error
  *
- * @param array  $file      Reference to a single element of $_FILES. Call the function once for
- *                          each uploaded file.
- * @param array  $overrides An associative array of names => values to override default variables.
- * @param string $time      Time formatted in 'yyyy/mm'.
- * @param string $action    Expected value for $_POST['action'].
+ * @param array       $file      Reference to a single element of $_FILES. Call the function once for each uploaded file.
+ * @param array|false $overrides An associative array of names => values to override default variables. Default false.
+ * @param string      $time      Time formatted in 'yyyy/mm'.
+ * @param string      $action    Expected value for $_POST['action'].
  * @return array On success, returns an associative array of file attributes. On failure, returns
  *               $overrides['upload_error_handler'](&$file, $message ) or array( 'error'=>$message ).
 */
@@ -978,7 +977,7 @@ function get_filesystem_method( $args = array(), $context = false, $allow_relaxe
  * @param string $type the chosen Filesystem method in use
  * @param boolean $error if the current request has failed to connect
  * @param string $context The directory which is needed access to, The write-test will be performed on this directory by get_filesystem_method()
- * @param string $extra_fields Extra POST fields which should be checked for to be included in the post.
+ * @param array $extra_fields Extra POST fields which should be checked for to be included in the post.
  * @param bool $allow_relaxed_file_ownership Whether to allow Group/World writable.
  * @return boolean False on failure. True on success.
  */

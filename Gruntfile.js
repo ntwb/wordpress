@@ -109,8 +109,20 @@ module.exports = function(grunt) {
 				dest: 'tests/qunit/compiled.html',
 				options: {
 					processContent: function( src ) {
-						return src.replace( /([^\.])*\.\.\/src/ig , '/../build' );
+						src = src.replace( /([^\.])*\.\.\/src/ig , '/../build' );
+						src = src.replace( '/jquery/ui/core.js', '/jquery/ui/core.min.js' );
+						return src;
 					}
+				}
+			}
+		},
+		browserify: {
+			media: {
+				files: {
+					'src/wp-includes/js/media/models.js' : [ SOURCE_DIR + 'wp-includes/js/media/models.manifest.js' ],
+					'src/wp-includes/js/media/views.js' : [ SOURCE_DIR + 'wp-includes/js/media/views.manifest.js' ],
+					'src/wp-includes/js/media/audio-video.js' : [ SOURCE_DIR + 'wp-includes/js/media/audio-video.manifest.js' ],
+					'src/wp-includes/js/media/grid.js' : [ SOURCE_DIR + 'wp-includes/js/media/grid.manifest.js' ]
 				}
 			}
 		},
@@ -220,6 +232,18 @@ module.exports = function(grunt) {
 					'!twenty{eleven,twelve,thirteen}/**',
 					// Third party scripts
 					'!twenty{fourteen,fifteen}/js/html5.js'
+				]
+			},
+			media: {
+				options: {
+					browserify: true
+				},
+				expand: true,
+				cwd: SOURCE_DIR,
+				src: [
+					'wp-includes/js/media/**/*.js',
+					'!wp-includes/js/media/*.js',
+					'wp-includes/js/media/*.manifest.js'
 				]
 			},
 			core: {
@@ -358,6 +382,18 @@ module.exports = function(grunt) {
 					'!wp-includes/js/zxcvbn.min.js'
 				]
 			},
+			media: {
+				expand: true,
+				cwd: SOURCE_DIR,
+				dest: BUILD_DIR,
+				ext: '.min.js',
+				src: [
+					'wp-includes/js/media/audio-video.js',
+					'wp-includes/js/media/grid.js',
+					'wp-includes/js/media/models.js',
+					'wp-includes/js/media/views.js'
+				]
+			},
 			jqueryui: {
 				options: {
 					preserveComments: 'some'
@@ -435,6 +471,16 @@ module.exports = function(grunt) {
 					interval: 2000
 				}
 			},
+			browserify: {
+				files: [
+					SOURCE_DIR + 'wp-includes/js/media/**/*.js',
+					'!' + SOURCE_DIR + 'wp-includes/js/media/audio-video.js',
+					'!' + SOURCE_DIR + 'wp-includes/js/media/grid.js',
+					'!' + SOURCE_DIR + 'wp-includes/js/media/models.js',
+					'!' + SOURCE_DIR + 'wp-includes/js/media/views.js'
+				],
+				tasks: ['browserify', 'uglify:media']
+			},
 			config: {
 				files: 'Gruntfile.js'
 			},
@@ -472,7 +518,13 @@ module.exports = function(grunt) {
 	grunt.registerTask('colors', ['sass:colors', 'autoprefixer:colors']);
 
 	// JSHint task.
-	grunt.registerTask('jshint:corejs', ['jshint:grunt', 'jshint:tests', 'jshint:themes', 'jshint:core']);
+	grunt.registerTask( 'jshint:corejs', [
+		'jshint:grunt',
+		'jshint:tests',
+		'jshint:themes',
+		'jshint:core',
+		'jshint:media'
+	] );
 
 	// Pre-commit task.
 	grunt.registerTask('precommit', 'Runs front-end dev/test tasks in preparation for a commit.',
@@ -483,7 +535,8 @@ module.exports = function(grunt) {
 
 	// Build task.
 	grunt.registerTask('build', ['clean:all', 'copy:all', 'cssmin:core', 'colors', 'rtl', 'cssmin:rtl', 'cssmin:colors',
-		'uglify:core', 'uglify:jqueryui', 'concat:tinymce', 'compress:tinymce', 'clean:tinymce', 'jsvalidate:build']);
+		'browserify:media', 'uglify:core', 'uglify:media', 'uglify:jqueryui', 'concat:tinymce', 'compress:tinymce',
+		'clean:tinymce', 'jsvalidate:build']);
 
 	// Testing tasks.
 	grunt.registerMultiTask('phpunit', 'Runs PHPUnit tests, including the ajax, external-http, and multisite tests.', function() {

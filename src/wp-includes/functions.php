@@ -869,7 +869,7 @@ function wp_remote_fopen( $uri ) {
  *
  * @since 2.0.0
  *
- * @param string $query_vars Default WP_Query arguments.
+ * @param string|array $query_vars Default WP_Query arguments.
  */
 function wp( $query_vars = '' ) {
 	global $wp, $wp_query, $wp_the_query;
@@ -2684,11 +2684,11 @@ function wp_json_encode( $data, $options = 0, $depth = 512 ) {
 /**
  * Perform sanity checks on data that shall be encoded to JSON.
  *
- * @see wp_json_encode()
- *
+ * @ignore
  * @since 4.1.0
  * @access private
- * @internal
+ *
+ * @see wp_json_encode()
  *
  * @param mixed $data  Variable (usually an array or object) to encode as JSON.
  * @param int   $depth Maximum depth to walk through $data. Must be greater than 0.
@@ -2747,11 +2747,11 @@ function _wp_json_sanity_check( $data, $depth ) {
 /**
  * Convert a string to UTF-8, so that it can be safely encoded to JSON.
  *
- * @see _wp_json_sanity_check()
- *
+ * @ignore
  * @since 4.1.0
  * @access private
- * @internal
+ *
+ * @see _wp_json_sanity_check()
  *
  * @param string $string The string which is to be converted.
  * @return string The checked string.
@@ -3172,8 +3172,9 @@ function wp_list_filter( $list, $args = array(), $operator = 'AND' ) {
  * @param int|string $field     Field from the object to place instead of the entire object
  * @param int|string $index_key Optional. Field from the object to use as keys for the new array.
  *                              Default null.
- * @return array Array of found values. If $index_key is set, an array of found values with keys
- *               corresponding to $index_key.
+ * @return array Array of found values. If `$index_key` is set, an array of found values with keys
+ *               corresponding to `$index_key`. If `$index_key` is null, array keys from the original
+ *               `$list` will be preserved in the results.
  */
 function wp_list_pluck( $list, $field, $index_key = null ) {
 	if ( ! $index_key ) {
@@ -3619,7 +3620,7 @@ function iis7_supports_permalinks() {
 		 * Lastly we make sure that PHP is running via FastCGI. This is important because if it runs
 		 * via ISAPI then pretty permalinks will not work.
 		 */
-		$supports_permalinks = class_exists('DOMDocument') && isset($_SERVER['IIS_UrlRewriteModule']) && ( php_sapi_name() == 'cgi-fcgi' );
+		$supports_permalinks = class_exists('DOMDocument') && isset($_SERVER['IIS_UrlRewriteModule']) && ( PHP_SAPI == 'cgi-fcgi' );
 	}
 
 	/**
@@ -4320,7 +4321,7 @@ function send_nosniff_header() {
 /**
  * Return a MySQL expression for selecting the week number based on the start_of_week option.
  *
- * @internal
+ * @ignore
  * @since 3.0.0
  *
  * @param string $column Database column.

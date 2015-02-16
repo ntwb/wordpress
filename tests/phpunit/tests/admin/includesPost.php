@@ -137,6 +137,75 @@ class Tests_Admin_includesPost extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 30615
+	 */
+	public function test_edit_post_should_parse_tax_input_by_name_rather_than_slug_for_nonhierarchical_taxonomies() {
+		$u = $this->factory->user->create( array( 'role' => 'editor' ) );
+		wp_set_current_user( $u );
+
+		register_taxonomy( 'wptests_tax', array( 'post' ) );
+		$t1 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+			'name' => 'foo',
+			'slug' => 'bar',
+		) );
+		$t2 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+			'name' => 'bar',
+			'slug' => 'foo',
+		) );
+
+		$p = $this->factory->post->create();
+
+		$post_data = array(
+			'post_ID' => $p,
+			'tax_input' => array(
+				'wptests_tax' => 'foo,baz',
+			),
+		);
+
+		edit_post( $post_data );
+
+		$found = wp_get_post_terms( $p, 'wptests_tax' );
+
+		// Should contain the term with the name 'foo', not the slug.
+		$this->assertContains( $t1, wp_list_pluck( $found, 'term_id' ) );
+
+		// The 'baz' tag should have been created.
+		$this->assertContains( 'baz', wp_list_pluck( $found, 'name' ) );
+	}
+
+	/**
+	 * @ticket 30615
+	 */
+	public function test_edit_post_should_not_create_terms_for_an_empty_tag_input_field() {
+		$u = $this->factory->user->create( array( 'role' => 'editor' ) );
+		wp_set_current_user( $u );
+
+		register_taxonomy( 'wptests_tax', array( 'post' ) );
+		$t1 = $this->factory->term->create( array(
+			'taxonomy' => 'wptests_tax',
+			'name' => 'foo',
+			'slug' => 'bar',
+		) );
+
+		$p = $this->factory->post->create();
+
+		$post_data = array(
+			'post_ID' => $p,
+			'tax_input' => array(
+				'wptests_tax' => ' ',
+			),
+		);
+
+		edit_post( $post_data );
+
+		$found = wp_get_post_terms( $p, 'wptests_tax' );
+
+		$this->assertEmpty( $found );
+	}
+
+	/**
 	 * @ticket 27792
 	 */
 	function test_bulk_edit_posts_stomping() {
@@ -178,4 +247,26 @@ class Tests_Admin_includesPost extends WP_UnitTestCase {
 		$this->assertEquals( 'closed', $post->ping_status );
 	}
 
+	/**
+	 * @ticket 30910
+	 */
+	public function test_get_sample_permalink_should_return_pretty_permalink_for_posts_with_post_status_future() {
+		global $wp_rewrite;
+
+		$old_permalink_structure = get_option( 'permalink_structure' );
+		$permalink_structure = '%postname%';
+		$wp_rewrite->set_permalink_structure( "/$permalink_structure/" );
+		flush_rewrite_rules();
+
+		$future_date = date( 'Y-m-d H:i:s', time() + 100 );
+		$p = $this->factory->post->create( array( 'post_status' => 'future', 'post_name' => 'foo', 'post_date' => $future_date ) );
+
+		$found = get_sample_permalink( $p );
+		$expected = trailingslashit( home_url( $permalink_structure ) );
+
+		$this->assertSame( $expected, $found[0] );
+
+		$wp_rewrite->set_permalink_structure( $old_permalink_structure );
+		flush_rewrite_rules();
+	}
 }

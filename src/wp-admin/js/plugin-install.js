@@ -1,4 +1,4 @@
-/* global plugininstallL10n, tb_click, confirm */
+/* global plugininstallL10n, tb_click */
 
 /* Plugin Browser Thickbox related JS*/
 var tb_position;
@@ -68,9 +68,5 @@ jQuery( document ).ready( function( $ ) {
 		// Flip the content.
 		$( '#section-holder div.section' ).hide(); // Hide 'em all.
 		$( '#section-' + tab ).show();
-	});
-
-	$( 'a.install-now' ).click( function() {
-		return confirm( plugininstallL10n.ays );
 	});
 });

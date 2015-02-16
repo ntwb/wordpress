@@ -1550,6 +1550,17 @@ function wp_ajax_inline_save() {
 	if ( empty($data['ping_status']) )
 		$data['ping_status'] = 'closed';
 
+	// Exclude terms from taxonomies that are not supposed to appear in Quick Edit.
+	if ( ! empty( $data['tax_input'] ) ) {
+		foreach ( $data['tax_input'] as $taxonomy => $terms ) {
+			$tax_object = get_taxonomy( $taxonomy );
+			/** This filter is documented in wp-admin/includes/class-wp-posts-list-table.php */
+			if ( ! apply_filters( 'quick_edit_show_taxonomy', $tax_object->show_in_quick_edit, $taxonomy, $post['post_type'] ) ) {
+				unset( $data['tax_input'][ $taxonomy ] );
+			}
+		}
+	}
+
 	// Hack: wp_unique_post_slug() doesn't work for drafts, so we will fake that our post is published.
 	if ( ! empty( $data['post_name'] ) && in_array( $post['post_status'], array( 'draft', 'pending' ) ) ) {
 		$post['post_status'] = 'publish';
@@ -1834,21 +1845,36 @@ function wp_ajax_update_widget() {
  */
 function wp_ajax_upload_attachment() {
 	check_ajax_referer( 'media-form' );
+	/*
+	 * This function does not use wp_send_json_success() / wp_send_json_error()
+	 * as the html4 Plupload handler requires a text/html content-type for older IE.
+	 * See https://core.trac.wordpress.org/ticket/31037
+	 */
 
 	if ( ! current_user_can( 'upload_files' ) ) {
-		wp_send_json_error( array(
-			'message'  => __( "You don't have permission to upload files." ),
-			'filename' => $_FILES['async-upload']['name'],
+		echo wp_json_encode( array(
+			'success' => false,
+			'data'    => array(
+				'message'  => __( "You don't have permission to upload files." ),
+				'filename' => $_FILES['async-upload']['name'],
+			)
 		) );
+
+		wp_die();
 	}
 
 	if ( isset( $_REQUEST['post_id'] ) ) {
 		$post_id = $_REQUEST['post_id'];
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
-			wp_send_json_error( array(
-				'message'  => __( "You don't have permission to attach files to this post." ),
-				'filename' => $_FILES['async-upload']['name'],
+			echo wp_json_encode( array(
+				'success' => false,
+				'data'    => array(
+					'message'  => __( "You don't have permission to attach files to this post." ),
+					'filename' => $_FILES['async-upload']['name'],
+				)
 			) );
+
+			wp_die();
 		}
 	} else {
 		$post_id = null;
@@ -1858,22 +1884,32 @@ function wp_ajax_upload_attachment() {
 
 	// If the context is custom header or background, make sure the uploaded file is an image.
 	if ( isset( $post_data['context'] ) && in_array( $post_data['context'], array( 'custom-header', 'custom-background' ) ) ) {
-		$wp_filetype = wp_check_filetype_and_ext( $_FILES['async-upload']['tmp_name'], $_FILES['async-upload']['name'], false );
+		$wp_filetype = wp_check_filetype_and_ext( $_FILES['async-upload']['tmp_name'], $_FILES['async-upload']['name'] );
 		if ( ! wp_match_mime_types( 'image', $wp_filetype['type'] ) ) {
-			wp_send_json_error( array(
-				'message'  => __( 'The uploaded file is not a valid image. Please try again.' ),
-				'filename' => $_FILES['async-upload']['name'],
+			echo wp_json_encode( array(
+				'success' => false,
+				'data'    => array(
+					'message'  => __( 'The uploaded file is not a valid image. Please try again.' ),
+					'filename' => $_FILES['async-upload']['name'],
+				)
 			) );
+
+			wp_die();
 		}
 	}
 
 	$attachment_id = media_handle_upload( 'async-upload', $post_id, $post_data );
 
 	if ( is_wp_error( $attachment_id ) ) {
-		wp_send_json_error( array(
-			'message'  => $attachment_id->get_error_message(),
-			'filename' => $_FILES['async-upload']['name'],
+		echo wp_json_encode( array(
+			'success' => false,
+			'data'    => array(
+				'message'  => $attachment_id->get_error_message(),
+				'filename' => $_FILES['async-upload']['name'],
+			)
 		) );
+
+		wp_die();
 	}
 
 	if ( isset( $post_data['context'] ) && isset( $post_data['theme'] ) ) {
@@ -1887,7 +1923,12 @@ function wp_ajax_upload_attachment() {
 	if ( ! $attachment = wp_prepare_attachment_for_js( $attachment_id ) )
 		wp_die();
 
-	wp_send_json_success( $attachment );
+	echo wp_json_encode( array(
+		'success' => true,
+		'data'    => $attachment,
+	) );
+
+	wp_die();
 }
 
 /**
@@ -2589,8 +2630,13 @@ function wp_ajax_save_user_color_scheme() {
 		wp_send_json_error();
 	}
 
+	$previous_color_scheme = get_user_meta( get_current_user_id(), 'admin_color', true );
 	update_user_meta( get_current_user_id(), 'admin_color', $color_scheme );
-	wp_send_json_success();
+
+	wp_send_json_success( array(
+		'previousScheme' => 'admin-color-' . $previous_color_scheme,
+		'currentScheme'  => 'admin-color-' . $color_scheme
+	) );
 }
 
 /**
@@ -2725,18 +2771,28 @@ function wp_ajax_parse_embed() {
 function wp_ajax_parse_media_shortcode() {
 	global $post, $wp_scripts;
 
-	if ( ! $post = get_post( (int) $_POST['post_ID'] ) ) {
+	if ( empty( $_POST['shortcode'] ) ) {
 		wp_send_json_error();
 	}
 
-	if ( empty( $_POST['shortcode'] ) || ! current_user_can( 'edit_post', $post->ID ) ) {
-		wp_send_json_error();
+	$shortcode = wp_unslash( $_POST['shortcode'] );
+
+	if ( ! empty( $_POST['post_ID'] ) ) {
+		$post = get_post( (int) $_POST['post_ID'] );
 	}
 
-	setup_postdata( $post );
-	$shortcode = do_shortcode( wp_unslash( $_POST['shortcode'] ) );
+	// the embed shortcode requires a post
+	if ( ! $post || ! current_user_can( 'edit_post', $post->ID ) ) {
+		if ( 'embed' === $shortcode ) {
+			wp_send_json_error();
+		}
+	} else {
+		setup_postdata( $post );
+	}
 
-	if ( empty( $shortcode ) ) {
+	$parsed = do_shortcode( $shortcode  );
+
+	if ( empty( $parsed ) ) {
 		wp_send_json_error( array(
 			'type' => 'no-items',
 			'message' => __( 'No items found.' ),
@@ -2756,7 +2812,7 @@ function wp_ajax_parse_media_shortcode() {
 
 	ob_start();
 
-	echo $shortcode;
+	echo $parsed;
 
 	if ( 'playlist' === $_REQUEST['type'] ) {
 		wp_underscore_playlist_templates();
@@ -2806,4 +2862,92 @@ function wp_ajax_destroy_sessions() {
 	}
 
 	wp_send_json_success( array( 'message' => $message ) );
+}
+
+/**
+ * AJAX handler for installing a plugin.
+ *
+ * @since 4.2.0
+ */
+function wp_ajax_install_plugin() {
+	$status = array(
+		'install' => 'plugin',
+		'slug'    => sanitize_key( $_POST['slug'] ),
+	);
+
+	if ( ! current_user_can( 'install_plugins' ) ) {
+		$status['error'] = __( 'You do not have sufficient permissions to install plugins on this site.' );
+ 		wp_send_json_error( $status );
+	}
+
+	check_ajax_referer( 'updates' );
+
+	include_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+	include_once( ABSPATH . 'wp-admin/includes/plugin-install.php' );
+
+	$api = plugins_api( 'plugin_information', array(
+		'slug'   => sanitize_key( $_POST['slug'] ),
+		'fields' => array( 'sections' => false )
+	) );
+
+	if ( is_wp_error( $api ) ) {
+		$status['error'] = $api->get_error_message();
+ 		wp_send_json_error( $status );
+	}
+
+	$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+	$result = $upgrader->install( $api->download_link );
+
+	if ( is_wp_error( $result ) ) {
+		$status['error'] = $result->get_error_message();
+ 		wp_send_json_error( $status );
+	}
+
+	$plugin_status = install_plugin_install_status( $api );
+	activate_plugin( $plugin_status['file'] );
+
+	wp_send_json_success( $status );
+}
+
+/**
+ * AJAX handler for updating a plugin.
+ *
+ * @since 4.2.0
+ */
+function wp_ajax_update_plugin() {
+	$plugin = urldecode( $_POST['plugin'] );
+
+	$status = array(
+		'update' => 'plugin',
+		'plugin' => $plugin,
+		'slug'   => sanitize_key( $_POST['slug'] ),
+	);
+
+	if ( ! current_user_can( 'update_plugins' ) ) {
+		$status['error'] = __( 'You do not have sufficient permissions to update plugins on this site.' );
+ 		wp_send_json_error( $status );
+	}
+
+	check_ajax_referer( 'updates' );
+
+	include_once( ABSPATH . 'wp-admin/includes/class-wp-upgrader.php' );
+
+	$current = get_site_transient( 'update_plugins' );
+	if ( empty( $current ) ) {
+		wp_update_plugins();
+	}
+
+	$upgrader = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+	$result = $upgrader->bulk_upgrade( array( $plugin ) );
+
+	if ( is_array( $result ) ) {
+		$result = $result[ $plugin ];
+	}
+
+	if ( is_wp_error( $result ) ) {
+		$status['error'] = $result->get_error_message();
+ 		wp_send_json_error( $status );
+	}
+
+	wp_send_json_success( $status );
 }

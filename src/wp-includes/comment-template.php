@@ -658,7 +658,7 @@ function get_comment_link( $comment = null, $args = array() ) {
 			$args['page'] = ( !empty($in_comment_loop) ) ? get_query_var('cpage') : get_page_of_comment( $comment->comment_ID, $args );
 
 		if ( $wp_rewrite->using_permalinks() )
-			$link = user_trailingslashit( trailingslashit( get_permalink( $comment->comment_post_ID ) ) . 'comment-page-' . $args['page'], 'comment' );
+			$link = user_trailingslashit( trailingslashit( get_permalink( $comment->comment_post_ID ) ) . $wp_rewrite->comments_pagination_base . '-' . $args['page'], 'comment' );
 		else
 			$link = add_query_arg( 'cpage', $args['page'], get_permalink( $comment->comment_post_ID ) );
 	} else {
@@ -1274,13 +1274,30 @@ function comments_popup_link( $zero = false, $one = false, $more = false, $css_c
 	global $wpcommentspopupfile, $wpcommentsjavascript;
 
 	$id = get_the_ID();
-
-	if ( false === $zero ) $zero = __( 'No Comments' );
-	if ( false === $one ) $one = __( '1 Comment' );
-	if ( false === $more ) $more = __( '% Comments' );
-	if ( false === $none ) $none = __( 'Comments Off' );
+	$span = '<span class="screen-reader-text">';
+	$title = get_the_title();
+	$span_close = '</span>';
 
 	$number = get_comments_number( $id );
+
+	if ( false === $zero ) {
+		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag */
+		$zero = sprintf( __( 'No Comments%1$s on %2$s%3$s' ), $span, $title, $span_close );
+	}
+	if ( false === $one ) {
+		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag */
+		$one = sprintf( __( '1 Comment%1$s on %2$s%3$s' ), $span, $title, $span_close );
+	}
+	if ( false === $more ) {
+		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag, 4: number of comments */
+		$more = sprintf( _n( '%4$s Comment%1$s on %2$s%3$s', '%4$s Comments%1$s on %2$s%3$s', $number ),
+			$span, $title, $span_close, number_format_i18n( $number )
+		);
+	}
+	if ( false === $none ) {
+		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag */
+		$none = sprintf( __( 'Comments Off%1$s on %2$s%3$s' ), $span, $title, $span_close );
+	}
 
 	if ( 0 == $number && !comments_open() && !pings_open() ) {
 		echo '<span' . ((!empty($css_class)) ? ' class="' . esc_attr( $css_class ) . '"' : '') . '>' . $none . '</span>';
@@ -1311,7 +1328,6 @@ function comments_popup_link( $zero = false, $one = false, $more = false, $css_c
 	if ( !empty( $css_class ) ) {
 		echo ' class="'.$css_class.'" ';
 	}
-	$title = the_title_attribute( array('echo' => 0 ) );
 
 	$attributes = '';
 	/**
@@ -1323,7 +1339,7 @@ function comments_popup_link( $zero = false, $one = false, $more = false, $css_c
 	 */
 	echo apply_filters( 'comments_popup_link_attributes', $attributes );
 
-	echo ' title="' . esc_attr( sprintf( __('Comment on %s'), $title ) ) . '">';
+	echo '>';
 	comments_number( $zero, $one, $more );
 	echo '</a>';
 }
@@ -1486,7 +1502,7 @@ function get_post_reply_link($args = array(), $post = null) {
 	}
 
 	if ( get_option('comment_registration') && ! is_user_logged_in() ) {
-		$link = sprintf( '<a rel="nofollow" href="%s">%s</a>',
+		$link = sprintf( '<a rel="nofollow" class="comment-reply-login" href="%s">%s</a>',
 			wp_login_url( get_permalink() ),
 			$args['login_text']
 		);
@@ -2176,12 +2192,13 @@ function comment_form( $args = array(), $post_id = null ) {
 
 	$req      = get_option( 'require_name_email' );
 	$aria_req = ( $req ? " aria-required='true'" : '' );
+	$html_req = ( $req ? " required='required'" : '' );
 	$html5    = 'html5' === $args['format'];
 	$fields   =  array(
 		'author' => '<p class="comment-form-author">' . '<label for="author">' . __( 'Name' ) . ( $req ? ' <span class="required">*</span>' : '' ) . '</label> ' .
-		            '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '" size="30"' . $aria_req . ' /></p>',
+		            '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '" size="30"' . $aria_req . $html_req . ' /></p>',
 		'email'  => '<p class="comment-form-email"><label for="email">' . __( 'Email' ) . ( $req ? ' <span class="required">*</span>' : '' ) . '</label> ' .
-		            '<input id="email" name="email" ' . ( $html5 ? 'type="email"' : 'type="text"' ) . ' value="' . esc_attr(  $commenter['comment_author_email'] ) . '" size="30" aria-describedby="email-notes"' . $aria_req . ' /></p>',
+		            '<input id="email" name="email" ' . ( $html5 ? 'type="email"' : 'type="text"' ) . ' value="' . esc_attr(  $commenter['comment_author_email'] ) . '" size="30" aria-describedby="email-notes"' . $aria_req . $html_req  . ' /></p>',
 		'url'    => '<p class="comment-form-url"><label for="url">' . __( 'Website' ) . '</label> ' .
 		            '<input id="url" name="url" ' . ( $html5 ? 'type="url"' : 'type="text"' ) . ' value="' . esc_attr( $commenter['comment_author_url'] ) . '" size="30" /></p>',
 	);
@@ -2198,7 +2215,7 @@ function comment_form( $args = array(), $post_id = null ) {
 	$fields = apply_filters( 'comment_form_default_fields', $fields );
 	$defaults = array(
 		'fields'               => $fields,
-		'comment_field'        => '<p class="comment-form-comment"><label for="comment">' . _x( 'Comment', 'noun' ) . '</label> <textarea id="comment" name="comment" cols="45" rows="8" aria-describedby="form-allowed-tags" aria-required="true"></textarea></p>',
+		'comment_field'        => '<p class="comment-form-comment"><label for="comment">' . _x( 'Comment', 'noun' ) . '</label> <textarea id="comment" name="comment" cols="45" rows="8" aria-describedby="form-allowed-tags" aria-required="true" required="required"></textarea></p>',
 		/** This filter is documented in wp-includes/link-template.php */
 		'must_log_in'          => '<p class="must-log-in">' . sprintf( __( 'You must be <a href="%s">logged in</a> to post a comment.' ), wp_login_url( apply_filters( 'the_permalink', get_permalink( $post_id ) ) ) ) . '</p>',
 		/** This filter is documented in wp-includes/link-template.php */

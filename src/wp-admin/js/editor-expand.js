@@ -323,7 +323,7 @@
 			var windowPos = $window.scrollTop(),
 				type = event && event.type,
 				resize = type !== 'scroll',
-				visual = ( mceEditor && ! mceEditor.isHidden() ),
+				visual = mceEditor && ! mceEditor.isHidden(),
 				buffer = autoresizeMinHeight,
 				postBodyTop = $postBody.offset().top,
 				borderWidth = 1,
@@ -348,6 +348,11 @@
 				$top = $textTop;
 				$editor = $textEditor;
 				topHeight = heights.textTopHeight;
+			}
+
+			// TinyMCE still intializing.
+			if ( ! visual && ! $top.length ) {
+				return;
 			}
 
 			topPos = $top.parent().offset().top;
@@ -380,7 +385,8 @@
 						width: contentWrapWidth - ( borderWidth * 2 ) - ( visual ? 0 : ( $top.outerWidth() - $top.width() ) )
 					} );
 
-					$statusBar.add( $bottom ).attr( 'style', '' );
+					$statusBar.attr( 'style', advanced ? '' : 'visibility: hidden;' );
+					$bottom.attr( 'style', '' );
 				}
 			} else {
 				// Maybe pin the top.
@@ -489,11 +495,8 @@
 						( windowPos + heights.windowHeight ) > ( editorPos + editorHeight + heights.bottomHeight + heights.statusBarHeight - borderWidth ) ) ) {
 					fixedBottom = false;
 
-					$statusBar.add( $bottom ).attr( 'style', '' );
-
-					if ( ! advanced ) {
-						$statusBar.css( 'visibility', 'hidden' );
-					}
+					$statusBar.attr( 'style', advanced ? '' : 'visibility: hidden;' );
+					$bottom.attr( 'style', '' );
 				}
 			}
 

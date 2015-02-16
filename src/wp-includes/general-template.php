@@ -346,11 +346,13 @@ function wp_login_url($redirect = '', $force_reauth = false) {
 	 * Filter the login URL.
 	 *
 	 * @since 2.8.0
+	 * @since 4.2.0 The `$force_reauth` parameter was added.
 	 *
-	 * @param string $login_url The login URL.
-	 * @param string $redirect  The path to redirect to on login, if supplied.
+	 * @param string $login_url    The login URL.
+	 * @param string $redirect     The path to redirect to on login, if supplied.
+	 * @param bool   $force_reauth Whether to force reauthorization, even if a cookie is present.
 	 */
-	return apply_filters( 'login_url', $login_url, $redirect );
+	return apply_filters( 'login_url', $login_url, $redirect, $force_reauth );
 }
 
 /**
@@ -716,9 +718,9 @@ function get_bloginfo( $show = '', $filter = 'raw' ) {
 /**
  * Display title tag with contents.
  *
+ * @ignore
  * @since 4.1.0
  * @access private
- * @internal
  *
  * @see wp_title()
  */
@@ -1481,7 +1483,7 @@ function wp_get_archives( $args = '' ) {
 			}
 		}
 	} elseif ( ( 'postbypost' == $r['type'] ) || ('alpha' == $r['type'] ) ) {
-		$orderby = ( 'alpha' == $r['type'] ) ? 'post_title ASC ' : 'post_date DESC ';
+		$orderby = ( 'alpha' == $r['type'] ) ? 'post_title ASC ' : 'post_date DESC, ID DESC ';
 		$query = "SELECT * FROM $wpdb->posts $join $where ORDER BY $orderby $limit";
 		$key = md5( $query );
 		$key = "wp_get_archives:$key:$last_changed";
@@ -1756,10 +1758,6 @@ function get_calendar($initial = true, $echo = true) {
 function delete_get_calendar_cache() {
 	wp_cache_delete( 'get_calendar', 'calendar' );
 }
-add_action( 'save_post', 'delete_get_calendar_cache' );
-add_action( 'delete_post', 'delete_get_calendar_cache' );
-add_action( 'update_option_start_of_week', 'delete_get_calendar_cache' );
-add_action( 'update_option_gmt_offset', 'delete_get_calendar_cache' );
 
 /**
  * Display all of the allowed tags in HTML format with attributes.
@@ -2586,20 +2584,18 @@ function language_attributes($doctype = 'html') {
 function paginate_links( $args = '' ) {
 	global $wp_query, $wp_rewrite;
 
-	$total        = ( isset( $wp_query->max_num_pages ) ) ? $wp_query->max_num_pages : 1;
-	$current      = ( get_query_var( 'paged' ) ) ? intval( get_query_var( 'paged' ) ) : 1;
+	// Setting up default values based on the current URL.
 	$pagenum_link = html_entity_decode( get_pagenum_link() );
-	$query_args   = array();
 	$url_parts    = explode( '?', $pagenum_link );
 
-	if ( isset( $url_parts[1] ) ) {
-		wp_parse_str( $url_parts[1], $query_args );
-		$query_args = urlencode_deep( $query_args );
-	}
+	// Get max pages and current page out of the current query, if available.
+	$total   = isset( $wp_query->max_num_pages ) ? $wp_query->max_num_pages : 1;
+	$current = get_query_var( 'paged' ) ? intval( get_query_var( 'paged' ) ) : 1;
 
-	$pagenum_link = remove_query_arg( array_keys( $query_args ), $pagenum_link );
-	$pagenum_link = trailingslashit( $pagenum_link ) . '%_%';
+	// Append the format placeholder to the base URL.
+	$pagenum_link = trailingslashit( $url_parts[0] ) . '%_%';
 
+	// URL base depends on permalink settings.
 	$format  = $wp_rewrite->using_index_permalinks() && ! strpos( $pagenum_link, 'index.php' ) ? 'index.php/' : '';
 	$format .= $wp_rewrite->using_permalinks() ? user_trailingslashit( $wp_rewrite->pagination_base . '/%#%', 'paged' ) : '?paged=%#%';
 
@@ -2615,13 +2611,28 @@ function paginate_links( $args = '' ) {
 		'end_size' => 1,
 		'mid_size' => 2,
 		'type' => 'plain',
-		'add_args' => $query_args, // array of query args to add
+		'add_args' => array(), // array of query args to add
 		'add_fragment' => '',
 		'before_page_number' => '',
 		'after_page_number' => ''
 	);
 
 	$args = wp_parse_args( $args, $defaults );
+
+	if ( ! is_array( $args['add_args'] ) ) {
+		$args['add_args'] = array();
+	}
+
+	// Merge additional query vars found in the original URL into 'add_args' array.
+	if ( isset( $url_parts[1] ) ) {
+		// Find the format argument.
+		$format_query = parse_url( str_replace( '%_%', $args['format'], $args['base'] ), PHP_URL_QUERY );
+		wp_parse_str( $format_query, $format_arg );
+
+		// Remove the format argument from the array of query arguments, to avoid overwriting custom format.
+		wp_parse_str( remove_query_arg( array_keys( $format_arg ), $url_parts[1] ), $query_args );
+		$args['add_args'] = array_merge( $args['add_args'], urlencode_deep( $query_args ) );
+	}
 
 	// Who knows what else people pass in $args
 	$total = (int) $args['total'];
@@ -2637,7 +2648,7 @@ function paginate_links( $args = '' ) {
 	if ( $mid_size < 0 ) {
 		$mid_size = 2;
 	}
-	$add_args = is_array( $args['add_args'] ) ? $args['add_args'] : false;
+	$add_args = $args['add_args'];
 	$r = '';
 	$page_links = array();
 	$dots = false;
@@ -2853,8 +2864,9 @@ function wp_admin_css_uri( $file = 'wp-admin' ) {
  */
 function wp_admin_css( $file = 'wp-admin', $force_echo = false ) {
 	global $wp_styles;
-	if ( !is_a($wp_styles, 'WP_Styles') )
+	if ( ! ( $wp_styles instanceof WP_Styles ) ) {
 		$wp_styles = new WP_Styles();
+	}
 
 	// For backward compatibility
 	$handle = 0 === strpos( $file, 'css/' ) ? substr( $file, 4 ) : $file;

@@ -164,7 +164,6 @@ function create_initial_post_types() {
 		'exclude_from_search' => false,
 	) );
 }
-add_action( 'init', 'create_initial_post_types', 0 ); // highest priority
 
 /**
  * Retrieve attached file path based on attachment ID.
@@ -304,10 +303,10 @@ function _wp_relative_upload_path( $path ) {
  * post types are 'post', 'pages', and 'attachments'. The 'post_status'
  * argument will accept any post status within the write administration panels.
  *
- * @internal Claims made in the long description might be inaccurate.
  * @since 2.0.0
  *
  * @see get_posts()
+ * @todo Check validity of description.
  *
  * @param mixed  $args   Optional. User defined arguments for replacing the defaults. Default empty.
  * @param string $output Optional. Constant for return type. Accepts OBJECT, ARRAY_A, ARRAY_N.
@@ -416,13 +415,14 @@ function get_extended( $post ) {
  *                            Default OBJECT.
  * @param string      $filter Optional. Type of filter to apply. Accepts 'raw', 'edit', 'db',
  *                            or 'display'. Default 'raw'.
- * @return WP_Post|null WP_Post on success or null on failure.
+ * @return WP_Post|array|null Type corresponding to $output on success or null on failure.
+ *                            When $output is OBJECT, a `WP_Post` instance is returned.
  */
 function get_post( $post = null, $output = OBJECT, $filter = 'raw' ) {
 	if ( empty( $post ) && isset( $GLOBALS['post'] ) )
 		$post = $GLOBALS['post'];
 
-	if ( is_a( $post, 'WP_Post' ) ) {
+	if ( $post instanceof WP_Post ) {
 		$_post = $post;
 	} elseif ( is_object( $post ) ) {
 		if ( empty( $post->filter ) ) {
@@ -454,6 +454,11 @@ function get_post( $post = null, $output = OBJECT, $filter = 'raw' ) {
  * WordPress Post class.
  *
  * @since 3.5.0
+ *
+ * @property-read array  $ancestors
+ * @property-read string $page_template
+ * @property-read int    $post_category
+ * @property-read string $tag_input
  *
  */
 final class WP_Post {
@@ -1337,9 +1342,9 @@ function register_post_type( $post_type, $args = array() ) {
 	$post_type = sanitize_key( $post_type );
 	$args->name = $post_type;
 
-	if ( strlen( $post_type ) > 20 ) {
-		_doing_it_wrong( __FUNCTION__, __( 'Post types cannot exceed 20 characters in length' ), '4.0' );
-		return new WP_Error( 'post_type_too_long', __( 'Post types cannot exceed 20 characters in length' ) );
+	if ( empty( $post_type ) || strlen( $post_type ) > 20 ) {
+		_doing_it_wrong( __FUNCTION__, __( 'Post type names must be between 1 and 20 characters in length.' ), '4.2' );
+		return new WP_Error( 'post_type_length_invalid', __( 'Post type names must be between 1 and 20 characters in length.' ) );
 	}
 
 	// If not set, default to the setting for public.
@@ -1708,7 +1713,6 @@ function _add_post_type_submenus() {
 		add_submenu_page( $ptype_obj->show_in_menu, $ptype_obj->labels->name, $ptype_obj->labels->all_items, $ptype_obj->cap->edit_posts, "edit.php?post_type=$ptype" );
 	}
 }
-add_action( 'admin_menu', '_add_post_type_submenus' );
 
 /**
  * Register support of certain features for a post type.
@@ -2707,8 +2711,6 @@ function _reset_front_page_settings_for_post( $post_id ) {
 	}
 	unstick_post( $post->ID );
 }
-add_action( 'before_delete_post', '_reset_front_page_settings_for_post' );
-add_action( 'wp_trash_post',      '_reset_front_page_settings_for_post' );
 
 /**
  * Move a post or page to the Trash
@@ -3917,16 +3919,14 @@ function wp_set_post_categories( $post_ID = 0, $post_categories = array(), $appe
 /**
  * Transition the post status of a post.
  *
- * Calls hooks to transition post status.
+ * When a post is saved, the post status is "transitioned" from one status to another,
+ * though this does not always mean the status has actually changed before and after
+ * the save.
  *
- * The first is 'transition_post_status' with new status, old status, and post data.
- *
- * The next action called is 'OLDSTATUS_to_NEWSTATUS' the 'NEWSTATUS' is the
- * $new_status parameter and the 'OLDSTATUS' is $old_status parameter; it has the
- * post data.
- *
- * The final action is named 'NEWSTATUS_POSTTYPE', 'NEWSTATUS' is from the $new_status
- * parameter and POSTTYPE is post_type post data.
+ * For instance: When publishing a post for the first time, the post status may transition
+ * from 'draft' – or some other status – to 'publish'. However, if a post is already
+ * published and is simply being updated, the "old" and "new" statuses may both be 'publish'
+ * before and after the transition.
  *
  * @since 2.3.0
  *
@@ -3963,6 +3963,14 @@ function wp_transition_post_status( $new_status, $old_status, $post ) {
 	 *
 	 * The dynamic portions of the hook name, `$new_status` and `$post->post_type`,
 	 * refer to the new post status and post type, respectively.
+	 *
+	 * Please note: When this action is hooked using a particular post status (like
+	 * 'publish', as `publish_{$post->post_type}`), it will fire both when a post is
+	 * first transitioned to that status from something else, as well as upon
+	 * subsequent post updates (old and new status are both the same).
+	 *
+	 * Therefore, if you are looking to only fire a callback when a post is first
+	 * transitioned to a status, use the {@see 'transition_post_status'} hook instead.
 	 *
 	 * @since 2.3.0
 	 *

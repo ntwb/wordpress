@@ -581,8 +581,8 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 				</tfoot>-->
 				<tbody class="menu-locations">
 				<?php foreach ( $locations as $_location => $_name ) { ?>
-					<tr id="menu-locations-row">
-						<td class="menu-location-title"><strong><?php echo $_name; ?></strong></td>
+					<tr class="menu-locations-row">
+						<td class="menu-location-title"><label for="locations-<?php echo $_location; ?>"><?php echo $_name; ?></label></td>
 						<td class="menu-location-menus">
 							<select name="menu-locations[<?php echo $_location; ?>]" id="locations-<?php echo $_location; ?>">
 								<option value="0"><?php printf( '&mdash; %s &mdash;', esc_html__( 'Select a Menu' ) ); ?></option>
@@ -597,7 +597,7 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 								<?php if ( isset( $menu_locations[ $_location ] ) && 0 != $menu_locations[ $_location ] ) : ?>
 								<span class="locations-edit-menu-link">
 									<a href="<?php echo esc_url( add_query_arg( array( 'action' => 'edit', 'menu' => $menu_locations[$_location] ), admin_url( 'nav-menus.php' ) ) ); ?>">
-										<?php _ex( 'Edit', 'menu' ); ?>
+										<span aria-hidden="true"><?php _ex( 'Edit', 'menu' ); ?></span><span class="screen-reader-text"><?php _e( 'Edit selected menu' ); ?></span>
 									</a>
 								</span>
 								<?php endif; ?>
@@ -606,9 +606,9 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 										<?php _ex( 'Use new menu', 'menu' ); ?>
 									</a>
 								</span>
-							</div><!-- #locations-row-links -->
+							</div><!-- .locations-row-links -->
 						</td><!-- .menu-location-menus -->
-					</tr><!-- #menu-locations-row -->
+					</tr><!-- .menu-locations-row -->
 				<?php } // foreach ?>
 				</tbody>
 			</table>
@@ -684,7 +684,7 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 		<div class="clear"></div>
 
-		<form id="nav-menu-meta" action="" class="nav-menu-meta" method="post" enctype="multipart/form-data">
+		<form id="nav-menu-meta" class="nav-menu-meta" method="post" enctype="multipart/form-data">
 			<input type="hidden" name="menu" id="nav-menu-meta-object-id" value="<?php echo esc_attr( $nav_menu_selected_id ); ?>" />
 			<input type="hidden" name="action" value="add-menu-item" />
 			<?php wp_nonce_field( 'add-menu_item', 'menu-settings-column-nonce' ); ?>
@@ -694,7 +694,7 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 	</div><!-- /#menu-settings-column -->
 	<div id="menu-management-liquid">
 		<div id="menu-management">
-			<form id="update-nav-menu" action="" method="post" enctype="multipart/form-data">
+			<form id="update-nav-menu" method="post" enctype="multipart/form-data">
 				<div class="menu-edit <?php if ( $add_new_screen ) echo 'blank-slate'; ?>">
 					<?php
 					wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );

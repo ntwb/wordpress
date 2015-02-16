@@ -441,6 +441,7 @@ if ( ! CUSTOM_TAGS ) {
 		'q' => array(
 			'cite' => true,
 		),
+		's' => array(),
 		'strike' => array(),
 		'strong' => array(),
 	);
@@ -1451,9 +1452,6 @@ function kses_init() {
 	if (current_user_can('unfiltered_html') == false)
 		kses_init_filters();
 }
-
-add_action('init', 'kses_init');
-add_action('set_current_user', 'kses_init');
 
 /**
  * Inline CSS filter

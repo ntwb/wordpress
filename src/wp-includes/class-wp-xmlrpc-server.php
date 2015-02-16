@@ -41,8 +41,6 @@ class wp_xmlrpc_server extends IXR_Server {
 	 * or replace XMLRPC methods.
 	 *
 	 * @since 1.5.0
-	 *
-	 * @return wp_xmlrpc_server
 	 */
 	public function __construct() {
 		$this->methods = array(
@@ -163,7 +161,10 @@ class wp_xmlrpc_server extends IXR_Server {
 	 * @return mixed|bool Return value of the callback, false otherwise.
 	 */
 	public function __call( $name, $arguments ) {
-		return call_user_func_array( array( $this, $name ), $arguments );
+		if ( '_multisite_getUsersBlogs' === $name ) {
+			return call_user_func_array( array( $this, $name ), $arguments );
+		}
+		return false;
 	}
 
 	public function serve_request() {
@@ -1116,13 +1117,13 @@ class wp_xmlrpc_server extends IXR_Server {
 			return $this->error;
 
 		// convert the date field back to IXR form
-		if ( isset( $content_struct['post_date'] ) && ! is_a( $content_struct['post_date'], 'IXR_Date' ) ) {
+		if ( isset( $content_struct['post_date'] ) && ! ( $content_struct['post_date'] instanceof IXR_Date ) ) {
 			$content_struct['post_date'] = $this->_convert_date( $content_struct['post_date'] );
 		}
 
 		// ignore the existing GMT date if it is empty or a non-GMT date was supplied in $content_struct,
 		// since _insert_post will ignore the non-GMT date if the GMT date is set
-		if ( isset( $content_struct['post_date_gmt'] ) && ! is_a( $content_struct['post_date_gmt'], 'IXR_Date' ) ) {
+		if ( isset( $content_struct['post_date_gmt'] ) && ! ( $content_struct['post_date_gmt'] instanceof IXR_Date ) ) {
 			if ( $content_struct['post_date_gmt'] == '0000-00-00 00:00:00' || isset( $content_struct['post_date'] ) ) {
 				unset( $content_struct['post_date_gmt'] );
 			} else {
@@ -1519,7 +1520,7 @@ class wp_xmlrpc_server extends IXR_Server {
 	 *
 	 * @uses get_post()
 	 * @param array $args Method parameters. Contains:
-	 *  - int     $blog_id (unset)
+	 *  - int     $blog_id (unused)
 	 *  - string  $username
 	 *  - string  $password
 	 *  - int     $post_id
@@ -3096,7 +3097,7 @@ class wp_xmlrpc_server extends IXR_Server {
 	 *
 	 * @since 2.7.0
 	 *
-	 * @param array $args. Contains:
+	 * @param array $args Contains:
 	 *  - blog_id (unused)
 	 *  - username
 	 *  - password

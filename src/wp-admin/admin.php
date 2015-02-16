@@ -63,7 +63,11 @@ if ( get_option('db_upgraded') ) {
 	 */
 	} elseif ( apply_filters( 'do_mu_upgrade', true ) ) {
 		$c = get_blog_count();
-		// If 50 or fewer sites, run every time. Else, run "about ten percent" of the time. Shh, don't check that math.
+
+		/*
+		 * If there are 50 or fewer sites, run every time. Otherwise, throttle to reduce load:
+		 * attempt to do no more than threshold value, with some +/- allowed.
+		 */
 		if ( $c <= 50 || ( $c > 50 && mt_rand( 0, (int)( $c / 50 ) ) == 1 ) ) {
 			require_once( ABSPATH . WPINC . '/http.php' );
 			$response = wp_remote_get( admin_url( 'upgrade.php?step=1' ), array( 'timeout' => 120, 'httpversion' => '1.1' ) );
@@ -91,9 +95,11 @@ $time_format = get_option('time_format');
 wp_enqueue_script( 'common' );
 
 // $pagenow is set in vars.php
+// $wp_importers is sometimes set in wp-admin/includes/import.php
+//
 // The remaining variables are imported as globals elsewhere,
 //     declared as globals here
-global $pagenow, $hook_suffix, $plugin_page, $typenow, $taxnow;
+global $pagenow, $wp_importers, $hook_suffix, $plugin_page, $typenow, $taxnow;
 
 $page_hook = null;
 
@@ -214,7 +220,7 @@ if ( isset($plugin_page) ) {
 		/**
 		 * Used to call the registered callback for a plugin screen.
 		 *
-		 * @internal
+		 * @ignore
 		 * @since 1.5.0
 		 */
 		do_action( $page_hook );

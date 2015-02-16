@@ -53,10 +53,7 @@ Use it to make something cool, have fun, and share what you've learned with othe
  * 1.0 Reset
  *
  * Resetting and rebuilding styles have been helped along thanks to the fine
- * work of Eric Meyer http://meyerweb.com/eric/tools/css/reset/index.html
- * along with Nicolas Gallagher and Jonathan Neal
- * http://necolas.github.com/normalize.css/ and Blueprint
- * http://www.blueprintcss.org/
+ * work of Eric Meyer, Nicolas Gallagher, Jonathan Neal, and Blueprint.
  *
  * -----------------------------------------------------------------------------
  */
@@ -719,7 +716,10 @@ div.wp-caption.alignright .wp-caption-text {
 
 .screen-reader-text {
 	clip: rect(1px, 1px, 1px, 1px);
-	position: absolute;
+	overflow: hidden;
+	position: absolute !important;
+	height: 1px;
+	width: 1px;
 }
 
 .screen-reader-text:focus {

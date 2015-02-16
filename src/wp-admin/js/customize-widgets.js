@@ -250,7 +250,7 @@
 
 		// Adds a selected widget to the sidebar
 		submit: function( widgetTpl ) {
-			var widgetId, widget;
+			var widgetId, widget, widgetFormControl;
 
 			if ( ! widgetTpl ) {
 				widgetTpl = this.selected;
@@ -268,7 +268,10 @@
 				return;
 			}
 
-			this.currentSidebarControl.addWidget( widget.get( 'id_base' ) );
+			widgetFormControl = this.currentSidebarControl.addWidget( widget.get( 'id_base' ) );
+			if ( widgetFormControl ) {
+				widgetFormControl.focus();
+			}
 
 			this.close();
 		},
@@ -621,7 +624,8 @@
 			 * Update available sidebars when their rendered state changes
 			 */
 			updateAvailableSidebars = function() {
-				var $sidebarItems = $moveWidgetArea.find( 'li' ), selfSidebarItem;
+				var $sidebarItems = $moveWidgetArea.find( 'li' ), selfSidebarItem,
+					renderedSidebarCount = 0;
 
 				selfSidebarItem = $sidebarItems.filter( function(){
 					return $( this ).data( 'id' ) === self.params.sidebar_id;
@@ -629,18 +633,28 @@
 
 				$sidebarItems.each( function() {
 					var li = $( this ),
-						sidebarId,
-						sidebar;
+						sidebarId, sidebar, sidebarIsRendered;
 
 					sidebarId = li.data( 'id' );
 					sidebar = api.Widgets.registeredSidebars.get( sidebarId );
+					sidebarIsRendered = sidebar.get( 'is_rendered' );
 
-					li.toggle( sidebar.get( 'is_rendered' ) );
+					li.toggle( sidebarIsRendered );
 
-					if ( li.hasClass( 'selected' ) && ! sidebar.get( 'is_rendered' ) ) {
+					if ( sidebarIsRendered ) {
+						renderedSidebarCount += 1;
+					}
+
+					if ( li.hasClass( 'selected' ) && ! sidebarIsRendered ) {
 						selectSidebarItem( selfSidebarItem );
 					}
 				} );
+
+				if ( renderedSidebarCount > 1 ) {
+					self.container.find( '.move-widget' ).show();
+				} else {
+					self.container.find( '.move-widget' ).hide();
+				}
 			};
 
 			updateAvailableSidebars();
@@ -1638,7 +1652,10 @@
 			});
 
 			if ( ! widgetControls.length ) {
+				this.container.find( '.reorder-toggle' ).hide();
 				return;
+			} else {
+				this.container.find( '.reorder-toggle' ).show();
 			}
 
 			$( widgetControls ).each( function () {
@@ -1830,18 +1847,14 @@
 
 			controlContainer.slideDown( function() {
 				if ( isExistingWidget ) {
-					widgetFormControl.expand();
 					widgetFormControl.updateWidget( {
 						instance: widgetFormControl.setting(),
 						complete: function( error ) {
 							if ( error ) {
 								throw error;
 							}
-							widgetFormControl.focus();
 						}
 					} );
-				} else {
-					widgetFormControl.focus();
 				}
 			} );
 

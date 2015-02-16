@@ -2161,7 +2161,7 @@ function attribute_escape( $text ) {
  * @param string|int $name Widget ID.
  * @param callback $output_callback Run when widget is called.
  * @param string $classname Classname widget option.
- * @param mixed $params,... Widget parameters.
+ * @param mixed $params ,... Widget parameters.
  */
 function register_sidebar_widget($name, $output_callback, $classname = '') {
 	_deprecated_function( __FUNCTION__, '2.8', 'wp_register_sidebar_widget()' );
@@ -2684,7 +2684,7 @@ function sanitize_user_object($user, $context = 'display') {
 	if ( is_object($user) ) {
 		if ( !isset($user->ID) )
 			$user->ID = 0;
-		if ( !is_a( $user, 'WP_User' ) ) {
+		if ( ! ( $user instanceof WP_User ) ) {
 			$vars = get_object_vars($user);
 			foreach ( array_keys($vars) as $field ) {
 				if ( is_string($user->$field) || is_numeric($user->$field) )

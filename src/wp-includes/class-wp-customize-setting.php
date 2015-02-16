@@ -55,14 +55,6 @@ class WP_Customize_Setting {
 	protected $id_data = array();
 
 	/**
-	 * Cached and sanitized $_POST value for the setting.
-	 *
-	 * @access private
-	 * @var mixed
-	 */
-	private $_post_value;
-
-	/**
 	 * Constructor.
 	 *
 	 * Any supplied $args override class property defaults.
@@ -73,7 +65,6 @@ class WP_Customize_Setting {
 	 * @param string               $id      An specific ID of the setting. Can be a
 	 *                                      theme mod or option name.
 	 * @param array                $args    Setting arguments.
-	 * @return WP_Customize_Setting $setting
 	 */
 	public function __construct( $manager, $id, $args = array() ) {
 		$keys = array_keys( get_object_vars( $this ) );
@@ -99,9 +90,9 @@ class WP_Customize_Setting {
 
 		if ( $this->sanitize_js_callback )
 			add_filter( "customize_sanitize_js_{$this->id}", $this->sanitize_js_callback, 10, 2 );
-
-		return $this;
 	}
+
+	protected $_original_value;
 
 	/**
 	 * Handle previewing the setting.
@@ -109,6 +100,10 @@ class WP_Customize_Setting {
 	 * @since 3.4.0
 	 */
 	public function preview() {
+		if ( ! isset( $this->_original_value ) ) {
+			$this->_original_value = $this->value();
+		}
+
 		switch( $this->type ) {
 			case 'theme_mod' :
 				add_filter( 'theme_mod_' . $this->id_data[ 'base' ], array( $this, '_preview_filter' ) );
@@ -159,7 +154,15 @@ class WP_Customize_Setting {
 	 * @return mixed New or old value.
 	 */
 	public function _preview_filter( $original ) {
-		return $this->multidimensional_replace( $original, $this->id_data[ 'keys' ], $this->post_value() );
+		$undefined = new stdClass(); // symbol hack
+		$post_value = $this->post_value( $undefined );
+		if ( $undefined === $post_value ) {
+			$value = $this->_original_value;
+		} else {
+			$value = $post_value;
+		}
+
+		return $this->multidimensional_replace( $original, $this->id_data['keys'], $value );
 	}
 
 	/**
@@ -200,17 +203,7 @@ class WP_Customize_Setting {
 	 * @return mixed The default value on failure, otherwise the sanitized value.
 	 */
 	final public function post_value( $default = null ) {
-		// Check for a cached value
-		if ( isset( $this->_post_value ) )
-			return $this->_post_value;
-
-		// Call the manager for the post value
-		$result = $this->manager->post_value( $this );
-
-		if ( isset( $result ) )
-			return $this->_post_value = $result;
-		else
-			return $default;
+		return $this->manager->post_value( $this, $default );
 	}
 
 	/**
@@ -425,8 +418,15 @@ class WP_Customize_Setting {
 			$node = &$node[ $key ];
 		}
 
-		if ( $create && ! isset( $node[ $last ] ) )
-			$node[ $last ] = array();
+		if ( $create ) {
+			if ( ! is_array( $node ) ) {
+				// account for an array overriding a string or object value
+				$node = array();
+			}
+			if ( ! isset( $node[ $last ] ) ) {
+				$node[ $last ] = array();
+			}
+		}
 
 		if ( ! isset( $node[ $last ] ) )
 			return;

@@ -86,11 +86,11 @@ function wptexturize($text, $reset = false) {
 
 		// if a plugin has provided an autocorrect array, use it
 		if ( isset($wp_cockneyreplace) ) {
-			$cockney = array_keys($wp_cockneyreplace);
-			$cockneyreplace = array_values($wp_cockneyreplace);
+			$cockney = array_keys( $wp_cockneyreplace );
+			$cockneyreplace = array_values( $wp_cockneyreplace );
 		} elseif ( "'" != $apos ) { // Only bother if we're doing a replacement.
-			$cockney = array( "'tain't", "'twere", "'twas", "'tis", "'twill", "'til", "'bout", "'nuff", "'round", "'cause" );
-			$cockneyreplace = array( $apos . "tain" . $apos . "t", $apos . "twere", $apos . "twas", $apos . "tis", $apos . "twill", $apos . "til", $apos . "bout", $apos . "nuff", $apos . "round", $apos . "cause" );
+			$cockney = array( "'tain't", "'twere", "'twas", "'tis", "'twill", "'til", "'bout", "'nuff", "'round", "'cause", "'em" );
+			$cockneyreplace = array( $apos . "tain" . $apos . "t", $apos . "twere", $apos . "twas", $apos . "tis", $apos . "twill", $apos . "til", $apos . "bout", $apos . "nuff", $apos . "round", $apos . "cause", $apos . "em" );
 		} else {
 			$cockney = $cockneyreplace = array();
 		}
@@ -174,9 +174,9 @@ function wptexturize($text, $reset = false) {
 
 		// Dashes and spaces
 		$dynamic[ '/---/' ] = $em_dash;
-		$dynamic[ '/(?<=' . $spaces . ')--(?=' . $spaces . ')/' ] = $em_dash;
+		$dynamic[ '/(?<=^|' . $spaces . ')--(?=$|' . $spaces . ')/' ] = $em_dash;
 		$dynamic[ '/(?<!xn)--/' ] = $en_dash;
-		$dynamic[ '/(?<=' . $spaces . ')-(?=' . $spaces . ')/' ] = $en_dash;
+		$dynamic[ '/(?<=^|' . $spaces . ')-(?=$|' . $spaces . ')/' ] = $en_dash;
 
 		$dynamic_characters['dash'] = array_keys( $dynamic );
 		$dynamic_replacements['dash'] = array_values( $dynamic );
@@ -405,7 +405,7 @@ function wpautop($pee, $br = true) {
 
 	$pee = preg_replace('|<br />\s*<br />|', "\n\n", $pee);
 	// Space things out a little
-	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|details|menu|summary)';
+	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary)';
 	$pee = preg_replace('!(<' . $allblocks . '[^>]*>)!', "\n$1", $pee);
 	$pee = preg_replace('!(</' . $allblocks . '>)!', "$1\n\n", $pee);
 	$pee = str_replace(array("\r\n", "\r"), "\n", $pee); // cross-platform newlines
@@ -3522,7 +3522,7 @@ function wp_pre_kses_less_than_callback( $matches ) {
  * @link http://www.php.net/sprintf
  *
  * @param string $pattern The string which formatted args are inserted.
- * @param mixed $args,... Arguments to be formatted into the $pattern string.
+ * @param mixed  $args ,... Arguments to be formatted into the $pattern string.
  * @return string The formatted string.
  */
 function wp_sprintf( $pattern ) {

@@ -512,6 +512,7 @@ final class _WP_Editors {
 					// Limit the preview styles in the menu/toolbar
 					'preview_styles' => 'font-family font-size font-weight font-style text-decoration text-transform',
 
+					'end_container_on_empty_block' => true,
 					'wpeditimage_disable_captions' => $no_captions,
 					'wpeditimage_html5_captions' => current_theme_supports( 'html5', 'caption' ),
 					'plugins' => implode( ',', $plugins ),
@@ -1251,7 +1252,7 @@ final class _WP_Editors {
 		$width = isset( $content_width ) && 800 > $content_width ? $content_width : 800;
 		$width = $width + 22; // compensate for the padding and border
 		$dfw_width = get_user_setting( 'dfw_width', $width );
-		$save = isset( $post->post_status ) && $post->post_status == 'publish' ? __('Update') : __('Save');
+		$save = $post && $post->post_status == 'publish' ? __('Update') : __('Save');
 
 		?>
 		<div id="wp-fullscreen-body" class="wp-core-ui<?php if ( is_rtl() ) echo ' rtl'; ?>" data-theme-width="<?php echo (int) $width; ?>" data-dfw-width="<?php echo (int) $dfw_width; ?>">
@@ -1316,7 +1317,7 @@ final class _WP_Editors {
 
 		<div id="wp-fullscreen-save">
 			<input type="button" class="button button-primary right" value="<?php echo $save; ?>" onclick="wp.editor.fullscreen.save();" />
-			<span class="wp-fullscreen-saved-message"><?php if ( $post->post_status == 'publish' ) _e('Updated.'); else _e('Saved.'); ?></span>
+			<span class="wp-fullscreen-saved-message"><?php if ( $post && $post->post_status == 'publish' ) _e('Updated.'); else _e('Saved.'); ?></span>
 			<span class="wp-fullscreen-error-message"><?php _e('Save failed.'); ?></span>
 			<span class="spinner"></span>
 		</div>

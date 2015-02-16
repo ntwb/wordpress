@@ -48,16 +48,15 @@ Use it to make something cool, have fun, and share what you've learned with othe
  *    16.5 - Desktop Medium
  *    16.6 - Desktop Large
  *    16.7 - Desktop X-Large
+ * 17.0 - Print
  */
 
 
 /**
  * 1.0 - Reset
  *
- * Resetting and rebuilding styles have been helped along thanks to the fine work of
- * Eric Meyer http://meyerweb.com/eric/tools/css/reset/index.html
- * along with Nicolas Gallagher and Jonathan Neal http://necolas.github.com/normalize.css/
- * and Blueprint http://www.blueprintcss.org/
+ * Resetting and rebuilding styles have been helped along thanks to the fine
+ * work of Eric Meyer, Nicolas Gallagher, Jonathan Neal, and Blueprint.
  */
 
 html, body, div, span, applet, object, iframe, h1, h2, h3, h4, h5, h6, p, blockquote, pre, a, abbr, acronym, address, big, cite, code, del, dfn, em, font, ins, kbd, q, s, samp, small, strike, strong, sub, sup, tt, var, dl, dt, dd, ol, ul, li, fieldset, form, label, legend, table, caption, tbody, tfoot, thead, tr, th, td {
@@ -681,9 +680,8 @@ a:focus {
 	position: relative;
 }
 
-.main-navigation .current_page_item > a,
 .main-navigation .current-menu-item > a,
-.main-navigation .current_page_ancestor > a {
+.main-navigation .current-menu-ancestor > a {
 	font-weight: 700;
 }
 
@@ -692,7 +690,6 @@ a:focus {
 	border-top: 0;
 }
 
-.main-navigation .page_item_has_children > a,
 .main-navigation .menu-item-has-children > a {
 	padding-right: 48px;
 }
@@ -780,10 +777,6 @@ a:focus {
 	position: absolute;
 	top: 0;
 	left: 0;
-}
-
-.social-navigation a[href$="/feed/"]:before {
-	content: "\f413";
 }
 
 .social-navigation a[href*="codepen.io"]:before {
@@ -881,6 +874,10 @@ a:focus {
 
 .social-navigation a[href*="twitch.tv"]:before {
 	content: "\f516";
+}
+
+.social-navigation a[href$="/feed/"]:before {
+	content: "\f413";
 }
 
 .secondary-toggle {
@@ -2958,11 +2955,6 @@ p > video {
 		margin-left: 1em;
 	}
 
-	.main-navigation .page_item_has_children > a,
-	.main-navigation .main-navigation .menu-item-has-children > a {
-		padding-right: 54px;
-	}
-
 	.main-navigation .menu-item-description {
 		font-size: 14px;
 		font-size: 1.4rem;
@@ -3584,11 +3576,6 @@ p > video {
 		padding: 0.75em 0;
 	}
 
-	.main-navigation .page_item_has_children > a,
-	.main-navigation .main-navigation .menu-item-has-children > a {
-		padding-right: 53px;
-	}
-
 	.main-navigation .menu-item-description {
 		font-size: 16px;
 		font-size: 1.6rem;
@@ -4184,9 +4171,8 @@ p > video {
 		padding: 0.5em 0;
 	}
 
-	.main-navigation .page_item_has_children > a,
 	.main-navigation .menu-item-has-children > a {
-		padding-right: 35px;
+		padding-right: 30px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -4844,9 +4830,8 @@ p > video {
 		padding: 0.4643em 0;
 	}
 
-	.main-navigation .page_item_has_children > a,
 	.main-navigation .menu-item-has-children > a {
-		padding-right: 33px;
+		padding-right: 34px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -5383,9 +5368,8 @@ p > video {
 		padding: 0.5em 0;
 	}
 
-	.main-navigation .page_item_has_children > a,
 	.main-navigation .menu-item-has-children > a {
-		padding-right: 32px;
+		padding-right: 38px;
 	}
 
 	.main-navigation .menu-item-description {
@@ -5851,7 +5835,7 @@ p > video {
 
 
 /**
- * 16.0 Print
+ * 17.0 Print
  */
 
 @media print {

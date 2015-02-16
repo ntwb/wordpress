@@ -20,6 +20,9 @@ if ( ! $tax )
 if ( ! current_user_can( $tax->cap->manage_terms ) )
 	wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
 
+// $post_type is set when the WP_Terms_List_Table instance is created
+global $post_type;
+
 $wp_list_table = _get_list_table('WP_Terms_List_Table');
 $pagenum = $wp_list_table->get_pagenum();
 
@@ -308,7 +311,7 @@ if ( !empty($_REQUEST['s']) )
 endif; ?>
 <div id="ajax-response"></div>
 
-<form class="search-form" action="" method="get">
+<form class="search-form" method="get">
 <input type="hidden" name="taxonomy" value="<?php echo esc_attr($taxonomy); ?>" />
 <input type="hidden" name="post_type" value="<?php echo esc_attr($post_type); ?>" />
 
@@ -321,7 +324,7 @@ endif; ?>
 
 <div id="col-right">
 <div class="col-wrap">
-<form id="posts-filter" action="" method="post">
+<form id="posts-filter" method="post">
 <input type="hidden" name="taxonomy" value="<?php echo esc_attr($taxonomy); ?>" />
 <input type="hidden" name="post_type" value="<?php echo esc_attr($post_type); ?>" />
 
@@ -522,7 +525,7 @@ if ( ! is_taxonomy_hierarchical( $taxonomy ) ) {
 }
 
 /**
- * Fires after the Add Term form fields for hierarchical taxonomies.
+ * Fires after the Add Term form fields.
  *
  * The dynamic portion of the hook name, `$taxonomy`, refers to the taxonomy slug.
  *

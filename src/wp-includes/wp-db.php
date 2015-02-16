@@ -230,7 +230,7 @@ class wpdb {
 	var $ready = false;
 
 	/**
-	 * {@internal Missing Description}}
+	 * Blog ID.
 	 *
 	 * @since 3.0.0
 	 * @access public
@@ -239,7 +239,7 @@ class wpdb {
 	public $blogid = 0;
 
 	/**
-	 * {@internal Missing Description}}
+	 * Site ID.
 	 *
 	 * @since 3.0.0
 	 * @access public
@@ -624,8 +624,6 @@ class wpdb {
 			}
 		}
 
-		$this->init_charset();
-
 		$this->dbuser = $dbuser;
 		$this->dbpassword = $dbpassword;
 		$this->dbname = $dbname;
@@ -717,16 +715,31 @@ class wpdb {
 	public function init_charset() {
 		if ( function_exists('is_multisite') && is_multisite() ) {
 			$this->charset = 'utf8';
-			if ( defined( 'DB_COLLATE' ) && DB_COLLATE )
+			if ( defined( 'DB_COLLATE' ) && DB_COLLATE ) {
 				$this->collate = DB_COLLATE;
-			else
+			} else {
 				$this->collate = 'utf8_general_ci';
+			}
 		} elseif ( defined( 'DB_COLLATE' ) ) {
 			$this->collate = DB_COLLATE;
 		}
 
-		if ( defined( 'DB_CHARSET' ) )
+		if ( defined( 'DB_CHARSET' ) ) {
 			$this->charset = DB_CHARSET;
+		}
+
+		if ( ( $this->use_mysqli && ! ( $this->dbh instanceof mysqli ) )
+		  || ( empty( $this->dbh ) || ! ( $this->dbh instanceof mysqli ) ) ) {
+			return;
+		}
+
+		if ( 'utf8' === $this->charset && $this->has_cap( 'utf8mb4' ) ) {
+			$this->charset = 'utf8mb4';
+		}
+
+		if ( 'utf8mb4' === $this->charset && ( ! $this->collate || stripos( $this->collate, 'utf8_' ) === 0 ) ) {
+			$this->collate = 'utf8mb4_unicode_ci';
+		}
 	}
 
 	/**
@@ -751,7 +764,7 @@ class wpdb {
 					$query = $this->prepare( 'SET NAMES %s', $charset );
 					if ( ! empty( $collate ) )
 						$query .= $this->prepare( ' COLLATE %s', $collate );
-					mysqli_query( $query, $dbh );
+					mysqli_query( $dbh, $query );
 				}
 			} else {
 				if ( function_exists( 'mysql_set_charset' ) && $this->has_cap( 'set_charset' ) ) {
@@ -1476,8 +1489,14 @@ class wpdb {
 
 			return false;
 		} elseif ( $this->dbh ) {
+			if ( ! $this->has_connected ) {
+				$this->init_charset();
+			}
+
 			$this->has_connected = true;
+
 			$this->set_charset( $this->dbh );
+
 			$this->ready = true;
 			$this->set_sql_mode();
 			$this->select( $this->dbname, $this->dbh );
@@ -2249,14 +2268,14 @@ class wpdb {
 	 * Retrieves the character set for the given column.
 	 *
 	 * @since 4.2.0
-	 * @access protected
+	 * @access public
 	 *
 	 * @param string $table  Table name.
 	 * @param string $column Column name.
 	 * @return mixed Column character set as a string. False if the column has no
 	 *               character set. {@see WP_Error} object if there was an error.
 	 */
-	protected function get_col_charset( $table, $column ) {
+	public function get_col_charset( $table, $column ) {
 		$tablekey = strtolower( $table );
 		$columnkey = strtolower( $column );
 
@@ -2356,7 +2375,6 @@ class wpdb {
 			'gb2312'  => 'EUC-CN',
 			'ujis'    => 'EUC-JP',
 			'utf32'   => 'UTF-32',
-			'utf8mb4' => 'UTF-8',
 		);
 
 		$supported_charsets = array();
@@ -2391,8 +2409,8 @@ class wpdb {
 				}
 			}
 
-			// utf8(mb3) can be handled by regex, which is a bunch faster than a DB lookup.
-			if ( 'utf8' === $charset || 'utf8mb3' === $charset ) {
+			// utf8 can be handled by regex, which is a bunch faster than a DB lookup.
+			if ( 'utf8' === $charset || 'utf8mb3' === $charset || 'utf8mb4' === $charset ) {
 				$regex = '/
 					(
 						(?: [\x00-\x7F]                  # single-byte sequences   0xxxxxxx
@@ -2400,8 +2418,17 @@ class wpdb {
 						|   \xE0[\xA0-\xBF][\x80-\xBF]   # triple-byte sequences   1110xxxx 10xxxxxx * 2
 						|   [\xE1-\xEC][\x80-\xBF]{2}
 						|   \xED[\x80-\x9F][\x80-\xBF]
-						|   [\xEE-\xEF][\x80-\xBF]{2}
-						){1,50}                          # ...one or more times
+						|   [\xEE-\xEF][\x80-\xBF]{2}';
+
+				if ( 'utf8mb4' === $charset) {
+					$regex .= '
+						|    \xF0[\x90-\xBF][\x80-\xBF]{2} # four-byte sequences   11110xxx 10xxxxxx * 3
+						|    [\xF1-\xF3][\x80-\xBF]{3}
+						|    \xF4[\x80-\x8F][\x80-\xBF]{2}
+					';
+				}
+
+				$regex .= '){1,50}                          # ...one or more times
 					)
 					| .                                  # anything else
 					/x';
@@ -2434,7 +2461,8 @@ class wpdb {
 				}
 
 				// Change the charset to match the string(s) we're converting
-				if ( $charset !== $this->charset ) {
+				if ( $charset !== $connection_charset ) {
+					$connection_charset = $charset;
 					$this->set_charset( $this->dbh, $charset );
 				}
 
@@ -2455,7 +2483,7 @@ class wpdb {
 
 			// Don't forget to change the charset back!
 			if ( $connection_charset !== $this->charset ) {
-				$this->set_charset( $this->dbh, $connection_charset );
+				$this->set_charset( $this->dbh );
 			}
 		}
 
@@ -2773,7 +2801,14 @@ class wpdb {
 			case 'set_charset' :
 				return version_compare( $version, '5.0.7', '>=' );
 			case 'utf8mb4' :      // @since 4.1.0
-				return version_compare( $version, '5.5.3', '>=' );
+				if ( version_compare( $version, '5.5.3', '<' ) ) {
+					return false;
+				}
+				if ( $this->use_mysqli ) {
+					return mysqli_get_client_version( $this->dbh ) >= 50503;
+				} else {
+					return mysql_get_client_version( $this->dbh ) >= 50503;
+				}
 		}
 
 		return false;

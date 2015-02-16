@@ -195,8 +195,7 @@ class Tests_Query_PostStatus extends WP_UnitTestCase {
 		$q = new WP_Query( array(
 			'posts_per_page' => -1,
 		) );
-global $wpdb;
-//print_r( $wpdb->get_results( "SELECT * FROM $wpdb->posts" ) );
+
 		$this->assertContains( self::$author_privatefoo_post, wp_list_pluck( $q->posts, 'ID' ) );
 		$this->assertContains( self::$editor_privatefoo_post, wp_list_pluck( $q->posts, 'ID' ) );
 	}
@@ -298,5 +297,20 @@ global $wpdb;
 		) );
 
 		$this->assertEmpty( $q->posts );
+	}
+
+	/**
+	 * @ticket 29167
+	 */
+	public function test_specific_post_should_be_returned_if_trash_is_one_of_the_requested_post_statuses() {
+		$p1 = $this->factory->post->create( array( 'post_status' => 'trash' ) );
+		$p2 = $this->factory->post->create( array( 'post_status' => 'publish' ) );
+
+		$q = new WP_Query( array(
+			'p' => $p1,
+			'post_status' => array( 'trash', 'publish' ),
+		) );
+
+		$this->assertContains( $p1, wp_list_pluck( $q->posts, 'ID' ) );
 	}
 }

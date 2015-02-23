@@ -35,9 +35,14 @@ before_install:
       svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
   fi
 before_script:
+- node --version
+- npm --version
+- grunt --version
 - npm install -g npm
 - npm install -g grunt-cli
 - npm install
+- npm --version
+- grunt --version
 script: grunt $WP_TRAVISCI
 notifications:
   slack:

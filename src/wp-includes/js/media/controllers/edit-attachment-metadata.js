@@ -1,13 +1,15 @@
+/*globals wp */
+
 /**
  * wp.media.controller.EditAttachmentMetadata
  *
  * A state for editing an attachment's metadata.
  *
- * @constructor
+ * @class
  * @augments wp.media.controller.State
  * @augments Backbone.Model
  */
-var State = require( './state.js' ),
+var State = wp.media.controller.State,
 	l10n = wp.media.view.l10n,
 	EditAttachmentMetadata;
 

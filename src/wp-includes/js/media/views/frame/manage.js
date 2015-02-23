@@ -1,3 +1,5 @@
+/*globals wp, _, jQuery, Backbone */
+
 /**
  * wp.media.view.MediaFrame.Manage
  *
@@ -5,7 +7,7 @@
  *
  * Used in the media grid view.
  *
- * @constructor
+ * @class
  * @augments wp.media.view.MediaFrame
  * @augments wp.media.view.Frame
  * @augments wp.media.View
@@ -13,11 +15,13 @@
  * @augments Backbone.View
  * @mixes wp.media.controller.StateMachine
  */
-var MediaFrame = require( '../media-frame.js' ),
-	UploaderWindow = require( '../uploader/window.js' ),
-	AttachmentsBrowser = require( '../attachments/browser.js' ),
+var MediaFrame = wp.media.view.MediaFrame,
+	UploaderWindow = wp.media.view.UploaderWindow,
+	AttachmentsBrowser = wp.media.view.AttachmentsBrowser,
+	Library = wp.media.controller.Library,
+
 	Router = require( '../../routers/manage.js' ),
-	Library = require( '../../controllers/library.js' ),
+
 	$ = jQuery,
 	Manage;
 

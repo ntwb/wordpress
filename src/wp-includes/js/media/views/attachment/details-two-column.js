@@ -1,16 +1,19 @@
+/*globals wp */
+
 /**
+ * wp.media.view.Attachment.Details.TwoColumn
+ *
  * A similar view to media.view.Attachment.Details
  * for use in the Edit Attachment modal.
  *
- * @constructor
+ * @class
  * @augments wp.media.view.Attachment.Details
  * @augments wp.media.view.Attachment
  * @augments wp.media.View
  * @augments wp.Backbone.View
  * @augments Backbone.View
  */
-var Details = require( './details.js' ),
-	MediaDetails = require( '../media-details.js' ),
+var Details = wp.media.view.Attachment.Details,
 	TwoColumn;
 
 TwoColumn = Details.extend({
@@ -31,7 +34,7 @@ TwoColumn = Details.extend({
 
 		wp.media.mixin.removeAllPlayers();
 		this.$( 'audio, video' ).each( function (i, elem) {
-			var el = MediaDetails.prepareSrc( elem );
+			var el = wp.media.view.MediaDetails.prepareSrc( elem );
 			new window.MediaElementPlayer( el, wp.media.mixin.mejsSettings );
 		} );
 	}

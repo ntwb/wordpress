@@ -1,3 +1,13 @@
+/*globals wp, _ */
+
+/**
+ * wp.media.view.EditImage
+ *
+ * @class
+ * @augments wp.media.View
+ * @augments wp.Backbone.View
+ * @augments Backbone.View
+ */
 var View = require( './view.js' ),
 	EditImage;
 
@@ -13,11 +23,6 @@ EditImage = View.extend({
 
 	prepare: function() {
 		return this.model.toJSON();
-	},
-
-	render: function() {
-		View.prototype.render.apply( this, arguments );
-		return this;
 	},
 
 	loadEditor: function() {

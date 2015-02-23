@@ -1,11 +1,15 @@
+/*globals wp */
+
 /**
+ * wp.media.controller.VideoDetails
+ *
  * The controller for the Video Details state
  *
- * @constructor
+ * @class
  * @augments wp.media.controller.State
  * @augments Backbone.Model
  */
-var State = require( './state.js' ),
+var State = wp.media.controller.State,
 	l10n = wp.media.view.l10n,
 	VideoDetails;
 

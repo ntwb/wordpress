@@ -1,4 +1,15 @@
-var Button = require( '../button.js' ),
+/*globals wp */
+
+/**
+ * wp.media.view.SelectModeToggleButton
+ *
+ * @class
+ * @augments wp.media.view.Button
+ * @augments wp.media.View
+ * @augments wp.Backbone.View
+ * @augments Backbone.View
+ */
+var Button = wp.media.view.Button,
 	l10n = wp.media.view.l10n,
 	SelectModeToggle;
 

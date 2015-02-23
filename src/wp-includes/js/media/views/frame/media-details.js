@@ -1,7 +1,9 @@
+/*globals wp */
+
 /**
  * wp.media.view.MediaFrame.MediaDetails
  *
- * @constructor
+ * @class
  * @augments wp.media.view.MediaFrame.Select
  * @augments wp.media.view.MediaFrame
  * @augments wp.media.view.Frame
@@ -10,9 +12,9 @@
  * @augments Backbone.View
  * @mixes wp.media.controller.StateMachine
  */
-var View = require( '../view.js' ),
-	Toolbar = require( '../toolbar.js' ),
-	Select = require( './select.js' ),
+var View = wp.media.View,
+	Toolbar = wp.media.view.Toolbar,
+	Select = wp.media.view.MediaFrame.Select,
 	l10n = wp.media.view.l10n,
 	MediaDetails;
 

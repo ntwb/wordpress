@@ -1,14 +1,16 @@
 /**
+ * wp.media.view.DeleteSelectedPermanentlyButton
+ *
  * When MEDIA_TRASH is true, a button that handles bulk Delete Permanently logic
  *
- * @constructor
+ * @class
  * @augments wp.media.view.DeleteSelectedButton
  * @augments wp.media.view.Button
  * @augments wp.media.View
  * @augments wp.Backbone.View
  * @augments Backbone.View
  */
-var Button = require( '../button.js' ),
+var Button = wp.media.view.Button,
 	DeleteSelected = require( './delete-selected.js' ),
 	DeleteSelectedPermanently;
 

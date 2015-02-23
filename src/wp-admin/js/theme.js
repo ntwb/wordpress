@@ -79,7 +79,8 @@ themes.view.Appearance = wp.Backbone.View.extend({
 
 		// Render and append
 		this.view.render();
-		this.$el.empty().append( this.view.el ).addClass('rendered');
+		this.$el.find( '.themes' ).remove();
+		this.$el.append( this.view.el ).addClass( 'rendered' );
 		this.$el.append( '<br class="clear"/>' );
 	},
 
@@ -828,7 +829,7 @@ themes.view.Themes = wp.Backbone.View.extend({
 	index: 0,
 
 	// The theme count element
-	count: $( '.wp-filter .theme-count' ),
+	count: $( '.wp-core-ui .theme-count' ),
 
 	initialize: function( options ) {
 		var self = this;

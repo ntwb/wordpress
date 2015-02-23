@@ -1,7 +1,9 @@
+/*globals wp */
+
 /**
  * wp.media.view.MediaFrame.AudioDetails
  *
- * @constructor
+ * @class
  * @augments wp.media.view.MediaFrame.MediaDetails
  * @augments wp.media.view.MediaFrame.Select
  * @augments wp.media.view.MediaFrame
@@ -11,8 +13,9 @@
  * @augments Backbone.View
  * @mixes wp.media.controller.StateMachine
  */
-var MediaDetails = require( './media-details' ),
-	MediaLibrary = require( '../../controllers/media-library.js' ),
+var MediaDetails = wp.media.view.MediaFrame.MediaDetails,
+	MediaLibrary = wp.media.controller.MediaLibrary,
+	
 	AudioDetailsView = require( '../audio-details.js' ),
 	AudioDetailsController = require( '../../controllers/audio-details.js' ),
 	l10n = wp.media.view.l10n,

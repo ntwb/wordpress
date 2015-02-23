@@ -1137,11 +1137,12 @@ body.show-upload-theme .upload-theme + .wp-filter + .theme-browser {
 }
 
 p.no-themes {
+	clear: both;
 	color: #999;
 	font-size: 18px;
 	font-style: normal;
 	margin: 0;
-	padding: 0;
+	padding: 100px 0 0;
 	text-align: center;
 	display: none;
 }
@@ -1710,7 +1711,6 @@ body.full-overlay-active {
  * HiDPI Displays
  */
 @media print,
-  (-o-min-device-pixel-ratio: 5/4),
   (-webkit-min-device-pixel-ratio: 1.25),
   (min-resolution: 120dpi) {
 	.wp-full-overlay .collapse-sidebar-arrow {

@@ -1,7 +1,9 @@
+/*globals wp */
+
 /**
  * wp.media.view.AudioDetails
  *
- * @constructor
+ * @class
  * @augments wp.media.view.MediaDetails
  * @augments wp.media.view.Settings.AttachmentDisplay
  * @augments wp.media.view.Settings

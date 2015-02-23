@@ -36,6 +36,8 @@ before_install:
   fi
 before_script:
 - node --version
+- nvm install 0.12
+- node --version
 - npm --version
 - grunt --version
 - npm install -g npm

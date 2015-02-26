@@ -1574,11 +1574,11 @@ function get_term_to_edit( $id, $taxonomy ) {
  * @param array|string $args {
  *     Optional. Array or string of arguments to get terms.
  *
- *     @type string   $orderby               Field(s) to order terms by. Accepts term fields ('name', 'slug',
- *                                           'term_group', 'term_id', 'id'), 'count' for term taxonomy count,
- *                                           'include' to match the 'order' of the $include param, or 'none'
- *                                           to skip ORDER BY. Defaults to 'name'.
- *     @type string   $order                 Whether to order terms in ascending or descending order.
+ *     @type string       $orderby           Field(s) to order terms by. Accepts term fields ('name', 'slug',
+ *                                           'term_group', 'term_id', 'id', 'description'), 'count' for term
+ *                                           taxonomy count, 'include' to match the 'order' of the $include param,
+ *                                           or 'none' to skip ORDER BY. Defaults to 'name'.
+ *     @type string       $order             Whether to order terms in ascending or descending order.
  *                                           Accepts 'ASC' (ascending) or 'DESC' (descending).
  *                                           Default 'ASC'.
  *     @type bool|int     $hide_empty        Whether to hide terms not assigned to any posts. Accepts
@@ -1747,6 +1747,8 @@ function get_terms( $taxonomies, $args = '' ) {
 		$orderby = "FIELD( t.term_id, $include )";
 	} elseif ( 'term_group' == $_orderby ) {
 		$orderby = 't.term_group';
+	} elseif ( 'description' == $_orderby ) {
+		$orderby = 'tt.description';
 	} elseif ( 'none' == $_orderby ) {
 		$orderby = '';
 	} elseif ( empty($_orderby) || 'id' == $_orderby ) {
@@ -4062,11 +4064,11 @@ function _update_post_term_count( $terms, $taxonomy ) {
 			$count += (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->term_relationships, $wpdb->posts WHERE $wpdb->posts.ID = $wpdb->term_relationships.object_id AND post_status = 'publish' AND post_type IN ('" . implode("', '", $object_types ) . "') AND term_taxonomy_id = %d", $term ) );
 
 		/** This action is documented in wp-includes/taxonomy.php */
-		do_action( 'edit_term_taxonomy', $term, $taxonomy );
+		do_action( 'edit_term_taxonomy', $term, $taxonomy->name );
 		$wpdb->update( $wpdb->term_taxonomy, compact( 'count' ), array( 'term_taxonomy_id' => $term ) );
 
 		/** This action is documented in wp-includes/taxonomy.php */
-		do_action( 'edited_term_taxonomy', $term, $taxonomy );
+		do_action( 'edited_term_taxonomy', $term, $taxonomy->name );
 	}
 }
 
@@ -4089,11 +4091,11 @@ function _update_generic_term_count( $terms, $taxonomy ) {
 		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $wpdb->term_relationships WHERE term_taxonomy_id = %d", $term ) );
 
 		/** This action is documented in wp-includes/taxonomy.php */
-		do_action( 'edit_term_taxonomy', $term, $taxonomy );
+		do_action( 'edit_term_taxonomy', $term, $taxonomy->name );
 		$wpdb->update( $wpdb->term_taxonomy, compact( 'count' ), array( 'term_taxonomy_id' => $term ) );
 
 		/** This action is documented in wp-includes/taxonomy.php */
-		do_action( 'edited_term_taxonomy', $term, $taxonomy );
+		do_action( 'edited_term_taxonomy', $term, $taxonomy->name );
 	}
 }
 

@@ -1,12 +1,20 @@
 <?php
 /**
- * Customize Section Class.
- *
- * A UI container for controls, managed by the WP_Customize_Manager.
+ * WordPress Customize Section classes
  *
  * @package WordPress
  * @subpackage Customize
  * @since 3.4.0
+ */
+
+/**
+ * Customize Section class.
+ *
+ * A UI container for controls, managed by the WP_Customize_Manager class.
+ *
+ * @since 3.4.0
+ *
+ * @see WP_Customize_Manager
  */
 class WP_Customize_Section {
 
@@ -312,10 +320,58 @@ class WP_Customize_Section {
 }
 
 /**
- * Customizer section representing widget area (sidebar).
+ * Customize Themes Section class.
  *
- * @package WordPress
- * @subpackage Customize
+ * A UI container for theme controls, which behaves like a backwards Panel.
+ *
+ * @since 4.2.0
+ *
+ * @see WP_Customize_Section
+ */
+class WP_Customize_Themes_Section extends WP_Customize_Section {
+
+	public $type = 'themes';
+
+	/**
+	 * Render the themes section, which behaves like a panel.
+	 *
+	 * @since 4.2.0
+	 */
+	protected function render() {
+		$classes = 'accordion-section control-section control-section-' . $this->type;
+		?>
+		<li id="accordion-section-<?php echo esc_attr( $this->id ); ?>" class="<?php echo esc_attr( $classes ); ?>">
+			<h3 class="accordion-section-title" tabindex="0">
+				<?php echo esc_html( $this->title ); ?>
+				<span class="screen-reader-text"><?php _e( 'Press return or enter to expand' ); ?></span>
+			</h3>
+			<span class="control-panel-back themes-panel-back" tabindex="-1"><span class="screen-reader-text"><?php _e( 'Back' ); ?></span></span>
+			<div class="customize-themes-panel control-panel-content themes-php">
+				<h2><?php esc_html_e( 'Themes' ); ?>
+					<span class="title-count theme-count"><?php echo count( $this->controls ) - 1; ?></span>
+				<?php if ( ! is_multisite() && current_user_can( 'install_themes' ) ) : ?>
+					<a href="<?php echo admin_url( 'theme-install.php' ); ?>" target="_top" class="add-new-h2"><?php echo esc_html_x( 'Add New', 'Add new theme' ); ?></a>
+				<?php endif; ?>
+				</h2>
+				<div class="theme-overlay" tabindex="0" role="dialog" aria-label="<?php esc_attr_e( 'Theme details' ); ?>"></div>
+				<div id="customize-container"></div>
+				<?php if ( 6 < count( $this->controls ) ) : ?>
+					<p><label for="themes-filter">
+						<span class="screen-reader-text"><?php _e( 'Search installed themes...' ); ?></span>
+						<input type="search" id="themes-filter" placeholder="<?php esc_attr_e( 'Search installed themes...' ); ?>" />
+					</label></p>
+				<?php endif; ?>
+				<div class="theme-browser rendered">
+					<ul class="themes accordion-section-content">
+					</ul>
+				</div>
+			</div>
+		</li>
+<?php }
+}
+
+/**
+ * Customizer section representing widget area (sidebar).
  *
  * @since 4.1.0
  *

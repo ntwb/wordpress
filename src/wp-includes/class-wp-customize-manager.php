@@ -1,6 +1,14 @@
 <?php
 /**
- * Customize Manager.
+ * WordPress Customize Manager classes
+ *
+ * @package WordPress
+ * @subpackage Customize
+ * @since 3.4.0
+ */
+
+/**
+ * Customize Manager class.
  *
  * Bootstraps the Customize experience on the server-side.
  *
@@ -10,8 +18,6 @@
  * Serves as a factory for Customize Controls and Settings, and
  * instantiates default Customize Controls and Settings.
  *
- * @package WordPress
- * @subpackage Customize
  * @since 3.4.0
  */
 final class WP_Customize_Manager {
@@ -314,6 +320,9 @@ final class WP_Customize_Manager {
 	 * @return WP_Theme
 	 */
 	public function theme() {
+		if ( ! $this->theme ) {
+			$this->theme = wp_get_theme();
+		}
 		return $this->theme;
 	}
 
@@ -1110,6 +1119,38 @@ final class WP_Customize_Manager {
 		$this->register_control_type( 'WP_Customize_Upload_Control' );
 		$this->register_control_type( 'WP_Customize_Image_Control' );
 		$this->register_control_type( 'WP_Customize_Background_Image_Control' );
+		$this->register_control_type( 'WP_Customize_Theme_Control' );
+
+		/* Themes */
+
+		$this->add_section( new WP_Customize_Themes_Section( $this, 'themes', array(
+			'title' => sprintf( __( 'Theme: %s' ), $this->theme()->display('Name') ),
+			'capability' => 'switch_themes',
+			'priority' => 0,
+		) ) );
+
+		// Themes Setting (unused - the theme is considerably more fundamental to the Customizer experience).
+		$this->add_setting( new WP_Customize_Filter_Setting( $this, 'active_theme', array(
+			'capability' => 'switch_themes',
+		) ) );
+
+		require_once( ABSPATH . 'wp-admin/includes/theme.php' );
+
+		// Theme Controls.
+		$themes = wp_prepare_themes_for_js();
+		foreach ( $themes as $theme ) {
+			$theme_id = 'theme_' . $theme['id'];
+			$this->add_control( new WP_Customize_Theme_Control( $this, $theme_id, array(
+				'theme' => $theme,
+				'section' => 'themes',
+				'settings' => 'active_theme',
+			) ) );
+		}
+
+		$this->add_control( new WP_Customize_New_Theme_Control( $this, 'add_theme', array(
+			'section' => 'themes',
+			'settings' => 'active_theme',
+		) ) );
 
 		/* Site Title & Tagline */
 

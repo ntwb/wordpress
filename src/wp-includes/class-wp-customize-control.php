@@ -1,9 +1,15 @@
 <?php
 /**
- * Customize Control Class
+ * WordPress Customize Control classes
  *
  * @package WordPress
  * @subpackage Customize
+ * @since 3.4.0
+ */
+
+/**
+ * Customize Control class.
+ *
  * @since 3.4.0
  */
 class WP_Customize_Control {
@@ -537,11 +543,11 @@ class WP_Customize_Control {
 }
 
 /**
- * Customize Color Control Class
+ * Customize Color Control class.
  *
- * @package WordPress
- * @subpackage Customize
  * @since 3.4.0
+ *
+ * @see WP_Customize_Control
  */
 class WP_Customize_Color_Control extends WP_Customize_Control {
 	/**
@@ -632,11 +638,11 @@ class WP_Customize_Color_Control extends WP_Customize_Control {
 }
 
 /**
- * Customize Upload Control Class
+ * Customize Upload Control class.
  *
- * @package WordPress
- * @subpackage Customize
  * @since 3.4.0
+ *
+ * @see WP_Customize_Control
  */
 class WP_Customize_Upload_Control extends WP_Customize_Control {
 	public $type          = 'upload';
@@ -803,11 +809,11 @@ class WP_Customize_Upload_Control extends WP_Customize_Control {
 }
 
 /**
- * Customize Image Control Class
+ * Customize Image Control class.
  *
- * @package WordPress
- * @subpackage Customize
  * @since 3.4.0
+ *
+ * @see WP_Customize_Upload_Control
  */
 class WP_Customize_Image_Control extends WP_Customize_Upload_Control {
 	public $type = 'image';
@@ -872,11 +878,11 @@ class WP_Customize_Image_Control extends WP_Customize_Upload_Control {
 }
 
 /**
- * Customize Background Image Control Class
+ * Customize Background Image Control class.
  *
- * @package WordPress
- * @subpackage Customize
  * @since 3.4.0
+ *
+ * @see WP_Customize_Image_Control
  */
 class WP_Customize_Background_Image_Control extends WP_Customize_Image_Control {
 	public $type = 'background';
@@ -912,6 +918,13 @@ class WP_Customize_Background_Image_Control extends WP_Customize_Image_Control {
 	}
 }
 
+/**
+ * Customize Header Image Control class.
+ *
+ * @since 3.4.0
+ *
+ * @see WP_Customize_Image_Control
+ */
 class WP_Customize_Header_Image_Control extends WP_Customize_Image_Control {
 	public $type = 'header';
 	public $uploaded_headers;
@@ -1101,9 +1114,106 @@ class WP_Customize_Header_Image_Control extends WP_Customize_Image_Control {
 }
 
 /**
- * Widget Area Customize Control Class
+ * Customize Theme Control class.
+ *
+ * @since 4.2.0
+ *
+ * @see WP_Customize_Control
+ */
+class WP_Customize_Theme_Control extends WP_Customize_Control {
+
+	public $type = 'theme';
+	public $theme;
+
+	/**
+	 * Refresh the parameters passed to the JavaScript via JSON.
+	 *
+	 * @since 4.2.0
+	 * @uses WP_Customize_Control::to_json()
+	 */
+	public function to_json() {
+		parent::to_json();
+		$this->json['theme'] = $this->theme;
+	}
+
+	/**
+	 * Don't render the control content from PHP, as it's rendered via JS on load.
+	 *
+	 * @since 4.2.0
+	 */
+	public function render_content() {}
+
+	/**
+	 * Render a JS template for theme display.
+	 *
+	 * @since 4.2.0
+	 */
+	public function content_template() {
+	?>
+		<div class="theme<# if ( data.theme.active ) { #> active<# } #>" tabindex="0" aria-describedby="{{ data.theme.id }}-action {{ data.theme.id }}-name">
+			<# if ( data.theme.screenshot[0] ) { #>
+				<div class="theme-screenshot">
+					<img src="{{ data.theme.screenshot[0] }}" alt="" />
+				</div>
+			<# } else { #>
+				<div class="theme-screenshot blank"></div>
+			<# } #>
+			<span class="more-details" id="{{ data.theme.id }}-action"><?php _e( 'Theme Details' ); ?></span>
+			<div class="theme-author"><?php printf( __( 'By %s' ), '{{ data.theme.author }}' ); ?></div>
+
+			<# if ( data.theme.active ) { #>
+				<h3 class="theme-name" id="{{ data.theme.id }}-name"><span><?php _ex( 'Previewing:', 'theme' ); ?></span> {{ data.theme.name }}</h3>
+			<# } else { #>
+				<h3 class="theme-name" id="{{ data.theme.id }}-name">{{ data.theme.name }}</h3>
+			<# } #>
+
+			<# if ( ! data.theme.active ) { #>
+				<div class="theme-actions">
+					<a class="button" href="<?php echo add_query_arg( 'theme', '{{ data.theme.id }}', remove_query_arg( 'theme' ) ); ?>" target="_top"><?php _e( 'Live Preview' ); ?></a>
+				</div>
+			<# } #>
+		</div>
+	<?php
+	}
+}
+
+/**
+ * Customize New Theme Control class.
+ *
+ * @since 4.2.0
+ *
+ * @see WP_Customize_Control
+ */
+class WP_Customize_New_Theme_Control extends WP_Customize_Control {
+
+	/**
+	 * Render the new control.
+	 *
+	 * @since 4.2.0
+	 */
+	public function render() {
+		if ( is_multisite() || ! current_user_can( 'install_themes') ) {
+			return;
+		}
+		?>
+		<div class="theme add-new-theme">
+			<a href="<?php echo admin_url( 'theme-install.php' ); ?>" target="_top">
+				<div class="theme-screenshot">
+					<span></span>
+				</div>
+				<h3 class="theme-name"><?php _e( 'Add New Theme' ); ?></h3>
+			</a>
+		</div>
+		<?php
+	}
+}
+
+/**
+ * Widget Area Customize Control class.
  *
  * @since 3.9.0
+ *
+ * @see WP_Customize_Control
  */
 class WP_Widget_Area_Customize_Control extends WP_Customize_Control {
 	public $type = 'sidebar_widgets';
@@ -1133,9 +1243,11 @@ class WP_Widget_Area_Customize_Control extends WP_Customize_Control {
 }
 
 /**
- * Widget Form Customize Control Class
+ * Widget Form Customize Control class.
  *
  * @since 3.9.0
+ *
+ * @see WP_Customize_Control
  */
 class WP_Widget_Form_Customize_Control extends WP_Customize_Control {
 	public $type = 'widget_form';
@@ -1185,4 +1297,3 @@ class WP_Widget_Form_Customize_Control extends WP_Customize_Control {
 		return $this->manager->widgets->is_widget_rendered( $this->widget_id );
 	}
 }
-

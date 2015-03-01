@@ -18,6 +18,7 @@ matrix:
     env: WP_TRAVISCI=travis:phpunit
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit MEMCACHED=true
+    services: memcached
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit BUILD=true
   - php: hhvm
@@ -45,8 +46,6 @@ before_script:
       echo "extension = memcache.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.in
       wget https://plugins.svn.wordpress.org/memcached/trunk/object-cache.php --no-check-certificate
       mv object-cache.php src/wp-content/object-cache.php
-      php -i | grep -i memcache
-      php -m | grep -i memcache
   fi
 - node --version
 - npm --version

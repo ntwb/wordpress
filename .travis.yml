@@ -43,7 +43,6 @@ before_script:
       echo "extension = memcache.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.in
       wget https://plugins.svn.wordpress.org/memcached/trunk/object-cache.php
       mv object-cache.php WP_CORE_DIR=/tmp/wordpress/src/wp-content
-      ls /tmp/wordpress/src/wp-content
   fi
 - node --version
 - npm --version

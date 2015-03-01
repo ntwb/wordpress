@@ -105,17 +105,17 @@
 }
 
 /*!
- * jQuery UI Draggable/Sortable 1.11.2
+ * jQuery UI Draggable/Sortable 1.11.3
  * http://jqueryui.com
  *
- * Copyright 2014 jQuery Foundation and other contributors
+ * Copyright jQuery Foundation and other contributors
  * Released under the MIT license.
  * http://jquery.org/license
  */
 .ui-draggable-handle,
 .ui-sortable-handle {
 	-ms-touch-action: none;
-	touch-action:     none;
+	touch-action: none;
 }
 
 /**
@@ -886,13 +886,11 @@
 	overflow: hidden;
 }
 
-/* @noflip */
 .wp-core-ui .attachment .thumbnail img {
 	top: 0;
 	left: 0;
 }
 
-/* @noflip */
 .wp-core-ui .attachment .thumbnail .centered {
 	position: absolute;
 	top: 0;
@@ -1800,11 +1798,18 @@
 	overflow: auto;
 }
 
-.embed-preview img, .embed-preview iframe, .embed-preview embed {
+.embed-preview img,
+.embed-preview iframe,
+.embed-preview embed {
 	max-width: 100%;
 }
 
+.embed-preview a {
+	display: inline-block;
+}
+
 .embed-preview img {
+	display: block;
 	height: auto;
 }
 

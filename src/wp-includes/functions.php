@@ -1516,7 +1516,7 @@ function wp_mkdir_p( $target ) {
 		 */
 		if ( $dir_perms != ( $dir_perms & ~umask() ) ) {
 			$folder_parts = explode( '/', substr( $target, strlen( $target_parent ) + 1 ) );
-			for ( $i = 1; $i <= count( $folder_parts ); $i++ ) {
+			for ( $i = 1, $c = count( $folder_parts ); $i <= $c; $i++ ) {
 				@chmod( $target_parent . '/' . implode( '/', array_slice( $folder_parts, 0, $i ) ), $dir_perms );
 			}
 		}
@@ -2019,7 +2019,7 @@ function wp_ext2type( $ext ) {
 		'image'       => array( 'jpg', 'jpeg', 'jpe',  'gif',  'png',  'bmp',   'tif',  'tiff', 'ico' ),
 		'audio'       => array( 'aac', 'ac3',  'aif',  'aiff', 'm3a',  'm4a',   'm4b',  'mka',  'mp1',  'mp2',  'mp3', 'ogg', 'oga', 'ram', 'wav', 'wma' ),
 		'video'       => array( '3g2',  '3gp', '3gpp', 'asf', 'avi',  'divx', 'dv',   'flv',  'm4v',   'mkv',  'mov',  'mp4',  'mpeg', 'mpg', 'mpv', 'ogm', 'ogv', 'qt',  'rm', 'vob', 'wmv' ),
-		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf',  'xps',  'oxps', 'rtf',  'wp', 'wpd', 'psd' ),
+		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf',  'xps',  'oxps', 'rtf',  'wp', 'wpd', 'psd', 'xcf' ),
 		'spreadsheet' => array( 'numbers',     'ods',  'xls',  'xlsx', 'xlsm',  'xlsb' ),
 		'interactive' => array( 'swf', 'key',  'ppt',  'pptx', 'pptm', 'pps',   'ppsx', 'ppsm', 'sldx', 'sldm', 'odp' ),
 		'text'        => array( 'asc', 'csv',  'tsv',  'txt' ),
@@ -2227,6 +2227,7 @@ function wp_get_mime_types() {
 	'7z' => 'application/x-7z-compressed',
 	'exe' => 'application/x-msdownload',
 	'psd' => 'application/octet-stream',
+	'xcf' => 'application/octet-stream',
 	// MS Office formats.
 	'doc' => 'application/msword',
 	'pot|pps|ppt' => 'application/vnd.ms-powerpoint',
@@ -4812,4 +4813,25 @@ function wp_validate_boolean( $var ) {
 	}
 
 	return (bool) $var;
+}
+
+/**
+ * Delete a file
+ *
+ * @since 4.2.0
+ *
+ * @param string $file The path to the file to delete.
+ */
+function wp_delete_file( $file ) {
+	/**
+	 * Filter the path of the file to delete.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $medium Path to the file to delete.
+	 */
+	$delete = apply_filters( 'wp_delete_file', $file );
+	if ( ! empty( $delete ) ) {
+		@unlink( $delete );
+	}
 }

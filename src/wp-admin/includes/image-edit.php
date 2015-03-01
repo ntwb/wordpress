@@ -461,7 +461,7 @@ function image_edit_apply_changes( $image, $changes ) {
 	// Combine operations.
 	if ( count($changes) > 1 ) {
 		$filtered = array($changes[0]);
-		for ( $i = 0, $j = 1; $j < count($changes); $j++ ) {
+		for ( $i = 0, $j = 1, $c = count( $changes ); $j < $c; $j++ ) {
 			$combined = false;
 			if ( $filtered[$i]->type == $changes[$j]->type ) {
 				switch ( $filtered[$i]->type ) {
@@ -616,10 +616,7 @@ function wp_restore_image($post_id) {
 
 				// Delete only if it's edited image.
 				if ( preg_match('/-e[0-9]{13}\./', $parts['basename']) ) {
-
-					/** This filter is documented in wp-admin/custom-header.php */
-					$delpath = apply_filters( 'wp_delete_file', $file );
-					@unlink($delpath);
+					wp_delete_file( $file );
 				}
 			} elseif ( isset( $meta['width'], $meta['height'] ) ) {
 				$backup_sizes["full-$suffix"] = array('width' => $meta['width'], 'height' => $meta['height'], 'file' => $parts['basename']);
@@ -642,9 +639,8 @@ function wp_restore_image($post_id) {
 
 					// Delete only if it's edited image
 					if ( preg_match('/-e[0-9]{13}-/', $meta['sizes'][$default_size]['file']) ) {
-						/** This filter is documented in wp-admin/custom-header.php */
-						$delpath = apply_filters( 'wp_delete_file', path_join($parts['dirname'], $meta['sizes'][$default_size]['file']) );
-						@unlink($delpath);
+						$delete_file = path_join( $parts['dirname'], $meta['sizes'][$default_size]['file'] );
+						wp_delete_file( $delete_file );
 					}
 				} else {
 					$backup_sizes["$default_size-{$suffix}"] = $meta['sizes'][$default_size];
@@ -857,10 +853,7 @@ function wp_save_image( $post_id ) {
 	}
 
 	if ( $delete ) {
-
-		/** This filter is documented in wp-admin/custom-header.php */
-		$delpath = apply_filters( 'wp_delete_file', $new_path );
-		@unlink( $delpath );
+		wp_delete_file( $new_path );
 	}
 
 	$return->msg = esc_js( __('Image saved') );

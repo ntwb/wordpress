@@ -172,29 +172,64 @@ module.exports = function(grunt) {
 				]
 			}
 		},
-		cssjanus: {
-			core: {
-				options: {
+		rtlcss: {
+			options: {
+				// rtlcss options
+				config: {
+					swapLeftRightInUrl: false,
 					swapLtrRtlInUrl: false,
-					processContent: function( src ) {
-						return src.replace( /url\((.+?)\.css\)/g, 'url($1-rtl.css)' );
-					}
+					autoRename: false,
+					preserveDirectives: true,
+					stringMap: [
+						{
+							name: 'import-rtl-stylesheet',
+							search: [ '.css' ],
+							replace: [ '-rtl.css' ],
+							options: {
+								scope: 'url',
+								ignoreCase: false
+							}
+						}
+					]
 				},
+				properties : [
+					{
+						name: 'swap-dashicons-left-right-arrows',
+						expr: /content/im,
+						action: function( prop, value ) {
+							if ( value === '"\\f141"' ) { // dashicons-arrow-left
+								value = '"\\f139"';
+							} else if ( value === '"\\f340"' ) { // dashicons-arrow-left-alt
+								value = '"\\f344"';
+							} else if ( value === '"\\f341"' ) { // dashicons-arrow-left-alt2
+								value = '"\\f345"';
+							} else if ( value === '"\\f139"' ) { // dashicons-arrow-right
+								value = '"\\f141"';
+							} else if ( value === '"\\f344"' ) { // dashicons-arrow-right-alt
+								value = '"\\f340"';
+							} else if ( value === '"\\f345"' ) { // dashicons-arrow-right-alt2
+								value = '"\\f341"';
+							}
+							return { prop: prop, value: value };
+						}
+					}
+				],
+				saveUnmodified: false
+			},
+			core: {
 				expand: true,
 				cwd: SOURCE_DIR,
 				dest: BUILD_DIR,
 				ext: '-rtl.css',
 				src: [
 					'wp-admin/css/*.css',
-					'wp-includes/css/*.css'
+					'wp-includes/css/*.css',
+
+					// Exceptions
+					'!wp-includes/css/dashicons.css'
 				]
 			},
 			colors: {
-				options: {
-					processContent: function( src ) {
-						return src.replace( /([^/]+)\.css/gi, '$1-rtl.css' );
-					}
-				},
 				expand: true,
 				cwd: BUILD_DIR,
 				dest: BUILD_DIR,
@@ -503,7 +538,7 @@ module.exports = function(grunt) {
 					SOURCE_DIR + 'wp-admin/css/*.css',
 					SOURCE_DIR + 'wp-includes/css/*.css'
 				],
-				tasks: ['cssjanus:dynamic'],
+				tasks: ['rtlcss:dynamic'],
 				options: {
 					spawn: false,
 					interval: 2000
@@ -522,7 +557,7 @@ module.exports = function(grunt) {
 	// Register tasks.
 
 	// RTL task.
-	grunt.registerTask('rtl', ['cssjanus:core', 'cssjanus:colors']);
+	grunt.registerTask('rtl', ['rtlcss:core', 'rtlcss:colors']);
 
 	// Color schemes task.
 	grunt.registerTask('colors', ['sass:colors', 'autoprefixer:colors']);
@@ -576,7 +611,7 @@ module.exports = function(grunt) {
 	//
 	// On `watch:all`, automatically updates the `copy:dynamic` and `clean:dynamic`
 	// configurations so that only the changed files are updated.
-	// On `watch:rtl`, automatically updates the `cssjanus:dynamic` configuration.
+	// On `watch:rtl`, automatically updates the `rtlcss:dynamic` configuration.
 	grunt.event.on('watch', function( action, filepath, target ) {
 		if ( target !== 'all' && target !== 'rtl' ) {
 			return;
@@ -588,6 +623,6 @@ module.exports = function(grunt) {
 
 		grunt.config(['clean', 'dynamic', 'src'], cleanSrc);
 		grunt.config(['copy', 'dynamic', 'src'], copySrc);
-		grunt.config(['cssjanus', 'dynamic', 'src'], copySrc);
+		grunt.config(['rtlcss', 'dynamic', 'src'], copySrc);
 	});
 };

@@ -217,9 +217,9 @@ input[type="search"]::-webkit-search-decoration {
 }
 
 fieldset {
-	border: 1px solid #c0c0c0;
-	margin: 0 2px;
-	padding: 0.35em 0.625em 0.75em;
+	border: 0;
+	margin: 0;
+	padding: 0;
 }
 
 legend {
@@ -521,10 +521,9 @@ dd {
 	display: none;
 }
 
-/* TODO Needed after merge? */
 .post-format {
-	width: 0;
-	height: 0;
+	width: 1px;
+	height: 1px;
 	position: absolute;
 	top: -9999px;
 }
@@ -1109,16 +1108,13 @@ input[type="search"].categories-search,
 /**
 * Main
 */
-html,
-body {
-	overflow-x: hidden;
+html {
+	overflow: auto;
 }
 
-@media (min-width: 901px) {
-	html,
-	body {
-		height: 100%;
-	}
+body {
+	overflow-x: hidden;
+	height: 100%;
 }
 
 html {
@@ -1861,11 +1857,16 @@ html {
 	color: #333;
 }
 
-.post-options .dashicons-arrow-right-alt2 {
+.post-option-forward:before {
 	position: absolute;
 	top: 50%;
 	right: 8px;
 	margin-top: -10px;
+	content: "\f345"
+}
+
+.post-option-back:before {
+	content: "\f341";
 }
 
 .lt-ie9 .options-panel,

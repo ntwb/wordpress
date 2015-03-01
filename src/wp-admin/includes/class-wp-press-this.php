@@ -31,19 +31,10 @@ class WP_Press_This {
 	 * @return array Site settings.
 	 */
 	public function site_settings() {
-		$supported_formats = get_theme_support( 'post-formats' );
-		$post_formats      = array();
-
-		if ( ! empty( $supported_formats[0] ) && is_array( $supported_formats[0] ) ) {
-			$post_formats[0] = __( 'Standard' );
-			foreach ( $supported_formats[0] as $post_format ) {
-				$post_formats[ $post_format ] = esc_html( get_post_format_string( $post_format ) );
-			}
-		}
-
 		return array(
-			'version'         => 5,
-			'post_formats'    => $post_formats,
+			// Used to trigger the bookmarklet update notice.
+			// Needs to be set here and in get_shortcut_link() in wp-includes/link-template.php.
+			'version' => '5',
 
 			/**
 			 * Filter whether or not Press This should redirect the user in the parent window upon save.
@@ -52,7 +43,7 @@ class WP_Press_This {
 			 *
 			 * @param bool $redir_in_parent Whether to redirect in parent window or not. Default false.
 			 */
-			'redir_in_parent' => apply_filters( 'press_this_redirect_in_parent', __return_false() ),
+			'redir_in_parent' => apply_filters( 'press_this_redirect_in_parent', false ),
 		);
 	}
 
@@ -133,11 +124,11 @@ class WP_Press_This {
 		if ( empty( $_POST['post_ID'] ) || ! $post_id = (int) $_POST['post_ID'] ) {
 			wp_send_json_error( array( 'errorMessage' => __( 'Missing post ID.' ) ) );
 		}
-	
+
 		if ( ! current_user_can( 'edit_post', $post_id ) ) {
 			wp_send_json_error( array( 'errorMessage' => __( 'Cheatin&#8217; uh?' ) ) );
 		}
-	
+
 		$post = array(
 			'ID'            => $post_id,
 			'post_title'    => ( ! empty( $_POST['title'] ) ) ? sanitize_text_field( trim( $_POST['title'] ) ) : '',
@@ -148,7 +139,7 @@ class WP_Press_This {
 			'tax_input'     => ( ! empty( $_POST['tax_input'] ) ) ? $_POST['tax_input'] : array(),
 			'post_category' => ( ! empty( $_POST['post_category'] ) ) ? $_POST['post_category'] : array(),
 		);
-	
+
 		if ( ! empty( $_POST['post_status'] ) && 'publish' === $_POST['post_status'] ) {
 			if ( current_user_can( 'publish_posts' ) ) {
 				$post['post_status'] = 'publish';
@@ -164,7 +155,7 @@ class WP_Press_This {
 		}
 
 		$updated = wp_update_post( $post, true );
-	
+
 		if ( is_wp_error( $updated ) || intval( $updated ) < 1 ) {
 			wp_send_json_error( array( 'errorMessage' => __( 'Error while saving the post. Please try again later.' ) ) );
 		} else {
@@ -192,7 +183,7 @@ class WP_Press_This {
 				/** This filter is documented in wp-admin/includes/class-wp-press-this.php */
 				$redirect = apply_filters( 'press_this_save_redirect', get_edit_post_link( $post_id, 'raw' ), $post_id, $post['post_status'] );
 			}
-	
+
 			wp_send_json_success( array( 'redirect' => $redirect ) );
 		}
 	}
@@ -377,7 +368,7 @@ class WP_Press_This {
 			$data['_meta'] = array();
 		}
 
-		if ( preg_match_all( '/<meta ([^>]+)[\s]?\/?>/  ', $source_content, $matches ) ) {
+		if ( preg_match_all( '/<meta ([^>]+)[\s]?\/?>/', $source_content, $matches ) ) {
 			if ( ! empty( $matches[0] ) ) {
 				foreach ( $matches[0] as $key => $value ) {
 					if ( preg_match( '/<meta[^>]+(property|name)="(.+)"[^>]+content="(.+)"/', $value, $new_matches ) ) {
@@ -465,7 +456,7 @@ class WP_Press_This {
 		 *
 		 * @param bool $enable Whether to enable media discovery.
 		 */
-		if ( apply_filters( 'enable_press_this_media_discovery', __return_true() ) ) {
+		if ( apply_filters( 'enable_press_this_media_discovery', true ) ) {
 			/*
 			 * If no _meta (a new thing) was passed via $_POST, fetch data from source as fallback,
 			 * makes PT fully backward compatible
@@ -508,7 +499,13 @@ class WP_Press_This {
 		if ( ! empty( $styles ) ) {
 			$styles .= ',';
 		}
-		return $styles . admin_url( 'css/press-this-editor.css' );
+
+		$press_this = admin_url( 'css/press-this-editor.css' );
+		if ( is_rtl() ) {
+			$press_this = str_replace( '.css', '-rtl.css', $press_this );
+		}
+
+		return $styles . $press_this;
 	}
 
 	/**
@@ -519,7 +516,7 @@ class WP_Press_This {
 	 *
 	 * @param WP_Post $post Post object.
 	 */
-	function post_formats_html( $post ) {
+	public function post_formats_html( $post ) {
 		if ( current_theme_supports( 'post-formats' ) && post_type_supports( $post->post_type, 'post-formats' ) ) {
 			$post_formats = get_theme_support( 'post-formats' );
 
@@ -537,6 +534,7 @@ class WP_Press_This {
 
 				?>
 				<div id="post-formats-select">
+				<fieldset><legend class="screen-reader-text"><?php _e( 'Post formats' ); ?></legend>
 					<input type="radio" name="post_format" class="post-format" id="post-format-0" value="0" <?php checked( $post_format, '0' ); ?> />
 					<label for="post-format-0" class="post-format-icon post-format-standard"><?php echo get_post_format_string( 'standard' ); ?></label>
 					<?php
@@ -550,6 +548,7 @@ class WP_Press_This {
 						<?php
 					 }
 					 ?>
+				</fieldset>
 				</div>
 				<?php
 			}
@@ -564,13 +563,13 @@ class WP_Press_This {
 	 *
 	 * @param WP_Post $post Post object.
 	 */
-	function categories_html( $post ) {
+	public function categories_html( $post ) {
 		$taxonomy = get_taxonomy( 'category' );
 
 		if ( current_user_can( $taxonomy->cap->edit_terms ) ) {
 			?>
-			<button type="button" class="add-cat-toggle button-subtle">
-				<span class="dashicons dashicons-plus"></span>
+			<button type="button" class="add-cat-toggle button-subtle" aria-expanded="false">
+				<span class="dashicons dashicons-plus"></span><span class="screen-reader-text"><?php _e( 'Toggle add category' ); ?></span>
 			</button>
 			<div class="add-category is-hidden">
 				<label class="screen-reader-text" for="new-category"><?php echo $taxonomy->labels->add_new_item; ?></label>
@@ -592,12 +591,12 @@ class WP_Press_This {
 			</div>
 		<?php } ?>
 		<div class="categories-search-wrapper">
-			<input id="categories-search" type="search" class="categories-search" placeholder="<?php esc_attr_e( 'Search categories' ) ?>">
+			<input id="categories-search" type="search" class="categories-search" placeholder="<?php esc_attr_e( 'Search categories by name' ) ?>">
 			<label for="categories-search">
-				<span class="dashicons dashicons-search"></span>
+				<span class="dashicons dashicons-search"></span><span class="screen-reader-text"><?php _e( 'Search categories' ); ?></span>
 			</label>
 		</div>
-		<ul class="categories-select">
+		<ul class="categories-select" aria-label="<?php esc_attr_e( 'Categories' ); ?>">
 			<?php wp_terms_checklist( $post->ID, array( 'taxonomy' => 'category' ) ); ?>
 		</ul>
 		<?php
@@ -611,7 +610,7 @@ class WP_Press_This {
 	 *
 	 * @param WP_Post $post Post object.
 	 */
-	function tags_html( $post ) {
+	public function tags_html( $post ) {
 		$taxonomy              = get_taxonomy( 'post_tag' );
 		$user_can_assign_terms = current_user_can( $taxonomy->cap->assign_terms );
 		$esc_tags              = get_terms_to_edit( $post->ID, 'post_tag' );
@@ -645,9 +644,7 @@ class WP_Press_This {
 		<?php
 		if ( $user_can_assign_terms ) {
 			?>
-			<p>
-				<a href="#titlediv" class="tagcloud-link" id="link-post_tag"><?php echo $taxonomy->labels->choose_from_most_used; ?></a>
-			</p>
+			<button type="button" class="button-reset button-link tagcloud-link" id="link-post_tag"><?php echo $taxonomy->labels->choose_from_most_used; ?></button>
 			<?php
 		}
 	}
@@ -659,7 +656,7 @@ class WP_Press_This {
 	 * @access public
 	 */
 	public function html() {
-		global $wp_locale, $hook_suffix;
+		global $wp_locale, $wp_version;
 
 		// Get data, new (POST) and old (GET).
 		$data = $this->merge_or_fetch_data();
@@ -692,8 +689,8 @@ class WP_Press_This {
 	<title><?php esc_html_e( 'Press This!' ) ?></title>
 
 	<script>
-		window.wpPressThisData   = <?php echo json_encode( $data ) ?>;
-		window.wpPressThisConfig = <?php echo json_encode( $site_settings ) ?>;
+		window.wpPressThisData   = <?php echo wp_json_encode( $data ) ?>;
+		window.wpPressThisConfig = <?php echo wp_json_encode( $site_settings ) ?>;
 	</script>
 
 	<script type="text/javascript">
@@ -703,7 +700,7 @@ class WP_Press_This {
 			adminpage = 'press-this-php',
 			thousandsSeparator = '<?php echo addslashes( $wp_locale->number_format['thousands_sep'] ); ?>',
 			decimalPoint = '<?php echo addslashes( $wp_locale->number_format['decimal_point'] ); ?>',
-			isRtl = <?php echo esc_js( (int) is_rtl() ); ?>;
+			isRtl = <?php echo (int) is_rtl(); ?>;
 	</script>
 
 	<?php
@@ -732,17 +729,39 @@ class WP_Press_This {
 		}
 
 		/** This action is documented in wp-admin/admin-header.php */
-		do_action( 'admin_enqueue_scripts', $hook_suffix );
+		do_action( 'admin_enqueue_scripts', 'press-this.php' );
+
+		/** This action is documented in wp-admin/admin-header.php */
+		do_action( 'admin_print_styles-press-this.php' );
 
 		/** This action is documented in wp-admin/admin-header.php */
 		do_action( 'admin_print_styles' );
 
 		/** This action is documented in wp-admin/admin-header.php */
+		do_action( 'admin_print_scripts-press-this.php' );
+
+		/** This action is documented in wp-admin/admin-header.php */
 		do_action( 'admin_print_scripts' );
 
+		/** This action is documented in wp-admin/admin-header.php */
+		do_action( 'admin_head-press-this.php' );
+
+		/** This action is documented in wp-admin/admin-header.php */
+		do_action( 'admin_head' );
 	?>
 </head>
-<body>
+<?php
+$admin_body_class  = 'press-this';
+$admin_body_class .= ( is_rtl() ) ? ' rtl' : '';
+$admin_body_class .= ' branch-' . str_replace( array( '.', ',' ), '-', floatval( $wp_version ) );
+$admin_body_class .= ' version-' . str_replace( '.', '-', preg_replace( '/^([.0-9]+).*/', '$1', $wp_version ) );
+$admin_body_class .= ' admin-color-' . sanitize_html_class( get_user_option( 'admin_color' ), 'fresh' );
+$admin_body_class .= ' locale-' . sanitize_html_class( strtolower( str_replace( '_', '-', get_locale() ) ) );
+
+/** This filter is documented in wp-admin/admin-header.php */
+$admin_body_classes = apply_filters( 'admin_body_class', '' );
+?>
+<body class="wp-admin wp-core-ui <?php echo $admin_body_classes . ' ' . $admin_body_class; ?>">
 	<div id="adminbar" class="adminbar">
 		<h1 id="current-site" class="current-site">
 			<span class="dashicons dashicons-wordpress"></span>
@@ -756,6 +775,7 @@ class WP_Press_This {
 
 	<div id="scanbar" class="scan">
 		<form method="GET">
+			<label for="url-scan" class="screen-reader-text"><?php _e( 'Scan site for content' ); ?></label>
 			<input type="url" name="u" id="url-scan" class="scan-url" value="" placeholder="<?php esc_attr_e( 'Enter a URL to scan' ) ?>" />
 			<input type="submit" name="url-scan-submit" id="url-scan-submit" class="scan-submit" value="<?php esc_attr_e( 'Scan' ) ?>" />
 		</form>
@@ -775,7 +795,7 @@ class WP_Press_This {
 		<div class="editor-wrapper">
 			<div class="alerts">
 				<p class="alert is-notice is-hidden should-upgrade-bookmarklet">
-					<?php printf( __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!' ), admin_url( 'tools.php?page=press_this_options' ) ); ?>
+					<?php printf( __( 'You should upgrade <a href="%s" target="_blank">your bookmarklet</a> to the latest version!' ), admin_url( 'tools.php' ) ); ?>
 				</p>
 			</div>
 
@@ -820,7 +840,7 @@ class WP_Press_This {
 						<span class="dashicons dashicons-admin-post"></span>
 						<span class="post-option-title"><?php _e( 'Format' ); ?></span>
 						<span class="post-option-contents" id="post-option-post-format"><?php echo esc_html( get_post_format_string( $post_format ) ); ?></span>
-						<span class="dashicons dashicons-arrow-right-alt2"></span>
+						<span class="dashicons post-option-forward"></span>
 					</button>
 				<?php endif; ?>
 
@@ -828,33 +848,43 @@ class WP_Press_This {
 					<span class="dashicons dashicons-category"></span>
 					<span class="post-option-title"><?php _e( 'Categories' ); ?></span>
 					<span class="post-option-contents" id="post-option-category"></span>
-					<span class="dashicons dashicons-arrow-right-alt2"></span>
+					<span class="dashicons post-option-forward"></span>
 				</button>
 
 				<button type="button" class="button-reset post-option">
 					<span class="dashicons dashicons-tag"></span>
 					<span class="post-option-title"><?php _e( 'Tags' ); ?></span>
 					<span class="post-option-contents" id="post-option-tags"></span>
-					<span class="dashicons dashicons-arrow-right-alt2"></span>
+					<span class="dashicons post-option-forward"></span>
 				</button>
 			</div>
 
 			<?php if ( $supports_formats ) : ?>
 				<div class="setting-modal is-off-screen is-hidden">
 					<button type="button" class="button-reset modal-close">
-						<span class="dashicons dashicons-arrow-left-alt2"></span><span class="setting-title"><?php _e( 'Post format' ); ?></span>
+						<span class="dashicons post-option-back"></span>
+						<span class="setting-title" aria-hidden="true"><?php _e( 'Post format' ); ?></span>
+						<span class="screen-reader-text"><?php _e( 'Back to post options' ) ?></span>
 					</button>
 					<?php $this->post_formats_html( $post ); ?>
 				</div>
 			<?php endif; ?>
 
 			<div class="setting-modal is-off-screen is-hidden">
-				<button type="button" class="button-reset modal-close"><span class="dashicons dashicons-arrow-left-alt2"></span><span class="setting-title"><?php _e( 'Categories' ); ?></span></button>
+				<button type="button" class="button-reset modal-close">
+					<span class="dashicons post-option-back"></span>
+					<span class="setting-title" aria-hidden="true"><?php _e( 'Categories' ); ?></span>
+					<span class="screen-reader-text"><?php _e( 'Back to post options' ) ?></span>
+				</button>
 				<?php $this->categories_html( $post ); ?>
 			</div>
 
 			<div class="setting-modal tags is-off-screen is-hidden">
-				<button type="button" class="button-reset modal-close"><span class="dashicons dashicons-arrow-left-alt2"></span><span class="setting-title"><?php _e( 'Tags' ); ?></span></button>
+				<button type="button" class="button-reset modal-close">
+					<span class="dashicons post-option-back"></span>
+					<span class="setting-title" aria-hidden="true"><?php _e( 'Tags' ); ?></span>
+					<span class="screen-reader-text"><?php _e( 'Back to post options' ) ?></span>
+				</button>
 				<?php $this->tags_html( $post ); ?>
 			</div>
 		</div><!-- .options-panel -->
@@ -875,12 +905,14 @@ class WP_Press_This {
 	</form>
 
 	<?php
+	/** This action is documented in wp-admin/admin-footer.php */
+	do_action( 'admin_footer' );
 
-		// TODO: consider running "special" press-this hooks here?
-		// Maybe better so we don't output stuff accidentally added by plugins. Would probably prevent some errors.
-		do_action( 'admin_footer', '' );
-		do_action( 'admin_print_footer_scripts' );
+	/** This action is documented in wp-admin/admin-footer.php */
+	do_action( 'admin_print_footer_scripts' );
 
+	/** This action is documented in wp-admin/admin-footer.php */
+	do_action( 'admin_footer-press-this.php' );
 	?>
 </body>
 </html>

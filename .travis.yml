@@ -17,7 +17,13 @@ matrix:
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit
   - php: 5.6
-    env: WP_TRAVISCI=travis:phpunit MEMCACHED=true
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=memcache
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=apc
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=batcache
     services: memcached
   - php: hhvm
     env: WP_TRAVISCI=travis:phpunit
@@ -40,10 +46,22 @@ before_install:
   fi
 before_script:
 - |
-  if [[ "$MEMCACHED" == "true" ]]; then
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "memcache" ]]; then
       echo "extension = memcache.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
       wget https://plugins.svn.wordpress.org/memcached/trunk/object-cache.php --no-check-certificate
       mv object-cache.php src/wp-content/object-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "apc" ]]; then
+      echo "extension = apc.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/apc/trunk/object-cache.php --no-check-certificate
+      mv object-cache.php src/wp-content/object-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "batcache" ]]; then
+      echo "extension = apc.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/batcache/trunk/advanced-cache.php --no-check-certificate
+      mv advanced-cache.phpsrc/wp-content/advanced-cache.php
   fi
 - node --version
 - npm --version

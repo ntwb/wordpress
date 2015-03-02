@@ -82,6 +82,8 @@ function wp_default_scripts( &$scripts ) {
 		'warnDelete' => __("You are about to permanently delete the selected items.\n  'Cancel' to stop, 'OK' to delete.")
 	) );
 
+	$scripts->add( 'wp-a11y', "/wp-includes/js/wp-a11y$suffix.js", array( 'jquery' ), false, 1 );
+
 	$scripts->add( 'sack', "/wp-includes/js/tw-sack$suffix.js", array(), '1.6.1', 1 );
 
 	$scripts->add( 'quicktags', "/wp-includes/js/quicktags$suffix.js", array(), false, 1 );
@@ -380,7 +382,7 @@ function wp_default_scripts( &$scripts ) {
 
 	$scripts->add( 'hoverIntent', "/wp-includes/js/hoverIntent$suffix.js", array('jquery'), 'r7', 1 );
 
-	$scripts->add( 'customize-base',     "/wp-includes/js/customize-base$suffix.js",     array( 'jquery', 'json2', 'underscore' ), false, 1 );
+	$scripts->add( 'customize-base',     "/wp-includes/js/customize-base$suffix.js",     array( 'jquery', 'json2', 'underscore', 'wp-a11y' ), false, 1 );
 	$scripts->add( 'customize-loader',   "/wp-includes/js/customize-loader$suffix.js",   array( 'customize-base' ), false, 1 );
 	$scripts->add( 'customize-preview',  "/wp-includes/js/customize-preview$suffix.js",  array( 'customize-base' ), false, 1 );
 	$scripts->add( 'customize-models',   "/wp-includes/js/customize-models.js", array( 'underscore', 'backbone' ), false, 1 );
@@ -472,23 +474,6 @@ function wp_default_scripts( &$scripts ) {
 
 		$scripts->add( 'press-this', "/wp-admin/js/press-this$suffix.js", array( 'jquery', 'tags-box' ), false, 1 );
 		did_action( 'init' ) && $scripts->localize( 'press-this', 'pressThisL10n', array(
-			/**
-			 * Filter the string displayed before the source attribution string in Press This.
-			 *
-			 * @since 4.2.0
-			 *
-			 * @param string $string Internationalized source string.
-			 */
-			'source' => apply_filters( 'press_this_source_string', __( 'Source:' ) ),
-
-			/**
-			 * Filter the HTML link format for the Press This source attribution, can control target, class, etc.
-			 *
-			 * @since 4.2.0
-			 *
-			 * @param string $link_format Link format, %1$s is link href, %2$s is link text.
-			 */
-			'sourceLink' => apply_filters( 'press_this_source_link', '<a href="%1$s">%2$s</a>' ),
 			'newPost' => __( 'Title' ),
 			'unexpectedError' => __( 'Sorry, but an unexpected error occurred.' ),
 			'saveAlert' => __( 'The changes you made will be lost if you navigate away from this page.' ),
@@ -532,7 +517,7 @@ function wp_default_scripts( &$scripts ) {
 			'ays' => __('Are you sure you want to install this plugin?')
 		) );
 
-		$scripts->add( 'updates', "/wp-admin/js/updates$suffix.js", array( 'jquery', 'wp-util' ) );
+		$scripts->add( 'updates', "/wp-admin/js/updates$suffix.js", array( 'jquery', 'wp-util', 'wp-a11y' ) );
 		did_action( 'init' ) && $scripts->localize( 'updates', '_wpUpdatesSettings', array(
 			'ajax_nonce' => wp_create_nonce( 'updates' ),
 			'l10n'       => array(
@@ -543,6 +528,10 @@ function wp_default_scripts( &$scripts ) {
 				'installing'    => __( 'Installing...' ),
 				'installed'     => __( 'Installed!' ),
 				'installFailed' => __( 'Installation failed' ),
+				'updatingMsg'   => __( 'Updating... please wait.' ),
+				'installingMsg' => __( 'Installing... please wait.' ),
+				'updatedMsg'    => __( 'Update completed successfully.' ),
+				'installedMsg'  => __( 'Installation completed successfully.' ),
 			)
 		) );
 
@@ -664,7 +653,7 @@ function wp_default_styles( &$styles ) {
 	$styles->add( 'wp-color-picker',    "/wp-admin/css/color-picker$suffix.css" );
 	$styles->add( 'customize-controls', "/wp-admin/css/customize-controls$suffix.css", array( 'wp-admin', 'colors', 'ie', 'imgareaselect' ) );
 	$styles->add( 'customize-widgets',  "/wp-admin/css/customize-widgets$suffix.css", array( 'wp-admin', 'colors' ) );
-	$styles->add( 'press-this',         "/wp-admin/css/press-this$suffix.css", array( 'open-sans' ) );
+	$styles->add( 'press-this',         "/wp-admin/css/press-this$suffix.css", array( 'open-sans', 'buttons' ) );
 
 	$styles->add( 'ie',                 "/wp-admin/css/ie$suffix.css" );
 	$styles->add_data( 'ie', 'conditional', 'lte IE 7' );

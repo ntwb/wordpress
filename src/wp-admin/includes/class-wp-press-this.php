@@ -31,6 +31,12 @@ class WP_Press_This {
 	 * @return array Site settings.
 	 */
 	public function site_settings() {
+		$default_html = array(
+			'quote' => '<blockquote>%1$s</blockquote>',
+			'link' => '<p>' . _x( 'Source:', 'Used in Press This to indicate where the content comes from.' ) .
+				' <em><a href="%1$s">%2$s</a></em></p>',
+		);
+
 		return array(
 			// Used to trigger the bookmarklet update notice.
 			// Needs to be set here and in get_shortcut_link() in wp-includes/link-template.php.
@@ -41,14 +47,24 @@ class WP_Press_This {
 			 *
 			 * @since 4.2.0
 			 *
-			 * @param bool $redir_in_parent Whether to redirect in parent window or not. Default false.
+			 * @param bool false Whether to redirect in parent window or not. Default false.
 			 */
-			'redir_in_parent' => apply_filters( 'press_this_redirect_in_parent', false ),
+			'redirInParent' => apply_filters( 'press_this_redirect_in_parent', false ),
+
+			/**
+			 * Filter the default HTML for the Press This editor.
+			 *
+			 * @since 4.2.0
+			 *
+			 * @param array $default_html Associative array with two keys: 'quote' where %1$s is replaced with the site description
+			 *                            or the selected content, and 'link' there %1$s is link href, %2$s is link text.
+			 */
+			'html' => apply_filters( 'press_this_suggested_html', $default_html ),
 		);
 	}
 
 	/**
-	 * Get the sources images and save them locally, fr posterity, unless we can't.
+	 * Get the source's images and save them locally, for posterity, unless we can't.
 	 *
 	 * @since 4.2.0
 	 * @access public
@@ -711,10 +727,10 @@ class WP_Press_This {
 		$post = get_default_post_to_edit( 'post', true );
 		$post_ID = (int) $post->ID;
 
+		wp_enqueue_media( array( 'post' => $post_ID ) );
 		wp_enqueue_style( 'press-this' );
 		wp_enqueue_script( 'press-this' );
 		wp_enqueue_script( 'json2' );
-		wp_enqueue_media( array( 'post' => $post->ID ) );
 		wp_enqueue_script( 'editor' );
 
 		$supports_formats = false;
@@ -723,7 +739,7 @@ class WP_Press_This {
 		if ( current_theme_supports( 'post-formats' ) && post_type_supports( $post->post_type, 'post-formats' ) ) {
 			$supports_formats = true;
 
-			if ( ! ( $post_format = get_post_format( $post->ID ) ) ) {
+			if ( ! ( $post_format = get_post_format( $post_ID ) ) ) {
 				$post_format = 0;
 			}
 		}
@@ -782,7 +798,7 @@ $admin_body_classes = apply_filters( 'admin_body_class', '' );
 	</div>
 
 	<form id="pressthis-form" name="pressthis-form" method="POST" autocomplete="off">
-		<input type="hidden" name="post_ID" id="post_ID" value="<?php echo esc_attr( $post_ID ); ?>" />
+		<input type="hidden" name="post_ID" id="post_ID" value="<?php echo $post_ID; ?>" />
 		<input type="hidden" name="action" value="press-this-save-post" />
 		<input type="hidden" name="post_status" id="post_status" value="draft" />
 		<?php

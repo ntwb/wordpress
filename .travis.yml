@@ -41,7 +41,7 @@ before_install:
 before_script:
 - |
   if [[ "$MEMCACHED" == "true" ]]; then
-      # echo "extension = memcache.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.in
+      echo "extension = memcache.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
       wget https://plugins.svn.wordpress.org/memcached/trunk/object-cache.php --no-check-certificate
       mv object-cache.php src/wp-content/object-cache.php
   fi

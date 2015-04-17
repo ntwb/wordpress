@@ -3,8 +3,8 @@
  * The loop that displays posts
  *
  * The loop displays the posts and the post content. See
- * http://codex.wordpress.org/The_Loop to understand it and
- * http://codex.wordpress.org/Template_Tags to understand
+ * https://codex.wordpress.org/The_Loop to understand it and
+ * https://codex.wordpress.org/Template_Tags to understand
  * the tags used in it.
  *
  * This can be overridden in child themes with loop.php or
@@ -75,7 +75,7 @@
 					$images = twentyten_get_gallery_images();
 					if ( $images ) :
 						$total_images = count( $images );
-						$image = current( $images );
+						$image = reset( $images );
 				?>
 						<div class="gallery-thumb">
 							<a class="size-thumbnail" href="<?php the_permalink(); ?>"><?php echo wp_get_attachment_image( $image, 'thumbnail' ); ?></a>

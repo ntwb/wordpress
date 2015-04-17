@@ -127,7 +127,7 @@ function wp_admin_bar_wp_menu( $wp_admin_bar ) {
 		'parent'    => 'wp-logo-external',
 		'id'        => 'documentation',
 		'title'     => __('Documentation'),
-		'href'      => __('http://codex.wordpress.org/'),
+		'href'      => __('https://codex.wordpress.org/'),
 	) );
 
 	// Add forums link
@@ -329,10 +329,16 @@ function wp_admin_bar_my_sites_menu( $wp_admin_bar ) {
 	if ( count( $wp_admin_bar->user->blogs ) < 1 && ! is_super_admin() )
 		return;
 
+	if ( $wp_admin_bar->user->active_blog ) {
+		$my_sites_url = get_admin_url( $wp_admin_bar->user->active_blog->blog_id, 'my-sites.php' );
+	} else {
+		$my_sites_url = admin_url( 'my-sites.php' );
+	}
+
 	$wp_admin_bar->add_menu( array(
 		'id'    => 'my-sites',
 		'title' => __( 'My Sites' ),
-		'href'  => get_admin_url( $wp_admin_bar->user->active_blog->blog_id, 'my-sites.php' ),
+		'href'  => $my_sites_url,
 	) );
 
 	if ( is_super_admin() ) {
@@ -650,14 +656,33 @@ function wp_admin_bar_comments_menu( $wp_admin_bar ) {
 function wp_admin_bar_appearance_menu( $wp_admin_bar ) {
 	$wp_admin_bar->add_group( array( 'parent' => 'site-name', 'id' => 'appearance' ) );
 
-	if ( current_user_can( 'switch_themes' ) || current_user_can( 'edit_theme_options' ) )
-		$wp_admin_bar->add_menu( array( 'parent' => 'appearance', 'id' => 'themes', 'title' => __('Themes'), 'href' => admin_url('themes.php') ) );
-
-	if ( ! current_user_can( 'edit_theme_options' ) )
-		return;
-
 	$current_url = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 	$customize_url = add_query_arg( 'url', urlencode( $current_url ), wp_customize_url() );
+
+	if ( current_user_can( 'switch_themes' ) ) {
+		$wp_admin_bar->add_menu( array(
+			'parent' => 'appearance',
+			'id'     => 'themes',
+			'title'  => __( 'Themes' ),
+			'href'   => admin_url( 'themes.php' ),
+			'meta'   => array(
+				'class' => 'hide-if-customize',
+			),
+		) );
+
+		if ( current_user_can( 'customize' ) ) {
+			$wp_admin_bar->add_menu( array(
+				'parent' => 'appearance',
+				'id'     => 'customize-themes',
+				'title'  => __( 'Themes' ),
+				'href'   => add_query_arg( urlencode( 'autofocus[section]' ), 'themes', $customize_url ), // urlencode() needed due to #16859
+				'meta'   => array(
+					'class' => 'hide-if-no-customize',
+				),
+			) );
+		}
+	}
+
 	if ( current_user_can( 'customize' ) ) {
 		$wp_admin_bar->add_menu( array(
 			'parent' => 'appearance',
@@ -669,6 +694,10 @@ function wp_admin_bar_appearance_menu( $wp_admin_bar ) {
 			),
 		) );
 		add_action( 'wp_before_admin_bar_render', 'wp_customize_support_script' );
+	}
+
+	if ( ! current_user_can( 'edit_theme_options' ) ) {
+		return;
 	}
 
 	if ( current_theme_supports( 'widgets' )  ) {

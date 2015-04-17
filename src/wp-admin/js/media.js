@@ -32,7 +32,7 @@ var findPosts;
 		},
 
 		close: function() {
-			$('#find-posts-response').html('');
+			$('#find-posts-response').empty();
 			$('#find-posts').hide();
 			$( '.ui-find-overlay' ).hide();
 		},
@@ -51,14 +51,14 @@ var findPosts;
 				},
 				spinner = $( '.find-box-search .spinner' );
 
-			spinner.show();
+			spinner.addClass( 'is-active' );
 
 			$.ajax( ajaxurl, {
 				type: 'POST',
 				data: post,
 				dataType: 'json'
 			}).always( function() {
-				spinner.hide();
+				spinner.removeClass( 'is-active' );
 			}).done( function( x ) {
 				if ( ! x.success ) {
 					$( '#find-posts-response' ).text( attachMediaBoxL10n.error );

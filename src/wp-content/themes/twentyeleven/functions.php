@@ -9,8 +9,8 @@
  * The first function, twentyeleven_setup(), sets up the theme by registering support
  * for various features in WordPress, such as post thumbnails, navigation menus, and the like.
  *
- * When using a child theme (see http://codex.wordpress.org/Theme_Development and
- * http://codex.wordpress.org/Child_Themes), you can override certain functions
+ * When using a child theme (see https://codex.wordpress.org/Theme_Development and
+ * https://codex.wordpress.org/Child_Themes), you can override certain functions
  * (those wrapped in a function_exists() call) by defining them first in your child theme's
  * functions.php file. The child theme's functions.php file is included before the parent
  * theme's file, so the child theme functions would be used.
@@ -31,7 +31,7 @@
  * }
  * </code>
  *
- * For more information on hooks, actions, and filters, see http://codex.wordpress.org/Plugin_API.
+ * For more information on hooks, actions, and filters, see https://codex.wordpress.org/Plugin_API.
  *
  * @package WordPress
  * @subpackage Twenty_Eleven
@@ -251,7 +251,7 @@ function twentyeleven_header_style() {
 	?>
 		#site-title,
 		#site-description {
-			position: absolute !important;
+			position: absolute;
 			clip: rect(1px 1px 1px 1px); /* IE6, IE7 */
 			clip: rect(1px, 1px, 1px, 1px);
 		}
@@ -261,7 +261,7 @@ function twentyeleven_header_style() {
 	?>
 		#site-title a,
 		#site-description {
-			color: #<?php echo $text_color; ?> !important;
+			color: #<?php echo $text_color; ?>;
 		}
 	<?php endif; ?>
 	</style>

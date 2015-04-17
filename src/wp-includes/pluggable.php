@@ -302,30 +302,37 @@ function wp_mail( $to, $subject, $message, $headers = '', $attachments = array()
 				switch ( strtolower( $name ) ) {
 					// Mainly for legacy -- process a From: header if it's there
 					case 'from':
-						if ( strpos($content, '<' ) !== false ) {
-							// So... making my life hard again?
-							$from_name = substr( $content, 0, strpos( $content, '<' ) - 1 );
-							$from_name = str_replace( '"', '', $from_name );
-							$from_name = trim( $from_name );
+						$bracket_pos = strpos( $content, '<' );
+						if ( $bracket_pos !== false ) {
+							// Text before the bracketed email is the "From" name.
+							if ( $bracket_pos > 0 ) {
+								$from_name = substr( $content, 0, $bracket_pos - 1 );
+								$from_name = str_replace( '"', '', $from_name );
+								$from_name = trim( $from_name );
+							}
 
-							$from_email = substr( $content, strpos( $content, '<' ) + 1 );
+							$from_email = substr( $content, $bracket_pos + 1 );
 							$from_email = str_replace( '>', '', $from_email );
 							$from_email = trim( $from_email );
-						} else {
+
+						// Avoid setting an empty $from_email.
+						} elseif ( '' !== trim( $content ) ) {
 							$from_email = trim( $content );
 						}
 						break;
 					case 'content-type':
 						if ( strpos( $content, ';' ) !== false ) {
-							list( $type, $charset ) = explode( ';', $content );
+							list( $type, $charset_content ) = explode( ';', $content );
 							$content_type = trim( $type );
-							if ( false !== stripos( $charset, 'charset=' ) ) {
-								$charset = trim( str_replace( array( 'charset=', '"' ), '', $charset ) );
-							} elseif ( false !== stripos( $charset, 'boundary=' ) ) {
-								$boundary = trim( str_replace( array( 'BOUNDARY=', 'boundary=', '"' ), '', $charset ) );
+							if ( false !== stripos( $charset_content, 'charset=' ) ) {
+								$charset = trim( str_replace( array( 'charset=', '"' ), '', $charset_content ) );
+							} elseif ( false !== stripos( $charset_content, 'boundary=' ) ) {
+								$boundary = trim( str_replace( array( 'BOUNDARY=', 'boundary=', '"' ), '', $charset_content ) );
 								$charset = '';
 							}
-						} else {
+
+						// Avoid setting an empty $content_type.
+						} elseif ( '' !== trim( $content ) ) {
 							$content_type = trim( $content );
 						}
 						break;
@@ -1201,6 +1208,19 @@ if ( !function_exists('wp_sanitize_redirect') ) :
  * @return string redirect-sanitized URL
  **/
 function wp_sanitize_redirect($location) {
+	$regex = '/
+		(
+			(?: [\xC2-\xDF][\x80-\xBF]        # double-byte sequences   110xxxxx 10xxxxxx
+			|   \xE0[\xA0-\xBF][\x80-\xBF]    # triple-byte sequences   1110xxxx 10xxxxxx * 2
+			|   [\xE1-\xEC][\x80-\xBF]{2}
+			|   \xED[\x80-\x9F][\x80-\xBF]
+			|   [\xEE-\xEF][\x80-\xBF]{2}
+			|   \xF0[\x90-\xBF][\x80-\xBF]{2} # four-byte sequences   11110xxx 10xxxxxx * 3
+			|   [\xF1-\xF3][\x80-\xBF]{3}
+			|   \xF4[\x80-\x8F][\x80-\xBF]{2}
+		){1,50}                              # ...one or more times
+		)/x';
+	$location = preg_replace_callback( $regex, '_wp_sanitize_utf8_in_redirect', $location );
 	$location = preg_replace('|[^a-z0-9-~+_.?#=&;,/:%!*\[\]()]|i', '', $location);
 	$location = wp_kses_no_null($location);
 
@@ -1208,6 +1228,19 @@ function wp_sanitize_redirect($location) {
 	$strip = array('%0d', '%0a', '%0D', '%0A');
 	$location = _deep_replace($strip, $location);
 	return $location;
+}
+
+/**
+ * URL encode UTF-8 characters in a URL.
+ *
+ * @ignore
+ * @since 4.2.0
+ * @access private
+ *
+ * @see wp_sanitize_redirect()
+ */
+function _wp_sanitize_utf8_in_redirect( $matches ) {
+	return urlencode( $matches[0] );
 }
 endif;
 
@@ -1394,7 +1427,7 @@ function wp_notify_postauthor( $comment_id, $deprecated = null ) {
 			/* translators: 1: website name, 2: author IP, 3: author domain */
 			$notify_message .= sprintf( __('Website: %1$s (IP: %2$s, %3$s)'), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
 			$notify_message .= sprintf( __( 'URL: %s' ), $comment->comment_author_url ) . "\r\n";
-			$notify_message .= sprintf( __( 'Comment: %s' ), $comment->comment_content ) . "\r\n\r\n";
+			$notify_message .= sprintf( __( 'Comment: %s' ), "\r\n" . $comment->comment_content ) . "\r\n\r\n";
 			$notify_message .= __( 'You can see all trackbacks on this post here:' ) . "\r\n";
 			/* translators: 1: blog name, 2: post title */
 			$subject = sprintf( __('[%1$s] Trackback: "%2$s"'), $blogname, $post->post_title );
@@ -1404,7 +1437,7 @@ function wp_notify_postauthor( $comment_id, $deprecated = null ) {
 			/* translators: 1: comment author, 2: author IP, 3: author domain */
 			$notify_message .= sprintf( __('Website: %1$s (IP: %2$s, %3$s)'), $comment->comment_author, $comment->comment_author_IP, $comment_author_domain ) . "\r\n";
 			$notify_message .= sprintf( __( 'URL: %s' ), $comment->comment_author_url ) . "\r\n";
-			$notify_message .= sprintf( __( 'Comment: %s' ), $comment->comment_content ) . "\r\n\r\n";
+			$notify_message .= sprintf( __( 'Comment: %s' ), "\r\n" . $comment->comment_content ) . "\r\n\r\n";
 			$notify_message .= __( 'You can see all pingbacks on this post here:' ) . "\r\n";
 			/* translators: 1: blog name, 2: post title */
 			$subject = sprintf( __('[%1$s] Pingback: "%2$s"'), $blogname, $post->post_title );
@@ -1416,7 +1449,7 @@ function wp_notify_postauthor( $comment_id, $deprecated = null ) {
 			$notify_message .= sprintf( __( 'E-mail: %s' ), $comment->comment_author_email ) . "\r\n";
 			$notify_message .= sprintf( __( 'URL: %s' ), $comment->comment_author_url ) . "\r\n";
 			$notify_message .= sprintf( __( 'Whois: %s' ), "http://whois.arin.net/rest/ip/{$comment->comment_author_IP}" ) . "\r\n";
-			$notify_message .= sprintf( __('Comment: %s' ), $comment->comment_content ) . "\r\n\r\n";
+			$notify_message .= sprintf( __('Comment: %s' ), "\r\n" . $comment->comment_content ) . "\r\n\r\n";
 			$notify_message .= __( 'You can see all comments on this post here:' ) . "\r\n";
 			/* translators: 1: blog name, 2: post title */
 			$subject = sprintf( __('[%1$s] Comment: "%2$s"'), $blogname, $post->post_title );
@@ -1545,7 +1578,7 @@ function wp_notify_moderator($comment_id) {
 			$notify_message .= sprintf( __( 'E-mail: %s' ), $comment->comment_author_email ) . "\r\n";
 			$notify_message .= sprintf( __( 'URL: %s' ), $comment->comment_author_url ) . "\r\n";
 			$notify_message .= sprintf( __( 'Whois: %s' ), "http://whois.arin.net/rest/ip/{$comment->comment_author_IP}" ) . "\r\n";
-			$notify_message .= sprintf( __( 'Comment: %s' ), $comment->comment_content ) . "\r\n\r\n";
+			$notify_message .= sprintf( __( 'Comment: %s' ), "\r\n" . $comment->comment_content ) . "\r\n\r\n";
 			break;
 	}
 
@@ -2097,11 +2130,11 @@ if ( !function_exists( 'get_avatar' ) ) :
  * Retrieve the avatar `<img>` tag for a user, email address, MD5 hash, comment, or post.
  *
  * @since 2.5.0
- * @since 4.2.0 Optional $args parameter added.
+ * @since 4.2.0 Optional `$args` parameter added.
  *
  * @param mixed $id_or_email The Gravatar to retrieve. Accepts a user_id, gravatar md5 hash,
  *                           user email, WP_User object, WP_Post object, or comment object.
- * @param int    $size       Optional. Height and width of the avatar in pixels. Default 96.
+ * @param int    $size       Optional. Height and width of the avatar image file in pixels. Default 96.
  * @param string $default    Optional. URL for the default image or a default type. Accepts '404'
  *                           (return a 404 instead of a default image), 'retro' (8bit), 'monsterid'
  *                           (monster), 'wavatar' (cartoon face), 'indenticon' (the "quilt"),
@@ -2112,23 +2145,27 @@ if ( !function_exists( 'get_avatar' ) ) :
  * @param array  $args       {
  *     Optional. Extra arguments to retrieve the avatar.
  *
+ *     @type int          $height        Display height of the avatar in pixels. Defaults to $size.
+ *     @type int          $width         Display width of the avatar in pixels. Defaults to $size.
  *     @type bool         $force_default Whether to always show the default image, never the Gravatar. Default false.
  *     @type string       $rating        What rating to display avatars up to. Accepts 'G', 'PG', 'R', 'X', and are
  *                                       judged in that order. Default is the value of the 'avatar_rating' option.
- *     @type string       $scheme        URL scheme to use. See {@see set_url_scheme()} for accepted values.
+ *     @type string       $scheme        URL scheme to use. See set_url_scheme() for accepted values.
  *                                       Default null.
  *     @type array|string $class         Array or string of additional classes to add to the &lt;img&gt; element.
  *                                       Default null.
  *     @type bool         $force_display Whether to always show the avatar - ignores the show_avatars option.
  *                                       Default false.
+ *     @type string       $extra_attr    HTML attributes to insert in the IMG element. Is not sanitized. Default empty.
  * }
- *
  * @return false|string `<img>` tag for the user's avatar. False on failure.
  */
 function get_avatar( $id_or_email, $size = 96, $default = '', $alt = '', $args = null ) {
 	$defaults = array(
 		// get_avatar_data() args.
 		'size'          => 96,
+		'height'        => null,
+		'width'         => null,
 		'default'       => get_option( 'avatar_default', 'mystery' ),
 		'force_default' => false,
 		'rating'        => get_option( 'avatar_rating' ),
@@ -2136,31 +2173,40 @@ function get_avatar( $id_or_email, $size = 96, $default = '', $alt = '', $args =
 		'alt'           => '',
 		'class'         => null,
 		'force_display' => false,
+		'extra_attr'    => '',
 	);
 
 	if ( empty( $args ) ) {
 		$args = array();
 	}
 
-	$args['size']    = $size;
+	$args['size']    = (int) $size;
 	$args['default'] = $default;
 	$args['alt']     = $alt;
 
 	$args = wp_parse_args( $args, $defaults );
 
+	if ( empty( $args['height'] ) ) {
+		$args['height'] = $args['size'];
+	}
+	if ( empty( $args['width'] ) ) {
+		$args['width'] = $args['size'];
+	}
+
 	/**
 	 * Filter whether to retrieve the avatar URL early.
 	 *
-	 * Passing a non-null value will effectively short-circuit {@see get_avatar()},
-	 * passing the value through the 'pre_get_avatar' filter and returning early.
+	 * Passing a non-null value will effectively short-circuit get_avatar(), passing
+	 * the value through the {@see 'pre_get_avatar'} filter and returning early.
 	 *
 	 * @since 4.2.0
 	 *
-	 * @param string            $avatar        HTML for the user's avatar. Default null.
-	 * @param int|object|string $id_or_email   A user ID, email address, or comment object.
-	 * @param array             $args          Arguments passed to get_avatar_url(), after processing.
+	 * @param string            $avatar      HTML for the user's avatar. Default null.
+	 * @param int|object|string $id_or_email A user ID, email address, or comment object.
+	 * @param array             $args        Arguments passed to get_avatar_url(), after processing.
 	 */
 	$avatar = apply_filters( 'pre_get_avatar', null, $id_or_email, $args );
+
 	if ( ! is_null( $avatar ) ) {
 		/** This filter is documented in wp-includes/pluggable.php */
 		return apply_filters( 'get_avatar', $avatar, $id_or_email, $args['size'], $args['default'], $args['alt'], $args );
@@ -2169,6 +2215,8 @@ function get_avatar( $id_or_email, $size = 96, $default = '', $alt = '', $args =
 	if ( ! $args['force_display'] && ! get_option( 'show_avatars' ) ) {
 		return false;
 	}
+
+	$url2x = get_avatar_url( $id_or_email, array_merge( $args, array( 'size' => $args['size'] * 2 ) ) );
 
 	$args = get_avatar_data( $id_or_email, $args );
 
@@ -2193,26 +2241,28 @@ function get_avatar( $id_or_email, $size = 96, $default = '', $alt = '', $args =
 	}
 
 	$avatar = sprintf(
-		"<img alt='%s' src='%s' class='%s' height='%d' width='%d' />",
+		"<img alt='%s' src='%s' srcset='%s' class='%s' height='%d' width='%d' %s/>",
 		esc_attr( $args['alt'] ),
 		esc_url( $url ),
+		esc_attr( "$url2x 2x" ),
 		esc_attr( join( ' ', $class ) ),
-		(int) $args['size'],
-		(int) $args['size']
+		(int) $args['height'],
+		(int) $args['width'],
+		$args['extra_attr']
 	);
 
 	/**
 	 * Filter the avatar to retrieve.
 	 *
 	 * @since 2.5.0
-	 * @since 4.2.0 $args parameter added
+	 * @since 4.2.0 The `$args` parameter was added.
 	 *
-	 * @param string            $avatar         &lt;img&gt; tag for the user's avatar.
-	 * @param int|object|string $id_or_email    A user ID, email address, or comment object.
-	 * @param int               $size           Square avatar width and height in pixels to retrieve.
-	 * @param string            $alt            Alternative text to use in the avatar image tag.
-	 *                                          Default empty.
-	 * @param array             $args           Arguments passed to get_avatar_data(), after processing.
+	 * @param string            $avatar      &lt;img&gt; tag for the user's avatar.
+	 * @param int|object|string $id_or_email A user ID, email address, or comment object.
+	 * @param int               $size        Square avatar width and height in pixels to retrieve.
+	 * @param string            $alt         Alternative text to use in the avatar image tag.
+	 *                                       Default empty.
+	 * @param array             $args        Arguments passed to get_avatar_data(), after processing.
 	 */
 	return apply_filters( 'get_avatar', $avatar, $id_or_email, $args['size'], $args['default'], $args['alt'], $args );
 }

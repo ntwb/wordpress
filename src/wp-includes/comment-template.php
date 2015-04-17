@@ -1280,29 +1280,28 @@ function comments_popup_link( $zero = false, $one = false, $more = false, $css_c
 	global $wpcommentspopupfile, $wpcommentsjavascript;
 
 	$id = get_the_ID();
-	$span = '<span class="screen-reader-text">';
 	$title = get_the_title();
-	$span_close = '</span>';
-
 	$number = get_comments_number( $id );
 
 	if ( false === $zero ) {
-		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag */
-		$zero = sprintf( __( 'No Comments%1$s on %2$s%3$s' ), $span, $title, $span_close );
+		/* translators: %s: post title */
+		$zero = sprintf( __( 'No Comments<span class="screen-reader-text"> on %s</span>' ), $title );
 	}
+
 	if ( false === $one ) {
-		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag */
-		$one = sprintf( __( '1 Comment%1$s on %2$s%3$s' ), $span, $title, $span_close );
+		/* translators: %s: post title */
+		$one = sprintf( __( '1 Comment<span class="screen-reader-text"> on %s</span>' ), $title );
 	}
+
 	if ( false === $more ) {
-		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag, 4: number of comments */
-		$more = sprintf( _n( '%4$s Comment%1$s on %2$s%3$s', '%4$s Comments%1$s on %2$s%3$s', $number ),
-			$span, $title, $span_close, number_format_i18n( $number )
-		);
+		/* translators: 1: Number of comments 2: post title */
+		$more = _n( '%1$s Comment<span class="screen-reader-text"> on %2$s</span>', '%1$s Comments<span class="screen-reader-text"> on %2$s</span>', $number );
+		$more = sprintf( $more, number_format_i18n( $number ), $title );
 	}
+
 	if ( false === $none ) {
-		/* translators: 1: Opening span tag with a class, 2: post title, 3: closing span tag */
-		$none = sprintf( __( 'Comments Off%1$s on %2$s%3$s' ), $span, $title, $span_close );
+		/* translators: %s: post title */
+		$none = sprintf( __( 'Comments Off<span class="screen-reader-text"> on %s</span>' ), $title );
 	}
 
 	if ( 0 == $number && !comments_open() && !pings_open() ) {
@@ -2153,6 +2152,8 @@ function wp_list_comments( $args = array(), $comments = null ) {
  * in the array of fields.
  *
  * @since 3.0.0
+ * @since 4.1.0 Introduced the 'class_submit' argument.
+ * @since 4.2.0 Introduced 'submit_button' and 'submit_fields' arguments.
  *
  * @param array       $args {
  *     Optional. Default arguments and form fields to override.
@@ -2180,6 +2181,11 @@ function wp_list_comments( $args = array(), $comments = null ) {
  *                                        where %s is the author of the comment being replied to.
  *     @type string $cancel_reply_link    The translatable 'cancel reply' button label. Default 'Cancel reply'.
  *     @type string $label_submit         The translatable 'submit' button label. Default 'Post a comment'.
+ *     @type string $submit_button        HTML format for the Submit button.
+ *                                        Default: '<input name="%1$s" type="submit" id="%2$s" class="%3$s" value="%4$s" />'.
+ *     @type string $submit_field         HTML format for the markup surrounding the Submit button and comment hidden
+ *                                        fields. Default: '<p class="form-submit">%1$s %2$s</a>', where %1$s is the
+ *                                        submit button markup and %2$s is the comment hidden fields.
  *     @type string $format               The comment form format. Default 'xhtml'. Accepts 'xhtml', 'html5'.
  * }
  * @param int|WP_Post $post_id Post ID or WP_Post object to generate the form for. Default current post.
@@ -2236,6 +2242,8 @@ function comment_form( $args = array(), $post_id = null ) {
 		'title_reply_to'       => __( 'Leave a Reply to %s' ),
 		'cancel_reply_link'    => __( 'Cancel reply' ),
 		'label_submit'         => __( 'Post Comment' ),
+		'submit_button'        => '<input name="%1$s" type="submit" id="%2$s" class="%3$s" value="%4$s" />',
+		'submit_field'         => '<p class="form-submit">%1$s %2$s</p>',
 		'format'               => 'xhtml',
 	);
 
@@ -2350,11 +2358,45 @@ function comment_form( $args = array(), $post_id = null ) {
 						echo apply_filters( 'comment_form_field_comment', $args['comment_field'] );
 						?>
 						<?php echo $args['comment_notes_after']; ?>
-						<p class="form-submit">
-							<input name="<?php echo esc_attr( $args['name_submit'] ); ?>" type="submit" id="<?php echo esc_attr( $args['id_submit'] ); ?>" class="<?php echo esc_attr( $args['class_submit'] ); ?>" value="<?php echo esc_attr( $args['label_submit'] ); ?>" />
-							<?php comment_id_fields( $post_id ); ?>
-						</p>
+
 						<?php
+						$submit_button = sprintf(
+							$args['submit_button'],
+							esc_attr( $args['name_submit'] ),
+							esc_attr( $args['id_submit'] ),
+							esc_attr( $args['class_submit'] ),
+							esc_attr( $args['label_submit'] )
+						);
+
+						/**
+						 * Filter the submit button for the comment form to display.
+						 *
+						 * @since 4.2.0
+						 *
+						 * @param string $submit_button HTML markup for the submit button.
+						 * @param array  $args          Arguments passed to `comment_form()`.
+						 */
+						$submit_button = apply_filters( 'comment_form_submit_button', $submit_button, $args );
+
+						$submit_field = sprintf(
+							$args['submit_field'],
+							$submit_button,
+							get_comment_id_fields( $post_id )
+						);
+
+						/**
+						 * Filter the submit field for the comment form to display.
+						 *
+						 * The submit field includes the submit button, hidden fields for the
+						 * comment form, and any wrapper markup.
+						 *
+						 * @since 4.2.0
+						 *
+						 * @param string $submit_field HTML markup for the submit field.
+						 * @param array  $args         Arguments passed to comment_form().
+						 */
+						echo apply_filters( 'comment_form_submit_field', $submit_field, $args );
+
 						/**
 						 * Fires at the bottom of the comment form, inside the closing </form> tag.
 						 *

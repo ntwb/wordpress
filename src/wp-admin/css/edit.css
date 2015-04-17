@@ -59,7 +59,7 @@
 	height: 1.7em;
 	width: 100%;
 	outline: none;
-	margin: 0;
+	margin: 0 0 3px;
 	background-color: #fff;
 }
 
@@ -1063,15 +1063,6 @@ span.description,
   13.0 - Tags
 ------------------------------------------------------------------------------*/
 
-.tagsdiv {
-	margin-top: -8px;
-}
-
-#poststuff .taghint {
-	color: #aaa;
-	margin: 15px 0 -24px 12px;
-}
-
 #poststuff .tagsdiv .howto {
 	margin: 0 0 6px 0;
 }
@@ -1094,21 +1085,6 @@ span.description,
 
 #post-body-content .tagsdiv .the-tags {
 	margin: 0 5px;
-}
-
-/* tag hints */
-.taghint {
-	color: #aaa;
-	margin: -17px 0 0 7px;
-	visibility: hidden;
-}
-
-input.newtag ~ div.taghint {
-	visibility: visible;
-}
-
-input.newtag:focus ~ div.taghint {
-	visibility: hidden;
 }
 
 p.popular-tags {
@@ -1169,14 +1145,13 @@ p.popular-tags a {
 	height: 200px;
 }
 
-.comment-ays {
-	margin-bottom: 0;
-	border-bottom-style: solid;
-	border-bottom-width: 1px;
+.comment-ays th,
+.comment-ays td {
+	padding: 10px 15px;
 }
 
-.comment-ays .alt {
-	background-color: transparent;
+.comment-ays-submit .button-cancel {
+	margin-left: 1em;
 }
 
 .trash-undo-inside,
@@ -1310,20 +1285,11 @@ table.links-table {
 	transition-timing-function: ease-in-out;
 }
 
-/* @noflip */
 .focus-on #adminmenuback,
 .focus-on #adminmenuwrap {
 	-webkit-transform: translateX( -100% );
 	-ms-transform: translateX( -100% );
 	transform: translateX( -100% );
-}
-
-/* @noflip */
-.rtl.focus-on #adminmenuback,
-.rtl.focus-on #adminmenuwrap {
-	-webkit-transform: translateX( 100% );
-	-ms-transform: translateX( 100% );
-	transform: translateX( 100% );
 }
 
 .focus-off #adminmenuback,
@@ -1594,8 +1560,13 @@ table.links-table {
 	}
 
 	/* Moderate Comment */
-	.comment-ays {
-		border-bottom: none;
+	.comment-ays th,
+	.comment-ays td {
+		padding-bottom: 0;
+	}
+
+	.comment-ays td {
+		padding-top: 6px;
 	}
 
 	/* Links */

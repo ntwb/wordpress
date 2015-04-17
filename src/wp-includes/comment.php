@@ -218,9 +218,7 @@ function get_comment(&$comment, $output = OBJECT) {
  *
  * @since 2.7.0
  *
- * @global wpdb $wpdb WordPress database abstraction object.
- *
- * @param string|array $args Optional. Array or string of arguments. See {@see WP_Comment_Query::query()}
+ * @param string|array $args Optional. Array or string of arguments. See {@see WP_Comment_Query::parse_query()}
  *                           for information on accepted arguments. Default empty.
  * @return int|array List of comments or number of found comments if `$count` argument is true.
  */
@@ -232,7 +230,7 @@ function get_comments( $args = '' ) {
 /**
  * WordPress Comment Query class.
  *
- * See {@see WP_Comment_Query::query()} for accepted arguments.
+ * See WP_Comment_Query::__construct() for accepted arguments.
  *
  * @since 3.1.0
  */
@@ -265,11 +263,28 @@ class WP_Comment_Query {
 	public $date_query = false;
 
 	/**
+	 * Query vars set by the user.
+	 *
+	 * @since 3.1.0
+	 * @access public
 	 * @var array
 	 */
 	public $query_vars;
 
 	/**
+	 * Default values for query vars.
+	 *
+	 * @since 4.2.0
+	 * @access public
+	 * @var array
+	 */
+	public $query_var_defaults;
+
+	/**
+	 * List of comments located by the query.
+	 *
+	 * @since 4.0.0
+	 * @access public
 	 * @var array
 	 */
 	public $comments;
@@ -292,16 +307,15 @@ class WP_Comment_Query {
 	}
 
 	/**
-	 * Execute the query
+	 * Constructor.
 	 *
-	 * @since 3.1.0
-	 * @since 4.1.0 Introduced 'comment__in', 'comment__not_in', 'post_author__in',
-	 *              'post_author__not_in', 'author__in', 'author__not_in', 'post__in',
-	 *              'post__not_in', 'include_unapproved', 'type__in', and 'type__not_in'
-	 *              arguments to $query_vars.
+	 * Sets up the comment query, based on the query vars passed.
 	 *
-	 * @param string|array $query_vars {
-	 *     Optional. Array or query string of comment query parameters.
+	 * @since  4.2.0
+	 * @access public
+	 *
+	 * @param string|array $query {
+	 *     Optional. Array or query string of comment query parameters. Default empty.
 	 *
 	 *     @type string       $author_email        Comment author email address. Default empty.
 	 *     @type array        $author__in          Array of author IDs to include comments for. Default empty.
@@ -310,7 +324,7 @@ class WP_Comment_Query {
 	 *     @type array        $comment__not_in     Array of comment IDs to exclude. Default empty.
 	 *     @type bool         $count               Whether to return a comment count (true) or array of comment
 	 *                                             objects (false). Default false.
-	 *     @type array        $date_query          Date query clauses to limit comments by. See {@see WP_Date_Query}.
+	 *     @type array        $date_query          Date query clauses to limit comments by. See WP_Date_Query.
 	 *                                             Default null.
 	 *     @type string       $fields              Comment fields to return. Accepts 'ids' for comment IDs only or
 	 *                                             empty for all fields. Default empty.
@@ -322,7 +336,7 @@ class WP_Comment_Query {
 	 *     @type string       $meta_value          Include comments with a matching comment meta value. Requires
 	 *                                             `$meta_key` to be set. Default empty.
 	 *     @type array        $meta_query          Meta query clauses to limit retrieved comments by.
-	 *                                             See {@see WP_Meta_Query}. Default empty.
+	 *                                             See WP_Meta_Query. Default empty.
 	 *     @type int          $number              Maximum number of comments to retrieve. Default null (no limit).
 	 *     @type int          $offset              Number of comments to offset the query. Used to build LIMIT clause.
 	 *                                             Default 0.
@@ -363,12 +377,10 @@ class WP_Comment_Query {
 	 *     @type array        $type__not_in        Exclude comments from a given array of comment types. Default empty.
 	 *     @type int          $user_id             Include comments for a specific user ID. Default empty.
 	 * }
-	 * @return int|array Array of comments or number of found comments if `$count` is set to true.
+	 * @return WP_Comment_Query WP_Comment_Query instance.
 	 */
-	public function query( $query_vars ) {
-		global $wpdb;
-
-		$defaults = array(
+	public function __construct( $query = '' ) {
+		$this->query_var_defaults = array(
 			'author_email' => '',
 			'author__in' => '',
 			'author__not_in' => '',
@@ -407,9 +419,64 @@ class WP_Comment_Query {
 			'date_query' => null, // See WP_Date_Query
 		);
 
+		if ( ! empty( $query ) ) {
+			$this->query( $query );
+		}
+	}
+
+	/**
+	 * Parse arguments passed to the comment query with default query parameters.
+	 *
+	 * @since  4.2.0 Extracted from WP_Comment_Query::query().
+	 *
+	 * @access public
+	 *
+	 * @param string|array $query WP_Comment_Query arguments. See WP_Comment_Query::__construct()
+	 */
+	public function parse_query( $query = '' ) {
+		if ( empty( $query ) ) {
+			$query = $this->query_vars;
+		}
+
+		$this->query_vars = wp_parse_args( $query, $this->query_var_defaults );
+		do_action_ref_array( 'parse_comment_query', array( &$this ) );
+	}
+
+	/**
+	 * Sets up the WordPress query for retrieving comments.
+	 *
+	 * @since 3.1.0
+	 * @since 4.1.0 Introduced 'comment__in', 'comment__not_in', 'post_author__in',
+	 *              'post_author__not_in', 'author__in', 'author__not_in', 'post__in',
+	 *              'post__not_in', 'include_unapproved', 'type__in', and 'type__not_in'
+	 *              arguments to $query_vars.
+	 * @since 4.2.0 Moved parsing to WP_Comment_Query::parse_query().
+	 * @access public
+	 *
+	 * @param string|array $query Array or URL query string of parameters.
+	 * @return array List of comments.
+	 */
+	public function query( $query ) {
+		$this->query_vars = wp_parse_args( $query );
+		return $this->get_comments();
+	}
+
+	/**
+	 * Get a list of comments matching the query vars.
+	 *
+	 * @since 4.2.0
+	 * @access public
+	 *
+	 * @global wpdb $wpdb WordPress database abstraction object.
+	 *
+	 * @return array The list of comments.
+	 */
+	public function get_comments() {
+		global $wpdb;
+
 		$groupby = '';
 
-		$this->query_vars = wp_parse_args( $query_vars, $defaults );
+		$this->parse_query();
 
 		// Parse meta query
 		$this->meta_query = new WP_Meta_Query();
@@ -428,8 +495,8 @@ class WP_Comment_Query {
 		 */
 		do_action_ref_array( 'pre_get_comments', array( &$this ) );
 
-		// $args can be whatever, only use the args defined in defaults to compute the key
-		$key = md5( serialize( wp_array_slice_assoc( $this->query_vars, array_keys( $defaults ) ) )  );
+		// $args can include anything. Only use the args defined in the query_var_defaults to compute the key.
+		$key = md5( serialize( wp_array_slice_assoc( $this->query_vars, array_keys( $this->query_var_defaults ) ) ) );
 		$last_changed = wp_cache_get( 'last_changed', 'comment' );
 		if ( ! $last_changed ) {
 			$last_changed = microtime();
@@ -438,7 +505,8 @@ class WP_Comment_Query {
 		$cache_key = "get_comments:$key:$last_changed";
 
 		if ( $cache = wp_cache_get( $cache_key, 'comment' ) ) {
-			return $cache;
+			$this->comments = $cache;
+			return $this->comments;
 		}
 
 		$where = array();
@@ -826,7 +894,8 @@ class WP_Comment_Query {
 
 		wp_cache_add( $cache_key, $comments, 'comment' );
 
-		return $comments;
+		$this->comments = $comments;
+		return $this->comments;
 	}
 
 	/**
@@ -1062,7 +1131,7 @@ function get_comment_count( $post_id = 0 ) {
  * Add meta data field to a comment.
  *
  * @since 2.9.0
- * @link http://codex.wordpress.org/Function_Reference/add_comment_meta
+ * @link https://codex.wordpress.org/Function_Reference/add_comment_meta
  *
  * @param int $comment_id Comment ID.
  * @param string $meta_key Metadata name.
@@ -1082,7 +1151,7 @@ function add_comment_meta($comment_id, $meta_key, $meta_value, $unique = false) 
  * allows removing all metadata matching key, if needed.
  *
  * @since 2.9.0
- * @link http://codex.wordpress.org/Function_Reference/delete_comment_meta
+ * @link https://codex.wordpress.org/Function_Reference/delete_comment_meta
  *
  * @param int $comment_id comment ID
  * @param string $meta_key Metadata name.
@@ -1097,7 +1166,7 @@ function delete_comment_meta($comment_id, $meta_key, $meta_value = '') {
  * Retrieve comment meta field for a comment.
  *
  * @since 2.9.0
- * @link http://codex.wordpress.org/Function_Reference/get_comment_meta
+ * @link https://codex.wordpress.org/Function_Reference/get_comment_meta
  *
  * @param int $comment_id Comment ID.
  * @param string $key Optional. The meta key to retrieve. By default, returns data for all keys.
@@ -1118,7 +1187,7 @@ function get_comment_meta($comment_id, $key = '', $single = false) {
  * If the meta field for the comment does not exist, it will be added.
  *
  * @since 2.9.0
- * @link http://codex.wordpress.org/Function_Reference/update_comment_meta
+ * @link https://codex.wordpress.org/Function_Reference/update_comment_meta
  *
  * @param int $comment_id Comment ID.
  * @param string $meta_key Metadata key.
@@ -2053,7 +2122,7 @@ function wp_insert_comment( $commentdata ) {
 
 		foreach( $fields as $field ) {
 			if ( isset( $compacted[ $field ] ) ) {
-				$post_data[ $field ] = $wpdb->strip_invalid_text_for_column( $wpdb->comments, $field, $compacted[ $field ] );
+				$compacted[ $field ] = $wpdb->strip_invalid_text_for_column( $wpdb->comments, $field, $compacted[ $field ] );
 			}
 		}
 
@@ -2212,8 +2281,13 @@ function wp_new_comment( $commentdata ) {
 	$commentdata['comment_author_IP'] = preg_replace( '/[^0-9a-fA-F:., ]/', '',$_SERVER['REMOTE_ADDR'] );
 	$commentdata['comment_agent']     = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( $_SERVER['HTTP_USER_AGENT'], 0, 254 ) : '';
 
-	$commentdata['comment_date']     = current_time('mysql');
-	$commentdata['comment_date_gmt'] = current_time('mysql', 1);
+	if ( empty( $commentdata['comment_date'] ) ) {
+		$commentdata['comment_date'] = current_time('mysql');
+	}
+
+	if ( empty( $commentdata['comment_date_gmt'] ) ) {
+		$commentdata['comment_date_gmt'] = current_time( 'mysql', 1 );
+	}
 
 	$commentdata = wp_filter_comment($commentdata);
 

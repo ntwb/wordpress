@@ -51,7 +51,7 @@ get_current_screen()->add_help_tab( array(
 
 get_current_screen()->set_help_sidebar(
     '<p><strong>' . __('For more information:') . '</strong></p>' .
-    '<p>' . __('<a href="http://codex.wordpress.org/Users_Your_Profile_Screen" target="_blank">Documentation on User Profiles</a>') . '</p>' .
+    '<p>' . __('<a href="https://codex.wordpress.org/Users_Your_Profile_Screen" target="_blank">Documentation on User Profiles</a>') . '</p>' .
     '<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
@@ -186,7 +186,7 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 	<div class="updated"><p><strong><?php _e('Important:'); ?></strong> <?php _e('This user has super admin privileges.'); ?></p></div>
 <?php } ?>
 <?php if ( isset($_GET['updated']) ) : ?>
-<div id="message" class="updated">
+<div id="message" class="updated notice is-dismissible">
 	<?php if ( IS_PROFILE_PAGE ) : ?>
 	<p><strong><?php _e('Profile updated.') ?></strong></p>
 	<?php else: ?>
@@ -262,7 +262,7 @@ endif; // $_wp_admin_css_colors
 if ( !( IS_PROFILE_PAGE && !$user_can_edit ) ) : ?>
 <tr class="user-comment-shortcuts-wrap">
 <th scope="row"><?php _e( 'Keyboard Shortcuts' ); ?></th>
-<td><label for="comment_shortcuts"><input type="checkbox" name="comment_shortcuts" id="comment_shortcuts" value="true" <?php if ( ! empty( $profileuser->comment_shortcuts ) ) checked( 'true', $profileuser->comment_shortcuts ); ?> /> <?php _e('Enable keyboard shortcuts for comment moderation.'); ?></label> <?php _e('<a href="http://codex.wordpress.org/Keyboard_Shortcuts" target="_blank">More information</a>'); ?></td>
+<td><label for="comment_shortcuts"><input type="checkbox" name="comment_shortcuts" id="comment_shortcuts" value="true" <?php if ( ! empty( $profileuser->comment_shortcuts ) ) checked( 'true', $profileuser->comment_shortcuts ); ?> /> <?php _e('Enable keyboard shortcuts for comment moderation.'); ?></label> <?php _e('<a href="https://codex.wordpress.org/Keyboard_Shortcuts" target="_blank">More information</a>'); ?></td>
 </tr>
 <?php endif; ?>
 <tr class="show-admin-bar user-admin-bar-front-wrap">
@@ -315,7 +315,7 @@ do_action( 'personal_options', $profileuser );
 <?php
 // Compare user role against currently editable roles
 $user_roles = array_intersect( array_values( $profileuser->roles ), array_keys( get_editable_roles() ) );
-$user_role  = array_shift( $user_roles );
+$user_role  = reset( $user_roles );
 
 // print the full list of roles with the primary one selected.
 wp_dropdown_roles($user_role);

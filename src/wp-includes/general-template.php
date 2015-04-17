@@ -609,7 +609,13 @@ function get_bloginfo( $show = '', $filter = 'raw' ) {
 	switch( $show ) {
 		case 'home' : // DEPRECATED
 		case 'siteurl' : // DEPRECATED
-			_deprecated_argument( __FUNCTION__, '2.2', sprintf( __('The <code>%s</code> option is deprecated for the family of <code>bloginfo()</code> functions.' ), $show ) . ' ' . sprintf( __( 'Use the <code>%s</code> option instead.' ), 'url'  ) );
+			_deprecated_argument( __FUNCTION__, '2.2', sprintf(
+				/* translators: 1: 'siteurl'/'home' argument, 2: bloginfo() function name, 3: 'url' argument */
+				__( 'The %1$s option is deprecated for the family of %2$s functions. Use the %3$s option instead.' ),
+				'<code>' . $show . '</code>',
+				'<code>bloginfo()</code>',
+				'<code>url</code>'
+			) );
 		case 'url' :
 			$output = home_url();
 			break;
@@ -669,7 +675,13 @@ function get_bloginfo( $show = '', $filter = 'raw' ) {
 			$output = str_replace('_', '-', $output);
 			break;
 		case 'text_direction':
-			//_deprecated_argument( __FUNCTION__, '2.2', sprintf( __('The <code>%s</code> option is deprecated for the family of <code>bloginfo()</code> functions.' ), $show ) . ' ' . sprintf( __( 'Use the <code>%s</code> function instead.' ), 'is_rtl()'  ) );
+			_deprecated_argument( __FUNCTION__, '2.2', sprintf(
+				/* translators: 1: 'text_direction' argument, 2: bloginfo() function name, 3: is_rtl() function name */
+				__( 'The %1$s option is deprecated for the family of %2$s functions. Use the %3$s function instead.' ),
+				'<code>' . $show . '</code>',
+				'<code>bloginfo()</code>',
+				'<code>is_rtl()</code>'
+			) );
 			if ( function_exists( 'is_rtl' ) ) {
 				$output = is_rtl() ? 'rtl' : 'ltr';
 			} else {
@@ -2578,7 +2590,28 @@ function language_attributes($doctype = 'html') {
  *
  * @since 2.1.0
  *
- * @param string|array $args Optional. Override defaults.
+ * @param string|array $args {
+ *     Optional. Array or string of arguments for generating paginated links for archives.
+ *
+ *     @type string $base               Base of the paginated url. Default empty.
+ *     @type string $format             Format for the pagination structure. Default empty.
+ *     @type int    $total              The total amount of pages. Default is the value WP_Query's
+ *                                      `max_num_pages` or 1.
+ *     @type int    $current            The current page number. Default is 'paged' query var or 1.
+ *     @type bool   $show_all           Whether to show all pages. Default false.
+ *     @type int    $end_size           How many numbers on either the start and the end list edges.
+ *                                      Default 1.
+ *     @type int    $mid_size           How many numbers to either side of the current pages. Default 2.
+ *     @type bool   $prev_next          Whether to include the previous and next links in the list. Default true.
+ *     @type bool   $prev_text          The previous page text. Default '« Previous'.
+ *     @type bool   $next_text          The next page text. Default '« Previous'.
+ *     @type string $type               Controls format of the returned value. Possible values are 'plain',
+ *                                      'array' and 'list'. Default is 'plain'.
+ *     @type array  $add_args           An array of query args to add. Default false.
+ *     @type string $add_fragment       A string to append to each link. Default empty.
+ *     @type string $before_page_number A string to appear before the page number. Default empty.
+ *     @type string $after_page_number  A string to append after the page number. Default empty.
+ * }
  * @return array|string String of page links or array of page links.
  */
 function paginate_links( $args = '' ) {
@@ -2761,8 +2794,8 @@ function register_admin_color_schemes() {
 
 	wp_admin_css_color( 'fresh', _x( 'Default', 'admin color scheme' ),
 		false,
-		array( '#222', '#333', '#0074a2', '#2ea2cc' ),
-		array( 'base' => '#999', 'focus' => '#2ea2cc', 'current' => '#fff' )
+		array( '#222', '#333', '#0073aa', '#00a0d2' ),
+		array( 'base' => '#999', 'focus' => '#00a0d2', 'current' => '#fff' )
 	);
 
 	// Other color schemes are not available when running out of src

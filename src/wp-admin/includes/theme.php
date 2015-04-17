@@ -409,8 +409,26 @@ function themes_api( $action, $args = null ) {
 function wp_prepare_themes_for_js( $themes = null ) {
 	$current_theme = get_stylesheet();
 
+	/**
+	 * Filter theme data before it is prepared for JavaScript.
+	 *
+	 * Passing a non-empty array will result in wp_prepare_themes_for_js() returning
+	 * early with that value instead.
+	 *
+	 * @since 4.2.0
+	 *
+	 * @param array      $prepared_themes An associative array of theme data. Default empty array.
+	 * @param null|array $themes          An array of WP_Theme objects to prepare, if any.
+	 * @param string     $current_theme   The current theme slug.
+	 */
+	$prepared_themes = (array) apply_filters( 'pre_wp_prepare_themes_for_js', array(), $themes, $current_theme );
+
+	if ( ! empty( $prepared_themes ) ) {
+		return $prepared_themes;
+	}
+
 	// Make sure the current theme is listed first.
-	$prepared_themes = array( $current_theme => array() );
+	$prepared_themes[ $current_theme ] = array();
 
 	if ( null === $themes ) {
 		$themes = wp_get_themes( array( 'allowed' => true ) );
@@ -486,3 +504,60 @@ function wp_prepare_themes_for_js( $themes = null ) {
 	$prepared_themes = apply_filters( 'wp_prepare_themes_for_js', $prepared_themes );
 	return array_values( $prepared_themes );
 }
+
+/**
+ * Print JS templates for the theme-browsing UI in the Customizer.
+ *
+ * @since 4.2.0
+ */
+function customize_themes_print_templates() {
+	$preview_url = esc_url( add_query_arg( 'theme', '__THEME__' ) ); // Token because esc_url() strips curly braces.
+	$preview_url = str_replace( '__THEME__', '{{ data.id }}', $preview_url );
+	?>
+	<script type="text/html" id="tmpl-customize-themes-details-view">
+		<div class="theme-backdrop"></div>
+		<div class="theme-wrap">
+			<div class="theme-header">
+				<button type="button" class="left dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show previous theme' ); ?></span></button>
+				<button type="button" class="right dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show next theme' ); ?></span></button>
+				<button type="button" class="close dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Close details dialog' ); ?></span></button>
+			</div>
+			<div class="theme-about">
+				<div class="theme-screenshots">
+				<# if ( data.screenshot[0] ) { #>
+					<div class="screenshot"><img src="{{ data.screenshot[0] }}" alt="" /></div>
+				<# } else { #>
+					<div class="screenshot blank"></div>
+				<# } #>
+				</div>
+
+				<div class="theme-info">
+					<# if ( data.active ) { #>
+						<span class="current-label"><?php _e( 'Current Theme' ); ?></span>
+					<# } #>
+					<h3 class="theme-name">{{{ data.name }}}<span class="theme-version"><?php printf( __( 'Version: %s' ), '{{ data.version }}' ); ?></span></h3>
+					<h4 class="theme-author"><?php printf( __( 'By %s' ), '{{{ data.authorAndUri }}}' ); ?></h4>
+					<p class="theme-description">{{{ data.description }}}</p>
+
+					<# if ( data.parent ) { #>
+						<p class="parent-theme"><?php printf( __( 'This is a child theme of %s.' ), '<strong>{{{ data.parent }}}</strong>' ); ?></p>
+					<# } #>
+
+					<# if ( data.tags ) { #>
+						<p class="theme-tags"><span><?php _e( 'Tags:' ); ?></span> {{ data.tags }}</p>
+					<# } #>
+				</div>
+			</div>
+
+			<# if ( ! data.active ) { #>
+				<div class="theme-actions">
+					<div class="inactive-theme">
+						<a href="<?php echo $preview_url; ?>" target="_top" class="button button-primary"><?php _e( 'Live Preview' ); ?></a>
+					</div>
+				</div>
+			<# } #>
+		</div>
+	</script>
+	<?php
+}
+add_action( 'customize_controls_print_footer_scripts', 'customize_themes_print_templates' );

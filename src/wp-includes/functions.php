@@ -781,8 +781,9 @@ function add_query_arg() {
 	wp_parse_str( $query, $qs );
 	$qs = urlencode_deep( $qs ); // this re-URL-encodes things that were already in the query string
 	if ( is_array( $args[0] ) ) {
-		$kayvees = $args[0];
-		$qs = array_merge( $qs, $kayvees );
+		foreach ( $args[0] as $k => $v ) {
+			$qs[ $k ] = $v;
+		}
 	} else {
 		$qs[ $args[0] ] = $args[1];
 	}
@@ -1516,7 +1517,7 @@ function wp_mkdir_p( $target ) {
 		 */
 		if ( $dir_perms != ( $dir_perms & ~umask() ) ) {
 			$folder_parts = explode( '/', substr( $target, strlen( $target_parent ) + 1 ) );
-			for ( $i = 1; $i <= count( $folder_parts ); $i++ ) {
+			for ( $i = 1, $c = count( $folder_parts ); $i <= $c; $i++ ) {
 				@chmod( $target_parent . '/' . implode( '/', array_slice( $folder_parts, 0, $i ) ), $dir_perms );
 			}
 		}
@@ -2019,7 +2020,7 @@ function wp_ext2type( $ext ) {
 		'image'       => array( 'jpg', 'jpeg', 'jpe',  'gif',  'png',  'bmp',   'tif',  'tiff', 'ico' ),
 		'audio'       => array( 'aac', 'ac3',  'aif',  'aiff', 'm3a',  'm4a',   'm4b',  'mka',  'mp1',  'mp2',  'mp3', 'ogg', 'oga', 'ram', 'wav', 'wma' ),
 		'video'       => array( '3g2',  '3gp', '3gpp', 'asf', 'avi',  'divx', 'dv',   'flv',  'm4v',   'mkv',  'mov',  'mp4',  'mpeg', 'mpg', 'mpv', 'ogm', 'ogv', 'qt',  'rm', 'vob', 'wmv' ),
-		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf',  'xps',  'oxps', 'rtf',  'wp', 'wpd', 'psd' ),
+		'document'    => array( 'doc', 'docx', 'docm', 'dotm', 'odt',  'pages', 'pdf',  'xps',  'oxps', 'rtf',  'wp', 'wpd', 'psd', 'xcf' ),
 		'spreadsheet' => array( 'numbers',     'ods',  'xls',  'xlsx', 'xlsm',  'xlsb' ),
 		'interactive' => array( 'swf', 'key',  'ppt',  'pptx', 'pptm', 'pps',   'ppsx', 'ppsm', 'sldx', 'sldm', 'odp' ),
 		'text'        => array( 'asc', 'csv',  'tsv',  'txt' ),
@@ -2156,6 +2157,7 @@ function wp_check_filetype_and_ext( $file, $filename, $mimes = null ) {
  * Retrieve list of mime types and file extensions.
  *
  * @since 3.5.0
+ * @since 4.2.0 Support was added for GIMP (xcf) files.
  *
  * @return array Array of mime types keyed by the file extension regex corresponding to those types.
  */
@@ -2227,6 +2229,7 @@ function wp_get_mime_types() {
 	'7z' => 'application/x-7z-compressed',
 	'exe' => 'application/x-msdownload',
 	'psd' => 'application/octet-stream',
+	'xcf' => 'application/octet-stream',
 	// MS Office formats.
 	'doc' => 'application/msword',
 	'pot|pps|ppt' => 'application/vnd.ms-powerpoint',
@@ -2904,8 +2907,14 @@ function _config_wp_siteurl( $url = '' ) {
 function _mce_set_direction( $input ) {
 	if ( is_rtl() ) {
 		$input['directionality'] = 'rtl';
-		$input['plugins'] .= ',directionality';
-		$input['toolbar1'] .= ',ltr';
+
+		if ( ! empty( $input['plugins'] ) && strpos( $input['plugins'], 'directionality' ) === false ) {
+			$input['plugins'] .= ',directionality';
+		}
+
+		if ( ! empty( $input['toolbar1'] ) && ! preg_match( '/\bltr\b/', $input['toolbar1'] ) ) {
+			$input['toolbar1'] .= ',ltr';
+		}
 	}
 
 	return $input;
@@ -2943,51 +2952,51 @@ function smilies_init() {
 
 	if ( !isset( $wpsmiliestrans ) ) {
 		$wpsmiliestrans = array(
-		':mrgreen:' => 'icon_mrgreen.gif',
-		':neutral:' => 'icon_neutral.gif',
-		':twisted:' => 'icon_twisted.gif',
-		  ':arrow:' => 'icon_arrow.gif',
-		  ':shock:' => 'icon_eek.gif',
-		  ':smile:' => 'icon_smile.gif',
-		    ':???:' => 'icon_confused.gif',
-		   ':cool:' => 'icon_cool.gif',
-		   ':evil:' => 'icon_evil.gif',
-		   ':grin:' => 'icon_biggrin.gif',
-		   ':idea:' => 'icon_idea.gif',
-		   ':oops:' => 'icon_redface.gif',
-		   ':razz:' => 'icon_razz.gif',
-		   ':roll:' => 'icon_rolleyes.gif',
-		   ':wink:' => 'icon_wink.gif',
-		    ':cry:' => 'icon_cry.gif',
-		    ':eek:' => 'icon_surprised.gif',
-		    ':lol:' => 'icon_lol.gif',
-		    ':mad:' => 'icon_mad.gif',
-		    ':sad:' => 'icon_sad.gif',
-		      '8-)' => 'icon_cool.gif',
-		      '8-O' => 'icon_eek.gif',
-		      ':-(' => 'icon_sad.gif',
-		      ':-)' => 'icon_smile.gif',
-		      ':-?' => 'icon_confused.gif',
-		      ':-D' => 'icon_biggrin.gif',
-		      ':-P' => 'icon_razz.gif',
-		      ':-o' => 'icon_surprised.gif',
-		      ':-x' => 'icon_mad.gif',
-		      ':-|' => 'icon_neutral.gif',
-		      ';-)' => 'icon_wink.gif',
+		':mrgreen:' => 'mrgreen.png',
+		':neutral:' => "\xf0\x9f\x98\x90",
+		':twisted:' => "\xf0\x9f\x98\x88",
+		  ':arrow:' => "\xe2\x9e\xa1",
+		  ':shock:' => "\xf0\x9f\x98\xaf",
+		  ':smile:' => 'simple-smile.png',
+		    ':???:' => "\xf0\x9f\x98\x95",
+		   ':cool:' => "\xf0\x9f\x98\x8e",
+		   ':evil:' => "\xf0\x9f\x91\xbf",
+		   ':grin:' => "\xf0\x9f\x98\x80",
+		   ':idea:' => "\xf0\x9f\x92\xa1",
+		   ':oops:' => "\xf0\x9f\x98\xb3",
+		   ':razz:' => "\xf0\x9f\x98\x9b",
+		   ':roll:' => 'rolleyes.png',
+		   ':wink:' => "\xf0\x9f\x98\x89",
+		    ':cry:' => "\xf0\x9f\x98\xa5",
+		    ':eek:' => "\xf0\x9f\x98\xae",
+		    ':lol:' => "\xf0\x9f\x98\x86",
+		    ':mad:' => "\xf0\x9f\x98\xa1",
+		    ':sad:' => 'frownie.png',
+		      '8-)' => "\xf0\x9f\x98\x8e",
+		      '8-O' => "\xf0\x9f\x98\xaf",
+		      ':-(' => 'frownie.png',
+		      ':-)' => 'simple-smile.png',
+		      ':-?' => "\xf0\x9f\x98\x95",
+		      ':-D' => "\xf0\x9f\x98\x80",
+		      ':-P' => "\xf0\x9f\x98\x9b",
+		      ':-o' => "\xf0\x9f\x98\xae",
+		      ':-x' => "\xf0\x9f\x98\xa1",
+		      ':-|' => "\xf0\x9f\x98\x90",
+		      ';-)' => "\xf0\x9f\x98\x89",
 		// This one transformation breaks regular text with frequency.
-		//     '8)' => 'icon_cool.gif',
-		       '8O' => 'icon_eek.gif',
-		       ':(' => 'icon_sad.gif',
-		       ':)' => 'icon_smile.gif',
-		       ':?' => 'icon_confused.gif',
-		       ':D' => 'icon_biggrin.gif',
-		       ':P' => 'icon_razz.gif',
-		       ':o' => 'icon_surprised.gif',
-		       ':x' => 'icon_mad.gif',
-		       ':|' => 'icon_neutral.gif',
-		       ';)' => 'icon_wink.gif',
-		      ':!:' => 'icon_exclaim.gif',
-		      ':?:' => 'icon_question.gif',
+		//     '8)' => "\xf0\x9f\x98\x8e",
+		       '8O' => "\xf0\x9f\x98\xaf",
+		       ':(' => 'frownie.png',
+		       ':)' => 'simple-smile.png',
+		       ':?' => "\xf0\x9f\x98\x95",
+		       ':D' => "\xf0\x9f\x98\x80",
+		       ':P' => "\xf0\x9f\x98\x9b",
+		       ':o' => "\xf0\x9f\x98\xae",
+		       ':x' => "\xf0\x9f\x98\xa1",
+		       ':|' => "\xf0\x9f\x98\x90",
+		       ';)' => "\xf0\x9f\x98\x89",
+		      ':!:' => "\xe2\x9d\x97",
+		      ':?:' => "\xe2\x9d\x93",
 		);
 	}
 
@@ -3547,11 +3556,11 @@ function _doing_it_wrong( $function, $message, $version ) {
 	if ( WP_DEBUG && apply_filters( 'doing_it_wrong_trigger_error', true ) ) {
 		if ( function_exists( '__' ) ) {
 			$version = is_null( $version ) ? '' : sprintf( __( '(This message was added in version %s.)' ), $version );
-			$message .= ' ' . __( 'Please see <a href="http://codex.wordpress.org/Debugging_in_WordPress">Debugging in WordPress</a> for more information.' );
+			$message .= ' ' . __( 'Please see <a href="https://codex.wordpress.org/Debugging_in_WordPress">Debugging in WordPress</a> for more information.' );
 			trigger_error( sprintf( __( '%1$s was called <strong>incorrectly</strong>. %2$s %3$s' ), $function, $message, $version ) );
 		} else {
 			$version = is_null( $version ) ? '' : sprintf( '(This message was added in version %s.)', $version );
-			$message .= ' Please see <a href="http://codex.wordpress.org/Debugging_in_WordPress">Debugging in WordPress</a> for more information.';
+			$message .= ' Please see <a href="https://codex.wordpress.org/Debugging_in_WordPress">Debugging in WordPress</a> for more information.';
 			trigger_error( sprintf( '%1$s was called <strong>incorrectly</strong>. %2$s %3$s', $function, $message, $version ) );
 		}
 	}
@@ -4117,8 +4126,10 @@ function _cleanup_header_comment( $str ) {
 }
 
 /**
- * Permanently delete posts, pages, attachments, and comments which have been
- * in the trash for EMPTY_TRASH_DAYS.
+ * Permanently delete comments or posts of any type that have held a status
+ * of 'trash' for the number of days defined in EMPTY_TRASH_DAYS.
+ *
+ * The default value of `EMPTY_TRASH_DAYS` is 30 (days).
  *
  * @since 2.9.0
  */
@@ -4172,7 +4183,7 @@ function wp_scheduled_delete() {
  * If the file data is not within that first 8kiB, then the author should correct
  * their plugin file and move the data headers to the top.
  *
- * @link http://codex.wordpress.org/File_Header
+ * @link https://codex.wordpress.org/File_Header
  *
  * @since 2.9.0
  *
@@ -4812,4 +4823,25 @@ function wp_validate_boolean( $var ) {
 	}
 
 	return (bool) $var;
+}
+
+/**
+ * Delete a file
+ *
+ * @since 4.2.0
+ *
+ * @param string $file The path to the file to delete.
+ */
+function wp_delete_file( $file ) {
+	/**
+	 * Filter the path of the file to delete.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $medium Path to the file to delete.
+	 */
+	$delete = apply_filters( 'wp_delete_file', $file );
+	if ( ! empty( $delete ) ) {
+		@unlink( $delete );
+	}
 }

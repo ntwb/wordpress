@@ -4,7 +4,7 @@
  *
  * Displays posts from Aside, Quote, Video, Audio, Image, Gallery, and Link formats.
  *
- * @link http://codex.wordpress.org/Widgets_API#Developing_Widgets
+ * @link https://codex.wordpress.org/Widgets_API#Developing_Widgets
  *
  * @package WordPress
  * @subpackage Twenty_Fourteen
@@ -149,7 +149,7 @@ class Twenty_Fourteen_Ephemera_Widget extends WP_Widget {
 									if ( has_post_thumbnail() ) :
 										$post_thumbnail = get_the_post_thumbnail();
 									elseif ( $total_images > 0 ) :
-										$image          = current( $images );
+										$image          = reset( $images );
 										$post_thumbnail = wp_get_attachment_image( $image, 'post-thumbnail' );
 									endif;
 

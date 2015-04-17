@@ -162,7 +162,7 @@ echo esc_html( $visibility_trans ); ?></span>
 
 <?php
 /* translators: Publish box date format, see http://php.net/date */
-$datef = __( 'M j, Y @ G:i' );
+$datef = __( 'M j, Y @ H:i' );
 if ( 0 != $post->ID ) {
 	if ( 'future' == $post->post_status ) { // scheduled for publishing at a future date
 		$stamp = __('Scheduled for: <b>%1$s</b>');
@@ -293,7 +293,7 @@ function attachment_submit_meta_box( $post ) {
 <div id="misc-publishing-actions">
 	<?php
 	/* translators: Publish box date format, see http://php.net/date */
-	$datef = __( 'M j, Y @ G:i' );
+	$datef = __( 'M j, Y @ H:i' );
 	$stamp = __('Uploaded on: <b>%1$s</b>');
 	$date = date_i18n( $datef, strtotime( $post->post_date ) );
 	?>
@@ -418,7 +418,6 @@ function post_tags_meta_box( $post, $box ) {
  	<?php if ( $user_can_assign_terms ) : ?>
 	<div class="ajaxtag hide-if-no-js">
 		<label class="screen-reader-text" for="new-tag-<?php echo $tax_name; ?>"><?php echo $box['title']; ?></label>
-		<div class="taghint"><?php echo $taxonomy->labels->add_new_item; ?></div>
 		<p><input type="text" id="new-tag-<?php echo $tax_name; ?>" name="newtag[<?php echo $tax_name; ?>]" class="newtag form-input-tip" size="16" autocomplete="off" value="" />
 		<input type="button" class="button tagadd" value="<?php esc_attr_e('Add'); ?>" /></p>
 	</div>
@@ -523,7 +522,7 @@ function post_categories_meta_box( $post, $box ) {
 function post_excerpt_meta_box($post) {
 ?>
 <label class="screen-reader-text" for="excerpt"><?php _e('Excerpt') ?></label><textarea rows="1" cols="40" name="excerpt" id="excerpt"><?php echo $post->post_excerpt; // textarea_escaped ?></textarea>
-<p><?php _e('Excerpts are optional hand-crafted summaries of your content that can be used in your theme. <a href="http://codex.wordpress.org/Excerpt" target="_blank">Learn more about manual excerpts.</a>'); ?></p>
+<p><?php _e('Excerpts are optional hand-crafted summaries of your content that can be used in your theme. <a href="https://codex.wordpress.org/Excerpt" target="_blank">Learn more about manual excerpts.</a>'); ?></p>
 <?php
 }
 
@@ -547,7 +546,7 @@ function post_trackback_meta_box($post) {
 
 ?>
 <p><label for="trackback_url"><?php _e('Send trackbacks to:'); ?></label> <?php echo $form_trackback; ?><br /> (<?php _e('Separate multiple URLs with spaces'); ?>)</p>
-<p><?php _e('Trackbacks are a way to notify legacy blog systems that you&#8217;ve linked to them. If you link other WordPress sites they&#8217;ll be notified automatically using <a href="http://codex.wordpress.org/Introduction_to_Blogging#Managing_Comments" target="_blank">pingbacks</a>, no other action necessary.'); ?></p>
+<p><?php _e('Trackbacks are a way to notify legacy blog systems that you&#8217;ve linked to them. If you link other WordPress sites, they&#8217;ll be notified automatically using <a href="https://codex.wordpress.org/Introduction_to_Blogging#Managing_Comments" target="_blank">pingbacks</a>, no other action necessary.'); ?></p>
 <?php
 if ( ! empty($pings) )
 	echo $pings;
@@ -573,7 +572,7 @@ foreach ( $metadata as $key => $value ) {
 list_meta( $metadata );
 meta_form( $post ); ?>
 </div>
-<p><?php _e('Custom fields can be used to add extra metadata to a post that you can <a href="http://codex.wordpress.org/Using_Custom_Fields" target="_blank">use in your theme</a>.'); ?></p>
+<p><?php _e('Custom fields can be used to add extra metadata to a post that you can <a href="https://codex.wordpress.org/Using_Custom_Fields" target="_blank">use in your theme</a>.'); ?></p>
 <?php
 }
 
@@ -589,7 +588,7 @@ function post_comment_status_meta_box($post) {
 <input name="advanced_view" type="hidden" value="1" />
 <p class="meta-options">
 	<label for="comment_status" class="selectit"><input name="comment_status" type="checkbox" id="comment_status" value="open" <?php checked($post->comment_status, 'open'); ?> /> <?php _e( 'Allow comments.' ) ?></label><br />
-	<label for="ping_status" class="selectit"><input name="ping_status" type="checkbox" id="ping_status" value="open" <?php checked($post->ping_status, 'open'); ?> /> <?php printf( __( 'Allow <a href="%s" target="_blank">trackbacks and pingbacks</a> on this page.' ), __( 'http://codex.wordpress.org/Introduction_to_Blogging#Managing_Comments' ) ); ?></label>
+	<label for="ping_status" class="selectit"><input name="ping_status" type="checkbox" id="ping_status" value="open" <?php checked($post->ping_status, 'open'); ?> /> <?php printf( __( 'Allow <a href="%s" target="_blank">trackbacks and pingbacks</a> on this page.' ), __( 'https://codex.wordpress.org/Introduction_to_Blogging#Managing_Comments' ) ); ?></label>
 	<?php
 	/**
 	 * Fires at the end of the Discussion meta box on the post editing screen.
@@ -739,7 +738,7 @@ function page_attributes_meta_box($post) {
 <?php
 		} // end empty pages check
 	} // end hierarchical check.
-	if ( 'page' == $post->post_type && 0 != count( get_page_templates( $post ) ) ) {
+	if ( 'page' == $post->post_type && 0 != count( get_page_templates( $post ) ) && get_option( 'page_for_posts' ) != $post->ID ) {
 		$template = !empty($post->page_template) ? $post->page_template : false;
 		?>
 <p><strong><?php _e('Template') ?></strong></p>

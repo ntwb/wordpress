@@ -105,7 +105,11 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 		$args = array(
 			'page' => $paged,
 			'per_page' => $per_page,
-			'fields' => array( 'last_updated' => true, 'downloaded' => true, 'icons' => true ),
+			'fields' => array(
+				'last_updated' => true,
+				'icons' => true,
+				'active_installs' => true
+			),
 			// Send the locale and installed plugin slugs to the API so it can provide context-sensitive results.
 			'locale' => get_locale(),
 			'installed_plugins' => $this->get_installed_plugin_slugs(),
@@ -402,14 +406,14 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 					case 'install':
 						if ( $status['url'] ) {
 							/* translators: 1: Plugin name and version. */
-							$action_links[] = '<a class="install-now button" data-slug="' . esc_attr( $plugin['slug'] ) . '" href="' . esc_url( $status['url'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Install %s now' ), $name ) ) . '">' . __( 'Install Now' ) . '</a>';
+							$action_links[] = '<a class="install-now button" data-slug="' . esc_attr( $plugin['slug'] ) . '" href="' . esc_url( $status['url'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Install %s now' ), $name ) ) . '" data-name="' . esc_attr( $name ) . '">' . __( 'Install Now' ) . '</a>';
 						}
 
 						break;
 					case 'update_available':
 						if ( $status['url'] ) {
 							/* translators: 1: Plugin name and version */
-							$action_links[] = '<a class="update-now button" data-plugin="' . esc_attr( $status['file'] ) . '" data-slug="' . esc_attr( $plugin['slug'] ) . '" href="' . esc_url( $status['url'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Update %s now' ), $name ) ) . '">' . __( 'Update Now' ) . '</a>';
+							$action_links[] = '<a class="update-now button" data-plugin="' . esc_attr( $status['file'] ) . '" data-slug="' . esc_attr( $plugin['slug'] ) . '" href="' . esc_url( $status['url'] ) . '" aria-label="' . esc_attr( sprintf( __( 'Update %s now' ), $name ) ) . '" data-name="' . esc_attr( $name ) . '">' . __( 'Update Now' ) . '</a>';
 						}
 
 						break;
@@ -446,7 +450,7 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 			 */
 			$action_links = apply_filters( 'plugin_install_action_links', $action_links, $plugin );
 
-			$date_format = __( 'M j, Y @ G:i' );
+			$date_format = __( 'M j, Y @ H:i' );
 			$last_updated_timestamp = strtotime( $plugin['last_updated'] );
 		?>
 		<div class="plugin-card plugin-card-<?php echo sanitize_html_class( $plugin['slug'] ); ?>">
@@ -478,7 +482,14 @@ class WP_Plugin_Install_List_Table extends WP_List_Table {
 					</span>
 				</div>
 				<div class="column-downloaded">
-					<?php echo sprintf( _n( '%s download', '%s downloads', $plugin['downloaded'] ), number_format_i18n( $plugin['downloaded'] ) ); ?>
+					<?php
+					if ( $plugin['active_installs'] >= 1000000 ) {
+						$active_installs_text = _x( '1+ Million', 'Active plugin installs' );
+					} else {
+						$active_installs_text = number_format_i18n( $plugin['active_installs'] ) . '+';
+					}
+					printf( __( '%s Active Installs' ), $active_installs_text );
+					?>
 				</div>
 				<div class="column-compatibility">
 					<?php

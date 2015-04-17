@@ -378,7 +378,7 @@ $video
 This is a comment
 CONTENT;
 
-		$types = array( 'audio', 'video', 'object', 'embed', 'iframe' );
+		$types = array( 'object', 'embed', 'iframe', 'audio', 'video' );
 		$contents = array_values( compact( $types ) );
 
 		$matches = get_media_embedded_in_content( $content, 'audio' );
@@ -398,6 +398,27 @@ CONTENT;
 
 		$matches = get_media_embedded_in_content( $content, $types );
 		$this->assertEquals( $contents, $matches );
+	}
+
+	function test_get_media_embedded_in_content_order() {
+		$audio =<<<AUDIO
+<audio preload="none">
+	<source />
+</audio>
+AUDIO;
+		$video =<<<VIDEO
+<video preload="none">
+	<source />
+</video>
+VIDEO;
+		$content = $audio . $video;
+
+		$matches1 = get_media_embedded_in_content( $content, array( 'audio', 'video' ) );
+		$this->assertEquals( array( $audio, $video ), $matches1 );
+
+		$reversed = $video . $audio;
+		$matches2 = get_media_embedded_in_content( $reversed, array( 'audio', 'video' ) );
+		$this->assertEquals( array( $video, $audio ), $matches2 );
 	}
 
 	/**
@@ -519,4 +540,33 @@ VIDEO;
 		);
 		$this->assertEquals( $expected, $filetype );
 	}
+
+	/**
+	 * @ticket 22768
+	 */
+	public function test_media_handle_upload_sets_post_excerpt() {
+		$iptc_file = DIR_TESTDATA . '/images/test-image-iptc.jpg';
+
+		// Make a copy of this file as it gets moved during the file upload
+		$tmp_name = wp_tempnam( $iptc_file );
+
+		copy( $iptc_file, $tmp_name );
+
+		$_FILES['upload'] = array(
+			'tmp_name' => $tmp_name,
+			'name'     => 'test-image-iptc.jpg',
+			'type'     => 'image/jpeg',
+			'error'    => 0,
+			'size'     => filesize( $iptc_file )
+		);
+
+		$post_id = media_handle_upload( 'upload', 0, array(), array( 'action' => 'test_iptc_upload', 'test_form' => false ) );
+
+		unset( $_FILES['upload'] );
+
+		$post = get_post( $post_id );
+
+		$this->assertEquals( 'This is a comment. / Это комментарий. / Βλέπετε ένα σχόλιο.', $post->post_excerpt );
+	}
+
 }

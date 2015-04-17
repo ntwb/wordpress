@@ -54,7 +54,7 @@ function get_postdata($postid) {
  *
  * @since 1.0.1
  * @deprecated 1.5.0
- * @deprecated Use The Loop - {@link http://codex.wordpress.org/The_Loop Use new WordPress Loop}
+ * @deprecated Use The Loop - {@link https://codex.wordpress.org/The_Loop Use new WordPress Loop}
  */
 function start_wp() {
 	global $wp_query;
@@ -1310,7 +1310,7 @@ function get_category_children( $id, $before = '/', $after = '', $visited = arra
  * @since 2.0.0
  * @deprecated 4.0.0 Use get_terms() instead.
  * @see get_terms()
- * @link http://codex.wordpress.org/Function_Reference/get_all_category_ids
+ * @link https://codex.wordpress.org/Function_Reference/get_all_category_ids
  *
  * @return object List of all of the category IDs.
  */
@@ -1756,7 +1756,7 @@ function make_url_footnote( $content ) {
 	_deprecated_function( __FUNCTION__, '2.9', '' );
 	preg_match_all( '/<a(.+?)href=\"(.+?)\"(.*?)>(.+?)<\/a>/', $content, $matches );
 	$links_summary = "\n";
-	for ( $i=0; $i<count($matches[0]); $i++ ) {
+	for ( $i = 0, $c = count( $matches[0] ); $i < $c; $i++ ) {
 		$link_match = $matches[0][$i];
 		$link_number = '['.($i+1).']';
 		$link_url = $matches[2][$i];
@@ -2632,7 +2632,6 @@ function the_editor($content, $id = 'content', $prev_id = 'title', $media_button
 	_deprecated_function( __FUNCTION__, '3.3', 'wp_editor()' );
 
 	wp_editor( $content, $id, array( 'media_buttons' => $media_buttons ) );
-	return;
 }
 
 /**

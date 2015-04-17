@@ -293,7 +293,7 @@ function category_description( $category = 0 ) {
  * the 'depth' argument.
  *
  * @since 2.1.0
- * @since 4.2.0 Introduced the 'value_field' parameter.
+ * @since 4.2.0 Introduced the `value_field` argument.
  *
  * @param string|array $args {
  *     Optional. Array or string of arguments to generate a categories drop-down element.
@@ -1068,11 +1068,10 @@ class Walker_Category extends Walker {
 			 *
 			 * @see wp_list_categories()
 			 *
-			 * @param array  $css_classes    An array of CSS classes to be applied
-			 *                               to each list item.
-			 * @param object $category       Category data object.
-			 * @param int    $depth          Depth of page, used for padding.
-			 * @param array  $args           An array of arguments.
+			 * @param array  $css_classes An array of CSS classes to be applied to each list item.
+			 * @param object $category    Category data object.
+			 * @param int    $depth       Depth of page, used for padding.
+			 * @param array  $args        An array of wp_list_categories() arguments.
 			 */
 			$css_classes = implode( ' ', apply_filters( 'category_css_class', $css_classes, $category, $depth, $args ) );
 

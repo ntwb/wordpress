@@ -1,12 +1,20 @@
 <?php
 /**
- * Customize Widgets Class
- *
- * Implements widget management in the Customizer.
+ * WordPress Customize Widgets classes
  *
  * @package WordPress
  * @subpackage Customize
  * @since 3.9.0
+ */
+
+/**
+ * Customize Widgets class.
+ *
+ * Implements widget management in the Customizer.
+ *
+ * @since 3.9.0
+ *
+ * @see WP_Customize_Manager
  */
 final class WP_Customize_Widgets {
 
@@ -87,6 +95,7 @@ final class WP_Customize_Widgets {
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'print_footer_scripts' ) );
 		add_action( 'customize_controls_print_footer_scripts', array( $this, 'output_widget_control_templates' ) );
 		add_action( 'customize_preview_init',                  array( $this, 'customize_preview_init' ) );
+		add_filter( 'customize_refresh_nonces',                array( $this, 'refresh_nonces' ) );
 
 		add_action( 'dynamic_sidebar',                         array( $this, 'tally_rendered_widgets' ) );
 		add_filter( 'is_active_sidebar',                       array( $this, 'tally_sidebars_via_is_active_sidebar_calls' ), 10, 2 );
@@ -97,10 +106,10 @@ final class WP_Customize_Widgets {
 	 * Get the widget setting type given a setting ID.
 	 *
 	 * @since 4.2.0
+	 * @access protected
 	 *
-	 * @param $setting_id
-	 *
-	 * @return string|null
+	 * @param $setting_id Setting ID.
+	 * @return string|null Setting type. Null otherwise.
 	 */
 	protected function get_setting_type( $setting_id ) {
 		static $cache = array();
@@ -120,6 +129,7 @@ final class WP_Customize_Widgets {
 	 * Inspect the incoming customized data for any widget settings, and dynamically add them up-front so widgets will be initialized properly.
 	 *
 	 * @since 4.2.0
+	 * @access public
 	 */
 	public function register_settings() {
 		$widget_setting_ids = array();
@@ -151,10 +161,11 @@ final class WP_Customize_Widgets {
 	 * Determine the arguments for a dynamically-created setting.
 	 *
 	 * @since 4.2.0
+	 * @access public
 	 *
-	 * @param false|array $args
-	 * @param string $setting_id
-	 * @return false|array
+	 * @param false|array $setting_args The arguments to the WP_Customize_Setting constructor.
+	 * @param string      $setting_id   ID for dynamic setting, usually coming from `$_POST['customized']`.
+	 * @return false|array Setting arguments, false otherwise.
 	 */
 	public function filter_customize_dynamic_setting_args( $args, $setting_id ) {
 		if ( $this->get_setting_type( $setting_id ) ) {
@@ -208,6 +219,7 @@ final class WP_Customize_Widgets {
 		$sidebars_widgets = $this->old_sidebars_widgets;
 		$sidebars_widgets = retrieve_widgets( 'customize' );
 		add_filter( 'option_sidebars_widgets', array( $this, 'filter_option_sidebars_widgets_for_theme_switch' ), 1 );
+		unset( $GLOBALS['_wp_sidebars_widgets'] ); // reset global cache var used by wp_get_sidebars_widgets()
 	}
 
 	/**
@@ -324,6 +336,7 @@ final class WP_Customize_Widgets {
 			$setting_id = 'old_sidebars_widgets_data';
 			$setting_args = $this->get_setting_args( $setting_id, array(
 				'type' => 'global_variable',
+				'dirty' => true,
 			) );
 			$this->manager->add_setting( $setting_id, $setting_args );
 		}
@@ -348,6 +361,9 @@ final class WP_Customize_Widgets {
 				$setting_id   = sprintf( 'sidebars_widgets[%s]', $sidebar_id );
 				$setting_args = $this->get_setting_args( $setting_id );
 				if ( ! $this->manager->get_setting( $setting_id ) ) {
+					if ( ! $this->manager->is_theme_active() ) {
+						$setting_args['dirty'] = true;
+					}
 					$this->manager->add_setting( $setting_id, $setting_args );
 				}
 				$new_setting_ids[] = $setting_id;
@@ -871,6 +887,20 @@ final class WP_Customize_Widgets {
 		add_action( 'wp_enqueue_scripts', array( $this, 'customize_preview_enqueue' ) );
 		add_action( 'wp_print_styles',    array( $this, 'print_preview_css' ), 1 );
 		add_action( 'wp_footer',          array( $this, 'export_preview_data' ), 20 );
+	}
+
+	/**
+	 * Refresh nonce for widget updates.
+	 *
+	 * @since 4.2.0
+	 * @access public
+	 *
+	 * @param  array $nonces Array of nonces.
+	 * @return array $nonces Array of nonces.
+	 */
+	public function refresh_nonces( $nonces ) {
+		$nonces['update-widget'] = wp_create_nonce( 'update-widget' );
+		return $nonces;
 	}
 
 	/**

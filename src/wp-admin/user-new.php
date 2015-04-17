@@ -180,7 +180,7 @@ get_current_screen()->add_help_tab( array(
 
 get_current_screen()->set_help_sidebar(
     '<p><strong>' . __('For more information:') . '</strong></p>' .
-    '<p>' . __('<a href="http://codex.wordpress.org/Users_Add_New_Screen" target="_blank">Documentation on Adding New Users</a>') . '</p>' .
+    '<p>' . __('<a href="https://codex.wordpress.org/Users_Add_New_Screen" target="_blank">Documentation on Adding New Users</a>') . '</p>' .
     '<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
 
@@ -253,7 +253,7 @@ if ( current_user_can( 'create_users' ) ) {
 
 if ( ! empty( $messages ) ) {
 	foreach ( $messages as $msg )
-		echo '<div id="message" class="updated"><p>' . $msg . '</p></div>';
+		echo '<div id="message" class="updated notice is-dismissible"><p>' . $msg . '</p></div>';
 } ?>
 
 <?php if ( isset($add_user_errors) && is_wp_error( $add_user_errors ) ) : ?>
@@ -402,7 +402,7 @@ if ( apply_filters( 'show_password_fields', true ) ) : ?>
 		</td>
 	</tr>
 	<tr>
-		<th scope="row"><label for="send_password"><?php _e('Send Password?') ?></label></th>
+		<th scope="row"><?php _e('Send Password?') ?></th>
 		<td><label for="send_password"><input type="checkbox" name="send_password" id="send_password" value="1" <?php checked( $new_user_send_password ); ?> /> <?php _e('Send this password to the new user by email.'); ?></label></td>
 	</tr>
 <?php endif; ?>

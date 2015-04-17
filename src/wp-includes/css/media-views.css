@@ -19,6 +19,7 @@
 .media-frame {
 	font-family: "Open Sans", sans-serif;
 	font-size: 12px;
+	-webkit-overflow-scrolling: touch;
 }
 
 .media-frame input,
@@ -42,11 +43,11 @@
 }
 
 .media-frame a.button {
-	color: #333;
+	color: #32373c;
 }
 
 .media-frame a.button:hover {
-	color: #222;
+	color: #23282d;
 }
 
 .media-frame a.button-primary,
@@ -105,17 +106,17 @@
 }
 
 /*!
- * jQuery UI Draggable/Sortable 1.11.2
+ * jQuery UI Draggable/Sortable 1.11.4
  * http://jqueryui.com
  *
- * Copyright 2014 jQuery Foundation and other contributors
+ * Copyright jQuery Foundation and other contributors
  * Released under the MIT license.
  * http://jquery.org/license
  */
 .ui-draggable-handle,
 .ui-sortable-handle {
 	-ms-touch-action: none;
-	touch-action:     none;
+	touch-action: none;
 }
 
 /**
@@ -187,7 +188,7 @@
 }
 
 .media-modal-close:hover .media-modal-icon:before {
-	color: #2ea2cc;
+	color: #00a0d2;
 }
 
 .media-modal-close:active {
@@ -231,24 +232,11 @@
 .media-toolbar-primary {
 	float: right;
 	height: 100%;
-	max-width: 33%;
 }
 
 .media-toolbar-secondary {
-	position: relative;
 	float: left;
-	-webkit-box-sizing: border-box;
-	-moz-box-sizing: border-box;
-	box-sizing: border-box;
-	padding-right: 20px;
 	height: 100%;
-	max-width: 66%;
-}
-
-.media-toolbar-secondary .spinner {
-	position: absolute;
-	top: 2px;
-	right: 0px;
 }
 
 .media-toolbar-primary > .media-button,
@@ -514,7 +502,7 @@
 	margin: 0;
 	line-height: 18px;
 	font-size: 14px;
-	color: #0074a2;
+	color: #0073aa;
 	text-decoration: none;
 }
 
@@ -529,7 +517,7 @@
 
 .media-menu .active,
 .media-menu .active:hover {
-	color: #222;
+	color: #23282d;
 	font-weight: bold;
 }
 
@@ -580,7 +568,7 @@
 
 .media-router .active,
 .media-router .active:hover {
-	color: #333;
+	color: #32373c;
 }
 
 .media-router .active,
@@ -750,8 +738,13 @@
 .media-frame select.attachment-filters {
 	margin-top: 11px;
 	margin-right: 2%;
-	max-width: 47%;
-	width: 100%; /* prevents options from invisibly taking up horizontal space */
+	max-width: 42%;
+	max-width: -webkit-calc(48% - 12px);
+	max-width: calc(48% - 12px);
+}
+
+.media-frame select.attachment-filters:last-of-type {
+	margin-right: 0;
 }
 
 /**
@@ -886,13 +879,11 @@
 	overflow: hidden;
 }
 
-/* @noflip */
 .wp-core-ui .attachment .thumbnail img {
 	top: 0;
 	left: 0;
 }
 
-/* @noflip */
 .wp-core-ui .attachment .thumbnail .centered {
 	position: absolute;
 	top: 0;
@@ -910,7 +901,7 @@
 	transform: translate( -50%, -50% );
 }
 
-.wp-core-ui .attachment .thumbnail .centered img.icon {
+.wp-core-ui .attachments-browser .attachment .thumbnail .centered img.icon {
 	-webkit-transform: translate( -50%, -70% );
 	-ms-transform: translate(-50%,-70%);
 	transform: translate( -50%, -70% );
@@ -1084,6 +1075,14 @@
 
 .attachments-browser .uploader-inline.hidden {
 	display: none;
+}
+
+.attachments-browser .media-toolbar-primary {
+	max-width: 33%;
+}
+
+.attachments-browser .media-toolbar-secondary {
+	max-width: 66%;
 }
 
 .uploader-inline .close {
@@ -1454,8 +1453,6 @@
 	width: 40px;
 	padding: 0;
 	margin: 4px;
-	-webkit-box-shadow: none;
-	box-shadow: none;
 }
 
 .media-selection .attachment .thumbnail {
@@ -1475,7 +1472,23 @@
 	background: none;
 }
 
-.media-selection .attachment.selection.details .thumbnail {
+.wp-core-ui .media-selection .attachment:focus,
+.wp-core-ui .media-selection .selected.attachment:focus,
+.wp-core-ui .media-selection .attachment.details:focus {
+	-webkit-box-shadow:
+		0 0 0 1px #fff,
+		0 0 2px 3px #5b9dd9;
+	box-shadow:
+		0 0 0 1px #fff,
+		0 0 2px 3px #5b9dd9;
+}
+
+.wp-core-ui .media-selection .selected.attachment {
+	-webkit-box-shadow: none;
+	box-shadow: none;
+}
+
+.wp-core-ui .media-selection .attachment.details {
 	-webkit-box-shadow:
 		0 0 0 1px #fff,
 		0 0 0 3px #1e8cbe;
@@ -1508,12 +1521,19 @@
 	background: url(../images/spinner.gif) no-repeat;
 	-webkit-background-size: 20px 20px;
 	background-size: 20px 20px;
-	display: none;
+	float: right;
+	display: inline-block;
+	visibility: hidden;
 	opacity: 0.7;
 	filter: alpha(opacity=70);
 	width: 20px;
 	height: 20px;
 	margin: 0;
+	vertical-align: middle;
+}
+
+.media-frame .spinner.is-active {
+	visibility: visible;
 }
 
 .media-toolbar .spinner {
@@ -1535,7 +1555,7 @@
 }
 
 .attachment-details .settings-save-status .spinner {
-	margin: 0 5px 0;
+	margin-left: 5px;
 }
 
 .attachment-details .settings-save-status .saved {
@@ -1543,7 +1563,10 @@
 	display: none;
 }
 
-.attachment-details.save-waiting .settings-save-status .spinner,
+.attachment-details.save-waiting .settings-save-status .spinner {
+	visibility: visible;
+}
+
 .attachment-details.save-complete .settings-save-status .saved {
 	display: block;
 }
@@ -1786,7 +1809,7 @@
 }
 
 .media-frame .embed-loading .embed-url .spinner {
-	display: block;
+	visibility: visible;
 }
 
 .embed-link-settings,
@@ -1800,11 +1823,18 @@
 	overflow: auto;
 }
 
-.embed-preview img, .embed-preview iframe, .embed-preview embed {
+.embed-preview img,
+.embed-preview iframe,
+.embed-preview embed {
 	max-width: 100%;
 }
 
+.embed-preview a {
+	display: inline-block;
+}
+
 .embed-preview img {
+	display: block;
 	height: auto;
 }
 
@@ -1951,6 +1981,29 @@
 	clear: both;
 }
 
+.embed-link-settings .setting {
+	display: none;
+}
+
+.embed-link-dimensions:after {
+	content: '';
+	display: block;
+	clear: both;
+}
+
+.embed-link-dimensions .width,
+.embed-link-dimensions .height {
+	float: left;
+	width: 125px;
+	clear: none;
+	margin-right: 10px;
+}
+
+.embed-link-dimensions input {
+	width: auto;
+	max-width: 110px;
+}
+
 .image-details .embed-media-settings .setting {
 	float: none;
 	width: auto;
@@ -1997,6 +2050,7 @@
 .media-embed .setting span {
 	display: block;
 	width: 200px;
+	max-width: 100%;
 	font-size: 13px;
 	line-height: 24px;
 	color: #666;
@@ -2371,7 +2425,7 @@
 	}
 
 	.media-modal .attachments-browser .media-toolbar .spinner {
-		margin: 14px 0 0;
+		margin: 14px 2px 0;
 	}
 
 	/* Text inputs need to be 16px, or they force zooming on iOS */

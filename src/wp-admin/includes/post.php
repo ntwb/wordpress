@@ -1039,6 +1039,7 @@ function wp_edit_posts_query( $q = false ) {
 		$query['order'] = 'asc';
 		$query['posts_per_page'] = -1;
 		$query['posts_per_archive_page'] = -1;
+		$query['fields'] = 'id=>parent';
 	}
 
 	if ( ! empty( $q['show_sticky'] ) )
@@ -1065,12 +1066,12 @@ function get_available_post_mime_types($type = 'attachment') {
 }
 
 /**
- * Get the query vars for the current attachments request
+ * Get the query variables for the current attachments request.
  *
  * @since 4.2.0
  *
- * @param array|false $q Array of query variables to use to build the query or false to use $_GET superglobal.
- *
+ * @param array|false $q Optional. Array of query variables to use to build the query or false
+ *                       to use $_GET superglobal. Default false.
  * @return array The parsed query vars.
  */
 function wp_edit_attachments_query_vars( $q = false ) {
@@ -1220,9 +1221,11 @@ function get_sample_permalink($id, $title = null, $name = null) {
 	// Handle page hierarchy
 	if ( $ptype->hierarchical ) {
 		$uri = get_page_uri($post);
-		$uri = untrailingslashit($uri);
-		$uri = strrev( stristr( strrev( $uri ), '/' ) );
-		$uri = untrailingslashit($uri);
+		if ( $uri ) {
+			$uri = untrailingslashit($uri);
+			$uri = strrev( stristr( strrev( $uri ), '/' ) );
+			$uri = untrailingslashit($uri);
+		}
 
 		/** This filter is documented in wp-admin/edit-tag-form.php */
 		$uri = apply_filters( 'editable_slug', $uri );
@@ -1291,6 +1294,7 @@ function get_sample_permalink_html( $id, $new_title = null, $new_slug = null ) {
 
 		$post_name_html = '<span id="editable-post-name" title="' . $title . '">' . $post_name_abridged . '</span>';
 		$display_link = str_replace( array( '%pagename%', '%postname%' ), $post_name_html, urldecode( $permalink ) );
+		$pretty_permalink = str_replace( array( '%pagename%', '%postname%' ), $post_name, urldecode( $permalink ) );
 
 		$return =  '<strong>' . __( 'Permalink:' ) . "</strong>\n";
 		$return .= '<span id="sample-permalink" tabindex="-1">' . $display_link . "</span>\n";
@@ -1306,7 +1310,11 @@ function get_sample_permalink_html( $id, $new_title = null, $new_slug = null ) {
 			$preview_link = apply_filters( 'preview_post_link', add_query_arg( 'preview', 'true', $preview_link ), $post );
 			$return .= "<span id='view-post-btn'><a href='" . esc_url( $preview_link ) . "' class='button button-small' target='wp-preview-{$post->ID}'>$view_post</a></span>\n";
 		} else {
-			$return .= "<span id='view-post-btn'><a href='" . get_permalink( $post ) . "' class='button button-small'>$view_post</a></span>\n";
+			if ( empty( $pretty_permalink ) ) {
+				$pretty_permalink = $permalink;
+			}
+
+			$return .= "<span id='view-post-btn'><a href='" . $pretty_permalink . "' class='button button-small'>$view_post</a></span>\n";
 		}
 	}
 
@@ -1664,7 +1672,7 @@ function post_preview() {
 	} else {
 		$is_autosave = true;
 
-		if ( 'auto-draft' == $_POST['post_status'] )
+		if ( isset( $_POST['post_status'] ) && 'auto-draft' == $_POST['post_status'] )
 			$_POST['post_status'] = 'draft';
 
 		$saved_post_id = wp_create_post_autosave( $post->ID );

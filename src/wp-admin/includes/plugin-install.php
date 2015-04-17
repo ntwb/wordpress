@@ -304,7 +304,7 @@ function install_plugin_install_status($api, $loop = false) {
 					$url = wp_nonce_url(self_admin_url('update.php?action=install-plugin&plugin=' . $api->slug), 'install-plugin_' . $api->slug);
 			} else {
 				$key = array_keys( $installed_plugin );
-				$key = array_shift( $key ); //Use the first plugin regardless of the name, Could have issues for multiple-plugins in one directory if they share different version numbers
+				$key = reset( $key ); //Use the first plugin regardless of the name, Could have issues for multiple-plugins in one directory if they share different version numbers
 				$update_file = $api->slug . '/' . $key;
 				if ( version_compare($api->version, $installed_plugin[ $key ]['Version'], '=') ){
 					$status = 'latest_installed';
@@ -348,7 +348,12 @@ function install_plugin_information() {
 	$api = plugins_api( 'plugin_information', array(
 		'slug' => wp_unslash( $_REQUEST['plugin'] ),
 		'is_ssl' => is_ssl(),
-		'fields' => array( 'banners' => true, 'reviews' => true )
+		'fields' => array(
+			'banners' => true,
+			'reviews' => true,
+			'downloaded' => false,
+			'active_installs' => true
+		)
 	) );
 
 	if ( is_wp_error( $api ) ) {
@@ -391,7 +396,7 @@ function install_plugin_information() {
 	$section = isset( $_REQUEST['section'] ) ? wp_unslash( $_REQUEST['section'] ) : 'description'; // Default to the Description tab, Do not translate, API returns English.
 	if ( empty( $section ) || ! isset( $api->sections[ $section ] ) ) {
 		$section_titles = array_keys( (array) $api->sections );
-		$section = array_shift( $section_titles );
+		$section = reset( $section_titles );
 	}
 
 	iframe_header( __( 'Plugin Install' ) );
@@ -440,7 +445,7 @@ function install_plugin_information() {
 
 	echo "</div>\n";
 
-	$date_format = __( 'M j, Y @ G:i' );
+	$date_format = __( 'M j, Y @ H:i' );
 	$last_updated_timestamp = strtotime( $api->last_updated );
 	?>
 	<div id="<?php echo $_tab; ?>-content" class='<?php echo $_with_banner; ?>'>
@@ -458,8 +463,14 @@ function install_plugin_information() {
 			<li><strong><?php _e( 'Requires WordPress Version:' ); ?></strong> <?php printf( __( '%s or higher' ), $api->requires ); ?></li>
 		<?php } if ( ! empty( $api->tested ) ) { ?>
 			<li><strong><?php _e( 'Compatible up to:' ); ?></strong> <?php echo $api->tested; ?></li>
-		<?php } if ( ! empty( $api->downloaded ) ) { ?>
-			<li><strong><?php _e( 'Downloaded:' ); ?></strong> <?php printf( _n( '%s time', '%s times', $api->downloaded ), number_format_i18n( $api->downloaded ) ); ?></li>
+		<?php } if ( ! empty( $api->active_installs ) ) { ?>
+			<li><strong><?php _e( 'Active Installs:' ); ?></strong> <?php
+				if ( $api->active_installs >= 1000000 ) {
+					_ex( '1+ Million', 'Active plugin installs' );
+				} else {
+					echo number_format_i18n( $api->active_installs ) . '+';
+				}
+			?></li>
 		<?php } if ( ! empty( $api->slug ) && empty( $api->external ) ) { ?>
 			<li><a target="_blank" href="https://wordpress.org/plugins/<?php echo $api->slug; ?>/"><?php _e( 'WordPress.org Plugin Page &#187;' ); ?></a></li>
 		<?php } if ( ! empty( $api->homepage ) ) { ?>
@@ -550,7 +561,7 @@ function install_plugin_information() {
 				break;
 			case 'update_available':
 				if ( $status['url'] ) {
-					echo '<a class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __( 'Install Update Now' ) .'</a>';
+					echo '<a data-slug="' . esc_attr( $api->slug ) . '" id="plugin_update_from_iframe" class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __( 'Install Update Now' ) .'</a>';
 				}
 				break;
 			case 'newer_installed':

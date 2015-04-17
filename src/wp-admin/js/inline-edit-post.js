@@ -117,7 +117,7 @@ inlineEditPost = {
 	},
 
 	edit : function(id) {
-		var t = this, fields, editRow, rowData, status, pageOpt, pageLevel, nextPage, pageLoop = true, nextLevel, cur_format, f;
+		var t = this, fields, editRow, rowData, status, pageOpt, pageLevel, nextPage, pageLoop = true, nextLevel, cur_format, f, val;
 		t.revert();
 
 		if ( typeof(id) === 'object' ) {
@@ -133,7 +133,7 @@ inlineEditPost = {
 		editRow = $('#inline-edit').clone(true);
 		$('td', editRow).attr('colspan', $('.widefat:first thead th:visible').length);
 
-		$(t.what+id).hide().before(editRow).before('<tr class="hidden"></tr>');
+		$(t.what+id).hide().after(editRow).after('<tr class="hidden"></tr>');
 
 		// populate the data
 		rowData = $('#inline_'+id);
@@ -155,7 +155,11 @@ inlineEditPost = {
 		});
 
 		for ( f = 0; f < fields.length; f++ ) {
-			$(':input[name="' + fields[f] + '"]', editRow).val( $('.'+fields[f], rowData).text() );
+			val = $('.'+fields[f], rowData);
+			// Deal with Twemoji
+			val.find( 'img' ).replaceWith( function() { return this.alt; } );
+			val = val.text();
+			$(':input[name="' + fields[f] + '"]', editRow).val( val );
 		}
 
 		if ( $( '.comment_status', rowData ).text() === 'open' ) {
@@ -181,10 +185,13 @@ inlineEditPost = {
 
 		//flat taxonomies
 		$('.tags_input', rowData).each(function(){
-			var terms = $(this).text(),
+			var terms = $(this),
 				taxname = $(this).attr('id').replace('_' + id, ''),
 				textarea = $('textarea.tax_input_' + taxname, editRow),
 				comma = inlineEditL10n.comma;
+
+			terms.find( 'img' ).replaceWith( function() { return this.alt; } );
+			terms = terms.text();
 
 			if ( terms ) {
 				if ( ',' !== comma ) {
@@ -243,7 +250,7 @@ inlineEditPost = {
 			id = this.getId(id);
 		}
 
-		$('table.widefat .spinner').show();
+		$( 'table.widefat .spinner' ).addClass( 'is-active' );
 
 		params = {
 			action: 'inline-save',
@@ -259,7 +266,7 @@ inlineEditPost = {
 		// make ajax request
 		$.post( ajaxurl, params,
 			function(r) {
-				$('table.widefat .spinner').hide();
+				$( 'table.widefat .spinner' ).removeClass( 'is-active' );
 
 				if (r) {
 					if ( -1 !== r.indexOf( '<tr' ) ) {
@@ -282,11 +289,11 @@ inlineEditPost = {
 		var id = $('table.widefat tr.inline-editor').attr('id');
 
 		if ( id ) {
-			$('table.widefat .spinner').hide();
+			$( 'table.widefat .spinner' ).removeClass( 'is-active' );
 
 			if ( 'bulk-edit' === id ) {
 				$('table.widefat #bulk-edit').removeClass('inline-editor').hide().siblings('tr.hidden').remove();
-				$('#bulk-titles').html('');
+				$('#bulk-titles').empty();
 				$('#inlineedit').append( $('#bulk-edit') );
 			} else {
 				$('#'+id).siblings('tr.hidden').addBack().remove();

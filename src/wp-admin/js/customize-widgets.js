@@ -177,7 +177,7 @@
 			// If the available widgets panel is open and the customize controls are
 			// interacted with (i.e. available widgets panel is blurred) then close the
 			// available widgets panel.
-			$( '#customize-controls' ).on( 'click keydown', function( e ) {
+			$( '#customize-controls, .customize-overlay-close' ).on( 'click keydown', function( e ) {
 				var isAddNewBtn = $( e.target ).is( '.add-new-widget, .add-new-widget *' );
 				if ( $( 'body' ).hasClass( 'adding-widget' ) && ! isAddNewBtn ) {
 					self.close();
@@ -685,10 +685,10 @@
 
 					if ( isMoveUp ) {
 						self.moveUp();
-						$( '#screen-reader-messages' ).text( l10n.widgetMovedUp );
+						wp.a11y.speak( l10n.widgetMovedUp );
 					} else {
 						self.moveDown();
-						$( '#screen-reader-messages' ).text( l10n.widgetMovedDown );
+						wp.a11y.speak( l10n.widgetMovedDown );
 					}
 
 					$( this ).focus(); // re-focus after the container was moved
@@ -927,19 +927,50 @@
 		},
 
 		/**
-		 * Get the property that represents the state of an input.
+		 * Get the state for an input depending on its type.
 		 *
-		 * @param {jQuery|DOMElement} input
-		 * @returns {string}
+		 * @param {jQuery|Element} input
+		 * @returns {string|boolean|array|*}
 		 * @private
 		 */
-		_getInputStatePropertyName: function( input ) {
-			var $input = $( input );
-
-			if ( $input.is( ':radio, :checkbox' ) ) {
-				return 'checked';
+		_getInputState: function( input ) {
+			input = $( input );
+			if ( input.is( ':radio, :checkbox' ) ) {
+				return input.prop( 'checked' );
+			} else if ( input.is( 'select[multiple]' ) ) {
+				return input.find( 'option:selected' ).map( function () {
+					return $( this ).val();
+				} ).get();
 			} else {
-				return 'value';
+				return input.val();
+			}
+		},
+
+		/**
+		 * Update an input's state based on its type.
+		 *
+		 * @param {jQuery|Element} input
+		 * @param {string|boolean|array|*} state
+		 * @private
+		 */
+		_setInputState: function ( input, state ) {
+			input = $( input );
+			if ( input.is( ':radio, :checkbox' ) ) {
+				input.prop( 'checked', state );
+			} else if ( input.is( 'select[multiple]' ) ) {
+				if ( ! $.isArray( state ) ) {
+					state = [];
+				} else {
+					// Make sure all state items are strings since the DOM value is a string
+					state = _.map( state, function ( value ) {
+						return String( value );
+					} );
+				}
+				input.find( 'option' ).each( function () {
+					$( this ).prop( 'selected', -1 !== _.indexOf( state, String( this.value ) ) );
+				} );
+			} else {
+				input.val( state );
 			}
 		},
 
@@ -1016,9 +1047,7 @@
 			// we know if it got sanitized; if there is no difference in the sanitized value,
 			// then we do not need to touch the UI and mess up the user's ongoing editing.
 			$inputs.each( function() {
-				var input = $( this ),
-					property = self._getInputStatePropertyName( this );
-				input.data( 'state' + updateNumber, input.prop( property ) );
+				$( this ).data( 'state' + updateNumber, self._getInputState( this ) );
 			} );
 
 			if ( instanceOverride ) {
@@ -1028,7 +1057,11 @@
 			}
 			data += '&' + $widgetContent.find( '~ :input' ).serialize();
 
+			if ( this._previousUpdateRequest ) {
+				this._previousUpdateRequest.abort();
+			}
 			jqxhr = $.post( wp.ajax.settings.url, data );
+			this._previousUpdateRequest = jqxhr;
 
 			jqxhr.done( function( r ) {
 				var message, sanitizedForm,	$sanitizedInputs, hasSameInputsInResponse,
@@ -1067,16 +1100,15 @@
 						$inputs.each( function( i ) {
 							var $input = $( this ),
 								$sanitizedInput = $( $sanitizedInputs[i] ),
-								property = self._getInputStatePropertyName( this ),
 								submittedState, sanitizedState,	canUpdateState;
 
 							submittedState = $input.data( 'state' + updateNumber );
-							sanitizedState = $sanitizedInput.prop( property );
+							sanitizedState = self._getInputState( $sanitizedInput );
 							$input.data( 'sanitized', sanitizedState );
 
-							canUpdateState = ( submittedState !== sanitizedState && ( args.ignoreActiveElement || ! $input.is( document.activeElement ) )	);
+							canUpdateState = ( ! _.isEqual( submittedState, sanitizedState ) && ( args.ignoreActiveElement || ! $input.is( document.activeElement ) ) );
 							if ( canUpdateState ) {
-								$input.prop( property, sanitizedState );
+								self._setInputState( $input, sanitizedState );
 							}
 						} );
 
@@ -1709,20 +1741,20 @@
 		},
 
 		/**
+		 * Get the widget_form Customize controls associated with the current sidebar.
+		 *
+		 * @since 3.9
 		 * @return {wp.customize.controlConstructor.widget_form[]}
 		 */
 		getWidgetFormControls: function() {
-			var formControls;
+			var formControls = [];
 
-			formControls = _( this.setting() ).map( function( widgetId ) {
+			_( this.setting() ).each( function( widgetId ) {
 				var settingId = widgetIdToSettingId( widgetId ),
 					formControl = api.control( settingId );
-
-				if ( ! formControl ) {
-					return;
+				if ( formControl ) {
+					formControls.push( formControl );
 				}
-
-				return formControl;
 			} );
 
 			return formControls;
@@ -1848,12 +1880,7 @@
 			controlContainer.slideDown( function() {
 				if ( isExistingWidget ) {
 					widgetFormControl.updateWidget( {
-						instance: widgetFormControl.setting(),
-						complete: function( error ) {
-							if ( error ) {
-								throw error;
-							}
-						}
+						instance: widgetFormControl.setting()
 					} );
 				}
 			} );
@@ -1869,6 +1896,11 @@
 	$.extend( api.controlConstructor, {
 		widget_form: api.Widgets.WidgetControl,
 		sidebar_widgets: api.Widgets.SidebarControl
+	});
+
+	// Refresh the nonce if login sends updated nonces over.
+	api.bind( 'nonce-refresh', function( nonces ) {
+		api.Widgets.data.nonce = nonces['update-widget'];
 	});
 
 	/**

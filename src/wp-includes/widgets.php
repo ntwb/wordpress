@@ -6,8 +6,8 @@
  * This functionality was found in a plugin before WordPress 2.2 release which
  * included it in the core from that point on.
  *
- * @link http://codex.wordpress.org/Plugins/WordPress_Widgets WordPress Widgets
- * @link http://codex.wordpress.org/Plugins/WordPress_Widgets_Api Widgets API
+ * @link https://codex.wordpress.org/Plugins/WordPress_Widgets WordPress Widgets
+ * @link https://codex.wordpress.org/Plugins/WordPress_Widgets_Api Widgets API
  *
  * @package WordPress
  * @subpackage Widgets
@@ -803,6 +803,8 @@ function register_sidebar($args = array()) {
 
 	$i = count($wp_registered_sidebars) + 1;
 
+	$id_is_empty = empty( $args['id'] );
+
 	$defaults = array(
 		'name' => sprintf(__('Sidebar %d'), $i ),
 		'id' => "sidebar-$i",
@@ -815,6 +817,11 @@ function register_sidebar($args = array()) {
 	);
 
 	$sidebar = wp_parse_args( $args, $defaults );
+
+	if ( $id_is_empty ) {
+		/* translators: 1: the id argument, 2: sidebar name, 3: recommended id value */
+		_doing_it_wrong( __FUNCTION__, sprintf( __( 'No %1$s was set in the arguments array for the "%2$s" sidebar. Defaulting to "%3$s". Manually set the %1$s to "%3$s" to silence this notice and keep existing sidebar content.' ), '<code>id</code>', $sidebar['name'], $sidebar['id'] ), '4.2.0' );
+	}
 
 	$wp_registered_sidebars[$sidebar['id']] = $sidebar;
 

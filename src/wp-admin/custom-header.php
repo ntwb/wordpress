@@ -120,7 +120,7 @@ class Custom_Image_Header {
 
 		get_current_screen()->set_help_sidebar(
 			'<p><strong>' . __( 'For more information:' ) . '</strong></p>' .
-			'<p>' . __( '<a href="http://codex.wordpress.org/Appearance_Header_Screen" target="_blank">Documentation on Custom Header</a>' ) . '</p>' .
+			'<p>' . __( '<a href="https://codex.wordpress.org/Appearance_Header_Screen" target="_blank">Documentation on Custom Header</a>' ) . '</p>' .
 			'<p>' . __( '<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>' ) . '</p>'
 		);
 	}
@@ -882,19 +882,11 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		// Cleanup.
 		$medium = str_replace( basename( $original ), 'midsize-' . basename( $original ), $original );
 		if ( file_exists( $medium ) ) {
-			/**
-			 * Filter the path of the file to delete.
-			 *
-			 * @since 2.1.0
-			 *
-			 * @param string $medium Path to the file to delete.
-			 */
-			@unlink( apply_filters( 'wp_delete_file', $medium ) );
+			wp_delete_file( $medium );
 		}
 
 		if ( empty( $_POST['create-new-attachment'] ) && empty( $_POST['skip-cropping'] ) ) {
-			/** This filter is documented in wp-admin/custom-header.php */
-			@unlink( apply_filters( 'wp_delete_file', $original ) );
+			wp_delete_file( $original );
 		}
 
 		return $this->finished();

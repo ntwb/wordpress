@@ -17,7 +17,7 @@ matrix:
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit
   - php: 5.6
-    env: WP_TRAVISCI=travis:build
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_BUILD=true
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=memcache
     services: memcached
@@ -50,7 +50,7 @@ before_install:
       svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
   fi
 - |
-  if [[ "$WP_TRAVISCI" == "travis:build" ]]; then
+  if [[ "$WP_TRAVISCI_BUILD" == "true" ]]; then
       mysql -e "CREATE DATABASE wordpress_tests;" -uroot
       cp wp-tests-config-sample.php wp-tests-config.php
       sed -i "s/src/build/" wp-tests-config.php

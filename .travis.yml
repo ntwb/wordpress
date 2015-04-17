@@ -16,6 +16,18 @@ matrix:
     env: WP_TRAVISCI=travis:phpunit
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=memcache
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=apc
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=batcache
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=redis
+    services: redis-server
   - php: hhvm
     env: WP_TRAVISCI=travis:phpunit
   - php: nightly
@@ -36,10 +48,43 @@ before_install:
       svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
   fi
 before_script:
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "memcache" ]]; then
+      echo "extension = memcache.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.svn.wordpress.org/memcached/trunk/object-cache.php --no-check-certificate
+      mv object-cache.php src/wp-content/object-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "apc" ]]; then
+      echo "extension = apc.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enabled=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enable_cli=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/apc/trunk/object-cache.php --no-check-certificate
+      mv object-cache.php src/wp-content/object-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "batcache" ]]; then
+      echo "extension = apc.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enabled=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enable_cli=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/batcache/trunk/advanced-cache.php --no-check-certificate
+      mv advanced-cache.php src/wp-content/advanced-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "redis" ]]; then
+      echo "extension = redis.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/wp-redis/trunk/object-cache.php --no-check-certificate
+      mv object-cache.php src/wp-content/object-cache.php
+  fi
+- node --version
+- npm --version
+- grunt --version
 - npm install -g npm
 - npm install -g grunt-cli
 - npm install
+- npm --version
+- grunt --version
 script: grunt $WP_TRAVISCI
 notifications:
   slack:
-    secure: "ln2sC0yUOMzGGJ9PR56cxafCO2YSBQtFs0JuoSjvmXN0+jCGbQL781z2osEJ24BEl4o3zMLfiFPgieM7D+VuRObU6TiVFLmbebgoSyW/1Gs+jPNxBXPKOSLE3/4CV8ifyhm5XZr2xT6z8OWC6StHl2nPis4wZ91UHbj6FhlMyFM="
+    secure: NriOdco/+mXBr0yVox9tQllMnZm2RFOSpXzY7Y6430hl9+Cq3tU5O6k+2qDfmqLXQnoCuK/eQh7MigF34TCNJixDtFlveGY9/S8eLKtMlctvwwb8zfx4xkqZSxrBEvlqMN5hMEAFtKsLTA9D1Zecd9i0H9uvPr+lRYvqw5zEIO0=

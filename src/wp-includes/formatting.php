@@ -1362,21 +1362,23 @@ function sanitize_title_with_dashes( $title, $raw_title = '', $context = 'displa
 }
 
 /**
- * Ensures a string is a valid SQL order by clause.
+ * Ensures a string is a valid SQL 'order by' clause.
  *
- * Accepts one or more columns, with or without ASC/DESC, and also accepts
- * RAND().
+ * Accepts one or more columns, with or without a sort order (ASC / DESC).
+ * e.g. 'column_1', 'column_1, column_2', 'column_1 ASC, column_2 DESC' etc.
+ *
+ * Also accepts 'RAND()'.
  *
  * @since 2.5.1
  *
- * @param string $orderby Order by string to be checked.
- * @return false|string Returns the order by clause if it is a match, false otherwise.
+ * @param string $orderby Order by clause to be validated.
+ * @return string|bool Returns $orderby if valid, false otherwise.
  */
-function sanitize_sql_orderby( $orderby ){
-	preg_match('/^\s*([a-z0-9_]+(\s+(ASC|DESC))?(\s*,\s*|\s*$))+|^\s*RAND\(\s*\)\s*$/i', $orderby, $obmatches);
-	if ( !$obmatches )
-		return false;
-	return $orderby;
+function sanitize_sql_orderby( $orderby ) {
+	if ( preg_match( '/^\s*(([a-z0-9_]+|`[a-z0-9_]+`)(\s+(ASC|DESC))?\s*(,\s*(?=[a-z0-9_`])|$))+$/i', $orderby ) || preg_match( '/^\s*RAND\(\s*\)\s*$/i', $orderby ) ) {
+		return $orderby;
+	}
+	return false;
 }
 
 /**
@@ -4236,10 +4238,6 @@ function wp_encode_emoji( $content ) {
 function wp_staticize_emoji( $text ) {
 	$text = wp_encode_emoji( $text );
 
-	if ( ! class_exists( 'DOMDocument' ) ) {
-		return $text;
-	}
-
 	/** This filter is documented in wp-includes/formatting.php */
 	$cdn_url = apply_filters( 'emoji_url', set_url_scheme( '//s.w.org/images/core/emoji/72x72/' ) );
 
@@ -4314,13 +4312,12 @@ function wp_staticize_emoji( $text ) {
 /**
  * Convert emoji in emails into static images.
  *
- * @ignore
  * @since 4.2.0
  *
  * @param array $mail The email data array.
  * @return array The email data array, with emoji in the message staticized.
  */
-function _wp_staticize_emoji_for_email( $mail ) {
+function wp_staticize_emoji_for_email( $mail ) {
 	if ( ! isset( $mail['message'] ) ) {
 		return $mail;
 	}
@@ -4373,7 +4370,7 @@ function _wp_staticize_emoji_for_email( $mail ) {
 	$content_type = apply_filters( 'wp_mail_content_type', $content_type );
 
 	if ( 'text/html' === $content_type ) {
-		$mail['message'] = wp_staticize_emoji( $mail['message'], true );
+		$mail['message'] = wp_staticize_emoji( $mail['message'] );
 	}
 
 	return $mail;

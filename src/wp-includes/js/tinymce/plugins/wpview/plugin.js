@@ -182,18 +182,18 @@ tinymce.PluginManager.add( 'wpview', function( editor ) {
 			return;
 		}
 
-		if ( selected ) {
-			removeView( selected );
-		}
-
 		if ( ! event.load ) {
+			if ( selected ) {
+				removeView( selected );
+			}
+
 			node = editor.selection.getNode();
 
 			if ( node && node !== editor.getBody() && /^\s*https?:\/\/\S+\s*$/i.test( event.content ) ) {
 				// When a url is pasted or inserted, only try to embed it when it is in an empty paragrapgh.
 				node = editor.dom.getParent( node, 'p' );
 
-				if ( node && /^[\s\uFEFF\u00A0]*$/.test( node.textContent || node.innerText ) ) {
+				if ( node && /^[\s\uFEFF\u00A0]*$/.test( $( node ).text() || '' ) ) {
 					// Make sure there are no empty inline elements in the <p>
 					node.innerHTML = '';
 				} else {
@@ -361,6 +361,9 @@ tinymce.PluginManager.add( 'wpview', function( editor ) {
 
 		// Remove marker attributes
 		$( 'p[data-wpview-marker]', rootNode ).attr( 'data-wpview-marker', null );
+
+		// Reset the selected node if any
+		selected = null;
 	}
 
 	editor.on( 'PreProcess', function( event ) {

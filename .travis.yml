@@ -40,4 +40,4 @@ before_script:
 script: grunt $WP_TRAVISCI
 notifications:
   slack:
-    secure: "ln2sC0yUOMzGGJ9PR56cxafCO2YSBQtFs0JuoSjvmXN0+jCGbQL781z2osEJ24BEl4o3zMLfiFPgieM7D+VuRObU6TiVFLmbebgoSyW/1Gs+jPNxBXPKOSLE3/4CV8ifyhm5XZr2xT6z8OWC6StHl2nPis4wZ91UHbj6FhlMyFM="
+    secure: NriOdco/+mXBr0yVox9tQllMnZm2RFOSpXzY7Y6430hl9+Cq3tU5O6k+2qDfmqLXQnoCuK/eQh7MigF34TCNJixDtFlveGY9/S8eLKtMlctvwwb8zfx4xkqZSxrBEvlqMN5hMEAFtKsLTA9D1Zecd9i0H9uvPr+lRYvqw5zEIO0=

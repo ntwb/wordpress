@@ -201,10 +201,16 @@ class WP_Press_This {
 				continue;
 			}
 
-			// @todo Find a more performant to check existence, maybe get_term() with a separate parent check.
-			if ( ! $cat_id = term_exists( $cat_name, $taxonomy->name, $parent ) ) {
-				$cat_id = wp_insert_term( $cat_name, $taxonomy->name, array( 'parent' => $parent ) );
+			// @todo Find a more performant way to check existence, maybe get_term() with a separate parent check.
+			if ( term_exists( $cat_name, $taxonomy->name, $parent ) ) {
+				if ( count( $names ) === 1 ) {
+					wp_send_json_error( array( 'errorMessage' => __( 'This category already exists.' ) ) );
+				} else {
+					continue;
+				}
 			}
+
+			$cat_id = wp_insert_term( $cat_name, $taxonomy->name, array( 'parent' => $parent ) );
 
 			if ( is_wp_error( $cat_id ) ) {
 				continue;
@@ -280,9 +286,9 @@ class WP_Press_This {
 			unlink( $source_tmp_file );
 
 		} else if ( is_wp_error( $source_tmp_file ) ) {
-			$source_content = new WP_Error( 'upload-error',  sprintf( __( 'Error: %s' ), sprintf( __( 'Could not download the source URL (native error: %s).' ), $source_tmp_file->get_error_message() ) ) );
+			$source_content = new WP_Error( 'upload-error',  sprintf( __( 'ERROR: %s' ), sprintf( __( 'Could not download the source URL (native error: %s).' ), $source_tmp_file->get_error_message() ) ) );
 		} else if ( ! file_exists( $source_tmp_file ) ) {
-			$source_content = new WP_Error( 'no-local-file',  sprintf( __( 'Error: %s' ), __( 'Could not save or locate the temporary download file for the source URL.' ) ) );
+			$source_content = new WP_Error( 'no-local-file',  sprintf( __( 'ERROR: %s' ), __( 'Could not save or locate the temporary download file for the source URL.' ) ) );
 		}
 
 		return $source_content;
@@ -438,6 +444,9 @@ class WP_Press_This {
 	private function _limit_embed( $src ) {
 		$src = $this->_limit_url( $src );
 
+		if ( empty( $src ) )
+			return '';
+
 		if ( preg_match( '/\/\/(m|www)\.youtube\.com\/(embed|v)\/([^\?]+)\?.+$/', $src, $src_matches ) ) {
 			// Embedded Youtube videos (www or mobile)
 			$src = 'https://www.youtube.com/watch?v=' . $src_matches[3];
@@ -453,14 +462,13 @@ class WP_Press_This {
 		} else if ( preg_match( '/\/\/(www\.)?dailymotion\.com\/embed\/video\/([^\/\?]+)([\/\?]{1}.+)?/', $src, $src_matches ) ) {
 			// Embedded Daily Motion videos
 			$src = 'https://www.dailymotion.com/video/' . $src_matches[2];
-		} else if ( ! preg_match( '/\/\/(m|www)\.youtube\.com\/watch\?/', $src )          // Youtube video page (www or mobile)
-		            && ! preg_match( '/\/youtu\.be\/.+$/', $src )                         // Youtu.be video page
-		            && ! preg_match( '/\/\/vimeo\.com\/[\d]+$/', $src )                   // Vimeo video page
-		            && ! preg_match( '/\/\/(www\.)?dailymotion\.com\/video\/.+$/', $src ) // Daily Motion video page
-		            && ! preg_match( '/\/\/soundcloud\.com\/.+$/', $src )                 // SoundCloud audio page
-		            && ! preg_match( '/\/\/twitter\.com\/[^\/]+\/status\/[\d]+$/', $src ) // Twitter status page
-		            && ! preg_match( '/\/\/vine\.co\/v\/[^\/]+/', $src ) ) {              // Vine video page
-			$src = '';
+		} else {
+			require_once( ABSPATH . WPINC . '/class-oembed.php' );
+			$oembed = _wp_oembed_get_object();
+
+			if ( ! $oembed->get_provider( $src, array( 'discover' => false ) ) ) {
+				$src = '';
+			}
 		}
 
 		return $src;
@@ -790,7 +798,7 @@ class WP_Press_This {
 
 				?>
 				<div id="post-formats-select">
-				<fieldset><legend class="screen-reader-text"><?php _e( 'Post formats' ); ?></legend>
+				<fieldset><legend class="screen-reader-text"><?php _e( 'Post Formats' ); ?></legend>
 					<input type="radio" name="post_format" class="post-format" id="post-format-0" value="0" <?php checked( $post_format, '0' ); ?> />
 					<label for="post-format-0" class="post-format-icon post-format-standard"><?php echo get_post_format_string( 'standard' ); ?></label>
 					<?php
@@ -927,6 +935,11 @@ class WP_Press_This {
 	public function get_embeds( $data ) {
 		$selected_embeds = array();
 
+		// Make sure to add the Pressed page if it's a valid oembed itself
+		if ( ! empty ( $data['u'] ) && $this->_limit_embed( $data['u'] ) ) {
+			$data['_embeds'][] = $data['u'];
+		}
+
 		if ( ! empty( $data['_embeds'] ) ) {
 			foreach( $data['_embeds'] as $src ) {
 				$prot_relative_src = preg_replace( '/^https?:/', '', $src );
@@ -1045,7 +1058,7 @@ class WP_Press_This {
 
 		if ( ! empty( $data['t'] ) ) {
 			$title = $data['t'];
-		} elseif( ! empty( $data['_meta'] ) ) {
+		} elseif ( ! empty( $data['_meta'] ) ) {
 			if ( ! empty( $data['_meta']['twitter:title'] ) ) {
 				$title = $data['_meta']['twitter:title'];
 			} else if ( ! empty( $data['_meta']['og:title'] ) ) {
@@ -1091,10 +1104,7 @@ class WP_Press_This {
 
 		$default_html = array( 'quote' => '', 'link' => '', 'embed' => '' );
 
-		require_once( ABSPATH . WPINC . '/class-oembed.php' );
-		$oembed = _wp_oembed_get_object();
-
-		if ( ! empty( $data['u'] ) && $oembed->get_provider( $data['u'], array( 'discover' => false ) ) ) {
+		if ( $this->_limit_embed( $data['u'] ) ) {
 			$default_html['embed'] = '<p>[embed]' . $data['u'] . '[/embed]</p>';
 
 			if ( ! empty( $data['s'] ) ) {
@@ -1148,6 +1158,10 @@ class WP_Press_This {
 	 *
 	 * @since 4.2.0
 	 * @access public
+	 *
+	 * @global WP_Locale $wp_locale
+	 * @global string    $wp_version
+	 * @global bool      $is_IE
 	 */
 	public function html() {
 		global $wp_locale, $wp_version;
@@ -1463,4 +1477,8 @@ class WP_Press_This {
 	}
 }
 
+/**
+ *
+ * @global WP_Press_This $wp_press_this
+ */
 $GLOBALS['wp_press_this'] = new WP_Press_This;

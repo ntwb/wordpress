@@ -125,7 +125,8 @@ strong .post-com-count:after {
 	font-size: 1em;
 }
 
-#edithead .inside {
+#edithead .inside,
+#commentsdiv #edithead .inside {
 	float: left;
 	padding: 3px 0 2px 5px;
 	margin: 0;
@@ -258,7 +259,7 @@ table.fixed {
 }
 
 .fixed .column-posts {
-    width: 74px;
+	width: 74px;
 }
 
 .fixed .column-comment .comment-author {
@@ -295,8 +296,29 @@ table.fixed {
 	float: left;
 }
 
-.fixed .column-icon {
-	width: 80px;
+/* Media file column */
+table.media .column-title {
+	position: relative;
+}
+
+table.media .column-title .media-icon {
+	position: absolute;
+	top: 8px; /* match cell padding */
+	left: 10px; /* match cell padding */
+}
+
+table.media .column-title .media-icon img {
+	max-width: 60px;
+	height: auto;
+}
+
+table.media .column-title .media-info,
+table.media .column-title .row-actions {
+	margin-left: 70px; /* 60px image + margin */
+}
+
+table.media .column-title .media-info p { 
+	margin-bottom: 0.2em; 
 }
 
 /* @todo: pick a consistent list table selector */
@@ -357,6 +379,11 @@ table.fixed {
 	border-bottom: 0 none;
 }
 
+#commentsdiv #edithead .inside input {
+	vertical-align: middle;
+	width: 160px;
+}
+
 .sorting-indicator {
 	display: none;
 	width: 10px;
@@ -366,7 +393,6 @@ table.fixed {
 }
 
 .sorting-indicator:before {
-	background: none;
 	content: '\f142';
 	font: normal 20px/1 'dashicons';
 	speak: none;
@@ -390,12 +416,14 @@ table.fixed {
 }
 
 th.sorted.asc .sorting-indicator:before,
-th.desc:hover span.sorting-indicator:before {
+th.desc:hover span.sorting-indicator:before,
+th.desc a:focus span.sorting-indicator:before {
 	content: '\f142';
 }
 
 th.sorted.desc .sorting-indicator:before,
-th.asc:hover span.sorting-indicator:before {
+th.asc:hover span.sorting-indicator:before,
+th.asc a:focus span.sorting-indicator:before {
 	content: '\f140';
 }
 
@@ -476,16 +504,12 @@ th.sorted a span {
 	cursor: pointer;
 }
 
-th.sorted.asc .sorting-indicator,
-th.desc:hover span.sorting-indicator {
+th.sorted .sorting-indicator,
+th.desc:hover span.sorting-indicator,
+th.desc a:focus span.sorting-indicator,
+th.asc:hover span.sorting-indicator,
+th.asc a:focus span.sorting-indicator {
 	display: block;
-	background-position: 0 0;
-}
-
-th.sorted.desc .sorting-indicator,
-th.asc:hover span.sorting-indicator {
-	display: block;
-	background-position: -7px 0;
 }
 
 /* Bulk Actions */
@@ -524,7 +548,7 @@ th.asc:hover span.sorting-indicator {
 	cursor: default;
 	height: 30px;
 	color: #555;
-	line-height: 30px;
+	line-height: 2.5;
 	font-size: 12px;
 }
 
@@ -543,8 +567,10 @@ th.asc:hover span.sorting-indicator {
 	padding: 0 10px 3px;
 	background: #eee;
 	background: rgba( 0, 0, 0, 0.05 );
+	display: inline-block;
 	font-size: 16px;
 	font-weight: normal;
+	line-height: 1.3333;
 }
 
 .tablenav .tablenav-pages a:hover,
@@ -563,10 +589,16 @@ th.asc:hover span.sorting-indicator {
 }
 
 .tablenav .displaying-num {
-	margin-right: 2px;
+	margin-right: 7px;
 	color: #777;
 	font-size: 12px;
 	font-style: italic;
+}
+
+.tablenav .one-page .displaying-num {
+	display: inline-block;
+	margin-top: 2px;
+	margin-right: 0;
 }
 
 .tablenav .actions {
@@ -603,43 +635,43 @@ classes exist in paginate_links() but not seen in list table output. */
 
 .tablenav .view-switch {
 	float: right;
-	margin: 5px 16px 0 8px;
+	margin: 0 5px;
+	padding-top: 3px;
+	/* line-height in px same as .tablenav height */
+	line-height: 30px;
 }
 
 .wp-filter .view-switch {
 	display: inline-block;
 	vertical-align: middle;
-	padding: 15px 0;
-	margin: 0 20px 0 0;
+	padding: 12px 0;
+	margin: 0 8px 0 2px;
+}
+
+.media-toolbar.wp-filter .view-switch {
+	margin: 0 12px 0 2px;
 }
 
 .view-switch a {
-	text-decoration: none;
+	float: left;
+	width: 28px;
+	height: 28px;
+	text-align: center;
+	line-height: 24px;
 }
 
-.view-switch > a {
-	display: inline-block;
-	width: 18px;
-	height: 18px;
-}
-
-.view-switch > a:before {
+.view-switch a:before {
 	color: #b4b9be;
 	display: inline-block;
-	float: left;
 	font: normal 20px/1 'dashicons';
 	speak: none;
 	vertical-align: middle;
-	margin-left: 0;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
-.view-switch > .view-list:before {
-	content: '\f163';
-}
-
-.view-switch a:hover:before {
+.view-switch a:hover:before,
+.view-switch a:focus:before {
 	color: #727272;
 }
 
@@ -647,15 +679,15 @@ classes exist in paginate_links() but not seen in list table output. */
 	color: #0073aa;
 }
 
-.view-switch > a + a {
-	margin-left: 5px;
+.view-switch .view-list:before {
+	content: '\f163';
 }
 
-.view-switch > .view-excerpt:before {
+.view-switch .view-excerpt:before {
 	content: '\f164';
 }
 
-.view-switch > .view-grid:before {
+.view-switch .view-grid:before {
 	content: '\f509';
 }
 
@@ -1249,7 +1281,6 @@ tr.active.update + tr.plugin-update-tr .plugin-update {
 
 .plugins .plugin-update-tr .plugin-update {
 	padding: 0;
-	border: none;
 	-webkit-box-shadow: inset 0 -1px 0 rgba(0,0,0,0.1);
 	box-shadow: inset 0 -1px 0 rgba(0,0,0,0.1);
 }
@@ -1482,6 +1513,15 @@ div.action-links,
 	background: #fecac2;
 }
 
+.sites.fixed .column-lastupdated,
+.sites.fixed .column-registered {
+	width: 20%;
+}
+
+.sites.fixed .column-users {
+	width: 80px;
+}
+
 /* =Media Queries
 -------------------------------------------------------------- */
 
@@ -1545,6 +1585,12 @@ div.action-links,
 		display: none;
 	}
 
+	.view-switch a {
+		width: 36px;
+		height: 36px;
+		line-height: 33px;
+	}
+
 	/* Pagination */
 	.tablenav.top .displaying-num {
 		display: none;
@@ -1582,6 +1628,7 @@ div.action-links,
 
 	.tablenav-pages .pagination-links a {
 		padding: 8px 20px 11px;
+		display: inline;
 		font-size: 18px;
 		background: rgba(0, 0, 0, 0.05);
 	}
@@ -1607,6 +1654,7 @@ div.action-links,
 	.column-tags,
 	.tags .column-description,
 	.media .column-parent,
+	.media .column-comments,
 	.users .column-email,
 	.users .column-name,
 	.sites .column-registered,
@@ -1633,6 +1681,11 @@ div.action-links,
 
 	.widefat * {
 		word-wrap: normal;
+	}
+
+	/* Media */
+	.media .column-title {
+		width: auto;
 	}
 
 	/* Quick Edit and Bulk Edit */

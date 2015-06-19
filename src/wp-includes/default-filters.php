@@ -290,6 +290,9 @@ add_action( 'post_updated',      'wp_check_for_changed_slugs', 12, 3 );
 // Nonce check for Post Previews
 add_action( 'init', '_show_post_preview' );
 
+// Output JS to reset window.name for previews
+add_action( 'wp_head', 'wp_post_preview_js', 1 );
+
 // Timezone
 add_filter( 'pre_option_gmt_offset','wp_timezone_override_offset' );
 
@@ -381,6 +384,9 @@ add_action( 'customize_controls_enqueue_scripts', 'wp_plupload_default_settings'
 
 // Nav menu
 add_filter( 'nav_menu_item_id', '_nav_menu_item_id_use_once', 10, 2 );
+
+// Widgets
+add_action( 'init', 'wp_widgets_init', 1 );
 
 // Admin Bar
 // Don't remove. Wrong way to disable.

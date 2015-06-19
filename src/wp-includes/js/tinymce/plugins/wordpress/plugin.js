@@ -432,7 +432,7 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 			editor.shortcuts.add( 'access+' + key, '', command );
 		} );
 
-		editor.addShortcut( 'ctrl+s', '', function() {
+		editor.addShortcut( 'meta+s', '', function() {
 			if ( typeof wp !== 'undefined' && wp.autosave ) {
 				wp.autosave.server.triggerSave();
 			}
@@ -443,13 +443,23 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 	 * Experimental: create a floating toolbar.
 	 * This functionality will change in the next releases. Not recommended for use by plugins.
 	 */
-	( function() {
+	editor.on( 'preinit', function() {
 		var Factory = tinymce.ui.Factory,
 			settings = editor.settings,
-			currentToolbar,
-			currentSelection;
+			activeToolbar,
+			currentSelection,
+			timeout,
+			wpAdminbar = document.getElementById( 'wpadminbar' ),
+			mceIframe = document.getElementById( editor.id + '_ifr' ),
+			mceToolbar = tinymce.$( '.mce-toolbar-grp', editor.getContainer() )[0],
+			mceStatusbar = tinymce.$( '.mce-statusbar', editor.getContainer() )[0],
+			wpStatusbar;
 
-		function create( buttons ) {
+			if ( editor.id === 'content' ) {
+				wpStatusbar = document.getElementById( 'post-status-info' );
+			}
+
+		function create( buttons, bottom ) {
 			var toolbar,
 				toolbarItems = [],
 				buttonGroup;
@@ -573,118 +583,89 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 				} ]
 			} );
 
-			function hide() {
-				toolbar.hide();
-			}
+			toolbar.bottom = bottom;
 
 			function reposition() {
-				var top, left, minTop, className,
-					windowPos, adminbar, mceToolbar, boundary,
-					boundaryMiddle, boundaryVerticalMiddle, spaceTop,
-					spaceBottom, windowWidth, toolbarWidth, toolbarHalf,
-					iframe, iframePos, iframeWidth, iframeHeigth,
-					toolbarNodeHeight, verticalSpaceNeeded,
-					toolbarNode = this.getEl(),
+				var scrollX = window.pageXOffset || document.documentElement.scrollLeft,
+					scrollY = window.pageYOffset || document.documentElement.scrollTop,
+					windowWidth = window.innerWidth,
+					windowHeight = window.innerHeight,
+					iframeRect = mceIframe.getBoundingClientRect(),
+					toolbar = this.getEl(),
+					toolbarWidth = toolbar.offsetWidth,
+					toolbarHeight = toolbar.offsetHeight,
+					selection = currentSelection.getBoundingClientRect(),
+					selectionMiddle = ( selection.left + selection.right ) / 2,
 					buffer = 5,
 					margin = 8,
-					adminbarHeight = 0;
+					spaceNeeded = toolbarHeight + margin + buffer,
+					wpAdminbarBottom = wpAdminbar ? wpAdminbar.getBoundingClientRect().bottom : 0,
+					mceToolbarBottom = mceToolbar ? mceToolbar.getBoundingClientRect().bottom : 0,
+					mceStatusbarTop = mceStatusbar ? windowHeight - mceStatusbar.getBoundingClientRect().top : 0,
+					wpStatusbarTop = wpStatusbar ? windowHeight - wpStatusbar.getBoundingClientRect().top : 0,
+					blockedTop = Math.max( 0, wpAdminbarBottom, mceToolbarBottom, iframeRect.top ),
+					blockedBottom = Math.max( 0, mceStatusbarTop, wpStatusbarTop, windowHeight - iframeRect.bottom ),
+					spaceTop = selection.top + iframeRect.top - blockedTop,
+					spaceBottom = windowHeight - iframeRect.top - selection.bottom - blockedBottom,
+					editorHeight = windowHeight - blockedTop - blockedBottom,
+					className = '',
+					top, left;
 
-				if ( ! currentSelection ) {
-					return;
+				if ( spaceTop >= editorHeight || spaceBottom >= editorHeight ) {
+					return this.hide();
 				}
 
-				windowPos = window.pageYOffset || document.documentElement.scrollTop;
-				adminbar = tinymce.$( '#wpadminbar' )[0];
-				mceToolbar = tinymce.$( '.mce-toolbar-grp', editor.getContainer() )[0];
-				boundary = currentSelection.getBoundingClientRect();
-				boundaryMiddle = ( boundary.left + boundary.right ) / 2;
-				boundaryVerticalMiddle = ( boundary.top + boundary.bottom ) / 2;
-				spaceTop = boundary.top;
-				spaceBottom = iframeHeigth - boundary.bottom;
-				windowWidth = window.innerWidth;
-				toolbarWidth = toolbarNode.offsetWidth;
-				toolbarHalf = toolbarWidth / 2;
-				iframe = document.getElementById( editor.id + '_ifr' );
-				iframePos = DOM.getPos( iframe );
-				iframeWidth = iframe.offsetWidth;
-				iframeHeigth = iframe.offsetHeight;
-				toolbarNodeHeight = toolbarNode.offsetHeight;
-				verticalSpaceNeeded = toolbarNodeHeight + margin + buffer;
-
-				if ( spaceTop >= verticalSpaceNeeded ) {
-					className = ' mce-arrow-down';
-					top = boundary.top + iframePos.y - toolbarNodeHeight - margin;
-				} else if ( spaceBottom >= verticalSpaceNeeded ) {
-					className = ' mce-arrow-up';
-					top = boundary.bottom + iframePos.y;
-				} else {
-					top = buffer;
-
-					if ( boundaryVerticalMiddle >= verticalSpaceNeeded ) {
-						className = ' mce-arrow-down';
-					} else {
+				if ( this.bottom ) {
+					if ( spaceBottom >= spaceNeeded ) {
 						className = ' mce-arrow-up';
+						top = selection.bottom + iframeRect.top + scrollY;
+					} else if ( spaceTop >= spaceNeeded ) {
+						className = ' mce-arrow-down';
+						top = selection.top + iframeRect.top + scrollY - toolbarHeight - margin;
 					}
-				}
-
-				// Make sure the image toolbar is below the main toolbar.
-				if ( mceToolbar ) {
-					minTop = DOM.getPos( mceToolbar ).y + mceToolbar.clientHeight;
 				} else {
-					minTop = iframePos.y;
-				}
-
-				// Make sure the image toolbar is below the adminbar (if visible) or below the top of the window.
-				if ( windowPos ) {
-					if ( adminbar && adminbar.getBoundingClientRect().top === 0 ) {
-						adminbarHeight = adminbar.clientHeight;
-					}
-
-					if ( windowPos + adminbarHeight > minTop ) {
-						minTop = windowPos + adminbarHeight;
+					if ( spaceTop >= spaceNeeded ) {
+						className = ' mce-arrow-down';
+						top = selection.top + iframeRect.top + scrollY - toolbarHeight - margin;
+					} else if ( spaceBottom >= spaceNeeded && editorHeight / 2 > selection.bottom + iframeRect.top - blockedTop ) {
+						className = ' mce-arrow-up';
+						top = selection.bottom + iframeRect.top + scrollY;
 					}
 				}
 
-				if ( top && minTop && ( minTop + buffer > top ) ) {
-					top = minTop + buffer;
-					className = '';
+				if ( typeof top === 'undefined' ) {
+					top = scrollY + blockedTop + buffer;
 				}
 
-				left = boundaryMiddle - toolbarHalf;
-				left += iframePos.x;
+				left = selectionMiddle - toolbarWidth / 2 + iframeRect.left + scrollX;
 
-				if ( boundary.left < 0 || boundary.right > iframeWidth ) {
-					left = iframePos.x + ( iframeWidth - toolbarWidth ) / 2;
+				if ( selection.left < 0 || selection.right > iframeRect.width ) {
+					left = iframeRect.left + scrollX + ( iframeRect.width - toolbarWidth ) / 2;
 				} else if ( toolbarWidth >= windowWidth ) {
 					className += ' mce-arrow-full';
 					left = 0;
-				} else if ( ( left < 0 && boundary.left + toolbarWidth > windowWidth ) ||
-					( left + toolbarWidth > windowWidth && boundary.right - toolbarWidth < 0 ) ) {
-
+				} else if ( ( left < 0 && selection.left + toolbarWidth > windowWidth ) || ( left + toolbarWidth > windowWidth && selection.right - toolbarWidth < 0 ) ) {
 					left = ( windowWidth - toolbarWidth ) / 2;
-				} else if ( left < iframePos.x ) {
+				} else if ( left < iframeRect.left + scrollX ) {
 					className += ' mce-arrow-left';
-					left = boundary.left + iframePos.x;
-				} else if ( left + toolbarWidth > iframeWidth + iframePos.x ) {
+					left = selection.left + iframeRect.left + scrollX;
+				} else if ( left + toolbarWidth > iframeRect.width + iframeRect.left + scrollX ) {
 					className += ' mce-arrow-right';
-					left = boundary.right - toolbarWidth + iframePos.x;
+					left = selection.right - toolbarWidth + iframeRect.left + scrollX;
 				}
 
-				toolbarNode.className = toolbarNode.className.replace( / ?mce-arrow-[\w]+/g, '' );
-				toolbarNode.className += className;
+				toolbar.className = toolbar.className.replace( / ?mce-arrow-[\w]+/g, '' ) + className;
 
-				DOM.setStyles( toolbarNode, { 'left': left, 'top': top } );
+				DOM.setStyles( toolbar, {
+					'left': left,
+					'top': top
+				} );
 
 				return this;
 			}
 
 			toolbar.on( 'show', function() {
-				currentToolbar = this;
 				this.reposition();
-			} );
-
-			toolbar.on( 'hide', function() {
-				currentToolbar = false;
 			} );
 
 			toolbar.on( 'keydown', function( event ) {
@@ -692,18 +673,6 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 					this.hide();
 					editor.focus();
 				}
-			} );
-
-			toolbar.on( 'remove', function() {
-				DOM.unbind( window, 'resize scroll', hide );
-				editor.dom.unbind( editor.getWin(), 'resize scroll', hide );
-				editor.off( 'blur hide', hide );
-			} );
-
-			editor.once( 'init', function() {
-				DOM.bind( window, 'resize scroll', hide );
-				editor.dom.bind( editor.getWin(), 'resize scroll', hide );
-				editor.on( 'blur hide', hide );
 			} );
 
 			toolbar.reposition = reposition;
@@ -715,8 +684,8 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 		editor.shortcuts.add( 'alt+119', '', function() {
 			var node;
 
-			if ( currentToolbar ) {
-				node = currentToolbar.find( 'toolbar' )[0];
+			if ( activeToolbar ) {
+				node = activeToolbar.find( 'toolbar' )[0];
 				node && node.focus( true );
 			}
 		} );
@@ -734,13 +703,47 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 
 			currentSelection = args.selection || args.element;
 
-			currentToolbar && currentToolbar.hide();
-			args.toolbar && args.toolbar.show();
+			if ( activeToolbar ) {
+				activeToolbar.hide();
+			}
+
+			if ( args.toolbar ) {
+				activeToolbar = args.toolbar;
+				activeToolbar.show();
+			} else {
+				activeToolbar = false;
+			}
 		} );
+
+		editor.on( 'focus', function() {
+			if ( activeToolbar ) {
+				activeToolbar.show();
+			}
+		} );
+
+		function hide( event ) {
+			if ( activeToolbar ) {
+				activeToolbar.hide();
+
+				if ( event.type === 'hide' ) {
+					activeToolbar = false;
+				} else if ( event.type === 'resize' || event.type === 'scroll' ) {
+					clearTimeout( timeout );
+
+					timeout = setTimeout( function() {
+						activeToolbar.show();
+					}, 250 );
+				}
+			}
+		}
+
+		DOM.bind( window, 'resize scroll', hide );
+		editor.dom.bind( editor.getWin(), 'resize scroll', hide );
+		editor.on( 'blur hide', hide );
 
 		editor.wp = editor.wp || {};
 		editor.wp._createToolbar = create;
-	}());
+	}, true );
 
 	function noop() {}
 

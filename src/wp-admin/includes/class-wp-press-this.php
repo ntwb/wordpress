@@ -738,6 +738,15 @@ class WP_Press_This {
 					}
 				}
 			}
+
+			// Support passing a single image src as `i`
+			if ( ! empty( $_REQUEST['i'] ) && ( $img_src = $this->_limit_img( wp_unslash( $_REQUEST['i'] ) ) ) ) {
+				if ( empty( $data['_images'] ) ) {
+					$data['_images'] = array( $img_src );
+				} elseif ( ! in_array( $img_src, $data['_images'], true ) ) {
+					array_unshift( $data['_images'], $img_src );
+				}
+			}
 		}
 
 		/**
@@ -1104,7 +1113,7 @@ class WP_Press_This {
 
 		$default_html = array( 'quote' => '', 'link' => '', 'embed' => '' );
 
-		if ( $this->_limit_embed( $data['u'] ) ) {
+		if ( ! empty( $data['u'] ) && $this->_limit_embed( $data['u'] ) ) {
 			$default_html['embed'] = '<p>[embed]' . $data['u'] . '[/embed]</p>';
 
 			if ( ! empty( $data['s'] ) ) {
@@ -1170,10 +1179,6 @@ class WP_Press_This {
 		$data = $this->merge_or_fetch_data();
 
 		$post_title = $this->get_suggested_title( $data );
-
-		if ( empty( $title ) ) {
-			$title = __( 'New Post' );
-		}
 
 		$post_content = $this->get_suggested_content( $data );
 
@@ -1449,13 +1454,21 @@ class WP_Press_This {
 		</div>
 		<div class="post-actions">
 			<span class="spinner">&nbsp;</span>
-			<button type="button" class="button-subtle draft-button" aria-live="polite">
-				<span class="save-draft"><?php _e( 'Save Draft' ); ?></span>
-				<span class="saving-draft"><?php _e( 'Saving...' ); ?></span>
-			</button>
-			<a href="<?php echo esc_url( get_edit_post_link( $post_ID ) ); ?>" class="edit-post-link" style="display: none;" target="_blank"><?php _e( 'Standard Editor' ); ?></a>
-			<button type="button" class="button-subtle preview-button"><?php _e( 'Preview' ); ?></button>
-			<button type="button" class="button-primary publish-button"><?php echo ( current_user_can( 'publish_posts' ) ) ? __( 'Publish' ) : __( 'Submit for Review' ); ?></button>
+			<div class="split-button">
+				<div class="split-button-head">
+					<button type="button" class="publish-button split-button-primary"><?php
+						echo ( current_user_can( 'publish_posts' ) ) ? __( 'Publish' ) : __( 'Submit for Review' );
+					?></button><button type="button" class="split-button-toggle" aria-haspopup="true" aria-expanded="false">
+						<i class="dashicons dashicons-arrow-down-alt2"></i>
+						<span class="screen-reader-text"><?php _e('More actions'); ?></span>
+					</button>
+				</div>
+				<ul class="split-button-body">
+					<li><button type="button" class="button-subtle draft-button split-button-option" aria-live="polite"><?php _e( 'Save Draft' ); ?></button></li>
+					<li><a href="<?php echo esc_url( get_edit_post_link( $post_ID ) ); ?>" class="edit-post-link split-button-option" target="_blank"><?php _e( 'Standard Editor' ); ?></a></li>
+					<li><button type="button" class="button-subtle preview-button split-button-option"><?php _e( 'Preview' ); ?></button></li>
+				</ul>
+			</div>
 		</div>
 	</div>
 	</form>

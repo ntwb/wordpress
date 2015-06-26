@@ -718,8 +718,10 @@ class WP_Customize_Media_Control extends WP_Customize_Control {
 	 */
 	public function to_json() {
 		parent::to_json();
+		$this->json['label'] = html_entity_decode( $this->label, ENT_QUOTES, get_bloginfo( 'charset' ) );
 		$this->json['mime_type'] = $this->mime_type;
 		$this->json['button_labels'] = $this->button_labels;
+		$this->json['canUpload'] = current_user_can( 'upload_files' );
 
 		$value = $this->value();
 
@@ -822,9 +824,11 @@ class WP_Customize_Media_Control extends WP_Customize_Control {
 				</div>
 			</div>
 			<div class="actions">
+				<# if ( data.canUpload ) { #>
 				<button type="button" class="button remove-button"><?php echo $this->button_labels['remove']; ?></button>
 				<button type="button" class="button upload-button" id="{{ data.settings['default'] }}-button"><?php echo $this->button_labels['change']; ?></button>
 				<div style="clear:both"></div>
+				<# } #>
 			</div>
 		<# } else { #>
 			<div class="current">
@@ -842,7 +846,9 @@ class WP_Customize_Media_Control extends WP_Customize_Control {
 				<# if ( data.defaultAttachment ) { #>
 					<button type="button" class="button default-button"><?php echo $this->button_labels['default']; ?></button>
 				<# } #>
+				<# if ( data.canUpload ) { #>
 				<button type="button" class="button upload-button" id="{{ data.settings['default'] }}-button"><?php echo $this->button_labels['select']; ?></button>
+				<# } #>
 				<div style="clear:both"></div>
 			</div>
 		<# } #>
@@ -1157,8 +1163,6 @@ class WP_Customize_Header_Image_Control extends WP_Customize_Image_Control {
 		$width = absint( get_theme_support( 'custom-header', 'width' ) );
 		$height = absint( get_theme_support( 'custom-header', 'height' ) );
 		?>
-
-
 		<div class="customize-control-content">
 			<p class="customizer-section-intro">
 				<?php
@@ -1179,11 +1183,13 @@ class WP_Customize_Header_Image_Control extends WP_Customize_Image_Control {
 				</div>
 			</div>
 			<div class="actions">
+				<?php if ( current_user_can( 'upload_files' ) ): ?>
 				<?php /* translators: Hide as in hide header image via the Customizer */ ?>
 				<button type="button"<?php echo $visibility ?> class="button remove"><?php _ex( 'Hide image', 'custom header' ); ?></button>
 				<?php /* translators: New as in add new header image via the Customizer */ ?>
 				<button type="button" class="button new"><?php _ex( 'Add new image', 'header image' ); ?></button>
 				<div style="clear:both"></div>
+				<?php endif; ?>
 			</div>
 			<div class="choices">
 				<span class="customize-control-title header-previously-uploaded">
@@ -1404,101 +1410,6 @@ class WP_Widget_Form_Customize_Control extends WP_Customize_Control {
 }
 
 /**
- * Customize Nav Menus Panel Class
- *
- * Needed to add screen options.
- *
- * @since 4.3.0
- */
-class WP_Customize_Nav_Menus_Panel extends WP_Customize_Panel {
-
-	/**
-	 * Control type.
-	 *
-	 * @since 4.3.0
-	 *
-	 * @access public
-	 * @var string
-	 */
-	public $type = 'nav_menus';
-
-	/**
-	 * Render screen options for Menus.
-	 *
-	 * @since 4.3.0
-	 */
-	public function render_screen_options() {
-		// Essentially adds the screen options.
-		add_filter( 'manage_nav-menus_columns', array( $this, 'wp_nav_menu_manage_columns' ) );
-
-		// Display screen options.
-		$screen = WP_Screen::get( 'nav-menus.php' );
-		$screen->render_screen_options();
-	}
-
-	/**
-	 * Returns the advanced options for the nav menus page.
-	 *
-	 * Link title attribute added as it's a relatively advanced concept for new users.
-	 *
-	 * @since 4.3.0
-	 *
-	 * @return array The advanced menu properties.
-	 */
-	function wp_nav_menu_manage_columns() {
-		return array(
-			'_title'      => __( 'Show advanced menu properties' ),
-			'cb'          => '<input type="checkbox" />',
-			'link-target' => __( 'Link Target' ),
-			'attr-title'  => __( 'Title Attribute' ),
-			'css-classes' => __( 'CSS Classes' ),
-			'xfn'         => __( 'Link Relationship (XFN)' ),
-			'description' => __( 'Description' ),
-		);
-	}
-
-	/**
-	 * An Underscore (JS) template for this panel's content (but not its container).
-	 *
-	 * Class variables for this panel class are available in the `data` JS object;
-	 * export custom variables by overriding {@see WP_Customize_Panel::json()}.
-	 *
-	 * @since 4.3.0
-	 *
-	 * @see WP_Customize_Panel::print_template()
-	 *
-	 * @since 4.3.0
-	 */
-	protected function content_template() {
-		?>
-		<li class="panel-meta customize-info accordion-section <# if ( ! data.description ) { #> cannot-expand<# } #>">
-			<button type="button" class="customize-panel-back" tabindex="-1">
-				<span class="screen-reader-text"><?php _e( 'Back' ); ?></span>
-			</button>
-			<div class="accordion-section-title">
-				<span class="preview-notice">
-					<?php
-						/* translators: %s is the site/panel title in the Customizer */
-						printf( __( 'You are customizing %s' ), '<strong class="panel-title">{{ data.title }}</strong>' );
-					?>
-				</span>
-				<button type="button" class="customize-screen-options-toggle" aria-expanded="false">
-					<span class="screen-reader-text"><?php _e( 'Menu Options' ); ?></span>
-				</button>
-				<button type="button" class="customize-help-toggle dashicons dashicons-editor-help" aria-expanded="false">
-					<span class="screen-reader-text"><?php _e( 'Help' ); ?></span>
-				</button>
-			</div>
-			<# if ( data.description ) { #>
-			<div class="description customize-panel-description">{{{ data.description }}}</div>
-			<# } #>
-			<?php $this->render_screen_options(); ?>
-		</li>
-		<?php
-	}
-}
-
-/**
  * Customize Nav Menu Control Class
  *
  * @since 4.3.0
@@ -1584,7 +1495,7 @@ class WP_Customize_Nav_Menu_Control extends WP_Customize_Control {
 	 *
 	 * @return array
 	 */
-	function json() {
+	public function json() {
 		$exported            = parent::json();
 		$exported['menu_id'] = $this->setting->term_id;
 
@@ -1647,19 +1558,19 @@ class WP_Customize_Nav_Menu_Item_Control extends WP_Customize_Control {
 	 */
 	public function content_template() {
 		?>
-		<dl class="menu-item-bar">
-			<dt class="menu-item-handle">
+		<div class="menu-item-bar">
+			<div class="menu-item-handle">
 				<span class="item-type">{{ data.item_type_label }}</span>
 				<span class="item-title">
 					<span class="spinner"></span>
-					<span class="menu-item-title">{{ data.title }}</span>
+					<span class="menu-item-title<# if ( ! data.title ) { #> no-title<# } #>">{{ data.title || wp.customize.Menus.data.l10n.untitled }}</span>
 				</span>
 				<span class="item-controls">
 					<button type="button" class="not-a-button item-edit"><span class="screen-reader-text"><?php _e( 'Edit Menu Item' ); ?></span></button>
 					<button type="button" class="not-a-button item-delete submitdelete deletion"><span class="screen-reader-text"><?php _e( 'Remove Menu Item' ); ?></span></button>
 				</span>
-			</dt>
-		</dl>
+			</div>
+		</div>
 
 		<div class="menu-item-settings" id="menu-item-settings-{{ data.menu_item_id }}">
 			<# if ( 'custom' === data.item_type ) { #>
@@ -1711,7 +1622,7 @@ class WP_Customize_Nav_Menu_Item_Control extends WP_Customize_Control {
 			<div class="menu-item-actions description-thin submitbox">
 				<# if ( 'custom' != data.item_type && '' != data.original_title ) { #>
 				<p class="link-to-original">
-					<?php printf( __( 'Original: %s' ), '<a class="original-link" href="{{ data.url }}">{{{ data.original_title }}}</a>' ); ?>
+					<?php printf( __( 'Original: %s' ), '<a class="original-link" href="{{ data.url }}">{{ data.original_title }}</a>' ); ?>
 				</p>
 				<# } #>
 
@@ -1732,7 +1643,7 @@ class WP_Customize_Nav_Menu_Item_Control extends WP_Customize_Control {
 	 *
 	 * @return array
 	 */
-	function json() {
+	public function json() {
 		$exported                 = parent::json();
 		$exported['menu_item_id'] = $this->setting->post_id;
 

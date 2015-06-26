@@ -109,16 +109,21 @@ final class WP_Customize_Nav_Menus {
 				'post_type'   => $taxonomy_or_post_type,
 			) );
 			foreach ( $posts as $post ) {
+				$post_title = $post->post_title;
+				if ( '' === $post_title ) {
+					/* translators: %d: ID of a post */
+					$post_title = sprintf( __( '#%d (no title)' ), $post->ID );
+				}
 				$items[] = array(
 					'id'         => "post-{$post->ID}",
-					'title'      => html_entity_decode( get_the_title( $post ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
+					'title'      => html_entity_decode( $post_title, ENT_QUOTES, get_bloginfo( 'charset' ) ),
 					'type'       => 'post_type',
 					'type_label' => get_post_type_object( $post->post_type )->labels->singular_name,
 					'object'     => $post->post_type,
 					'object_id'  => (int) $post->ID,
 				);
 			}
-		} else if ( 'taxonomy' === $obj_type ) {
+		} elseif ( 'taxonomy' === $obj_type ) {
 			$terms = get_terms( $taxonomy_or_post_type, array(
 				'child_of'     => 0,
 				'exclude'      => '',
@@ -216,13 +221,18 @@ final class WP_Customize_Nav_Menus {
 		// Check if any posts were found.
 		if ( $get_posts->post_count ) {
 			foreach ( $get_posts->posts as $post ) {
+				$post_title = $post->post_title;
+				if ( '' === $post_title ) {
+					/* translators: %d: ID of a post */
+					$post_title = sprintf( __( '#%d (no title)' ), $post->ID );
+				}
 				$results[] = array(
 					'id'         => 'post-' . $post->ID,
 					'type'       => 'post_type',
 					'type_label' => $post_type_objects[ $post->post_type ]->labels->singular_name,
 					'object'     => $post->post_type,
 					'object_id'  => intval( $post->ID ),
-					'title'      => html_entity_decode( get_the_title( $post ), ENT_QUOTES, get_bloginfo( 'charset' ) ),
+					'title'      => html_entity_decode( $post_title, ENT_QUOTES, get_bloginfo( 'charset' ) ),
 				);
 			}
 		}
@@ -270,9 +280,10 @@ final class WP_Customize_Nav_Menus {
 			'allMenus'             => wp_get_nav_menus(),
 			'itemTypes'            => $this->available_item_types(),
 			'l10n'                 => array(
-				'untitled'          => _x( '(no label)', 'Missing menu item navigation label.' ),
-				'custom_label'      => _x( 'Custom', 'Custom menu item type label.' ),
-				'menuLocation'      => _x( '(Currently set to: %s)', 'Current menu location.' ),
+				'untitled'          => _x( '(no label)', 'missing menu item navigation label' ),
+				'custom_label'      => __( 'Custom Link' ),
+				/* translators: %s: Current menu location */
+				'menuLocation'      => __( '(Currently set to: %s)' ),
 				'deleteWarn'        => __( 'You are about to permanently delete this menu. "Cancel" to stop, "OK" to delete.' ),
 				'itemAdded'         => __( 'Menu item added' ),
 				'itemDeleted'       => __( 'Menu item deleted' ),
@@ -282,11 +293,17 @@ final class WP_Customize_Nav_Menus {
 				'movedDown'         => __( 'Menu item moved down' ),
 				'movedLeft'         => __( 'Menu item moved out of submenu' ),
 				'movedRight'        => __( 'Menu item is now a sub-item' ),
-				'customizingMenus'  => _x( 'Customizing &#9656; Menus', '&#9656 is the unicode right-pointing triangle' ),
+				/* translators: %s: &#9656 is the unicode right-pointing triangle */
+				'customizingMenus'  => __( 'Customizing &#9656; Menus' ),
+				/* translators: %s: title of menu item which is invalid */
 				'invalidTitleTpl'   => __( '%s (Invalid)' ),
+				/* translators: %s: title of menu item in draft status */
 				'pendingTitleTpl'   => __( '%s (Pending)' ),
 				'taxonomyTermLabel' => __( 'Taxonomy' ),
 				'postTypeLabel'     => __( 'Post Type' ),
+				'itemsFound'        => __( 'Number of items found: %d' ),
+				'itemsFoundMore'    => __( 'Additional items found: %d' ),
+				'itemsLoadingMore'  => __( 'Loading more results... please wait.' ),
 			),
 			'menuItemTransport'    => 'postMessage',
 			'phpIntMax'            => PHP_INT_MAX,
@@ -339,7 +356,7 @@ final class WP_Customize_Nav_Menus {
 			$setting_args = array(
 				'type' => WP_Customize_Nav_Menu_Setting::TYPE,
 			);
-		} else if ( preg_match( WP_Customize_Nav_Menu_Item_Setting::ID_PATTERN, $setting_id ) ) {
+		} elseif ( preg_match( WP_Customize_Nav_Menu_Item_Setting::ID_PATTERN, $setting_id ) ) {
 			$setting_args = array(
 				'type' => WP_Customize_Nav_Menu_Item_Setting::TYPE,
 			);
@@ -362,7 +379,7 @@ final class WP_Customize_Nav_Menus {
 
 		if ( ! empty( $setting_args['type'] ) && WP_Customize_Nav_Menu_Setting::TYPE === $setting_args['type'] ) {
 			$setting_class = 'WP_Customize_Nav_Menu_Setting';
-		} else if ( ! empty( $setting_args['type'] ) && WP_Customize_Nav_Menu_Item_Setting::TYPE === $setting_args['type'] ) {
+		} elseif ( ! empty( $setting_args['type'] ) && WP_Customize_Nav_Menu_Item_Setting::TYPE === $setting_args['type'] ) {
 			$setting_class = 'WP_Customize_Nav_Menu_Item_Setting';
 		}
 		return $setting_class;
@@ -515,7 +532,7 @@ final class WP_Customize_Nav_Menus {
 	 *
 	 * @return int
 	 */
-	function intval_base10( $value ) {
+	public function intval_base10( $value ) {
 		return intval( $value, 10 );
 	}
 
@@ -560,13 +577,15 @@ final class WP_Customize_Nav_Menus {
 		?>
 		<script type="text/html" id="tmpl-available-menu-item">
 			<div id="menu-item-tpl-{{ data.id }}" class="menu-item-tpl" data-menu-item-id="{{ data.id }}">
-				<dl class="menu-item-bar">
-					<dt class="menu-item-handle">
+				<div class="menu-item-bar">
+					<div class="menu-item-handle">
 						<span class="item-type">{{ data.type_label }}</span>
-						<span class="item-title">{{ data.title || wp.customize.Menus.data.l10n.untitled }}</span>
+						<span class="item-title">
+							<span class="menu-item-title<# if ( ! data.title ) { #> no-title<# } #>">{{ data.title || wp.customize.Menus.data.l10n.untitled }}</span>
+						</span>
 						<button type="button" class="not-a-button item-add"><span class="screen-reader-text"><?php _e( 'Add Menu Item' ) ?></span></button>
-					</dt>
-				</dl>
+					</div>
+				</div>
 			</div>
 		</script>
 
@@ -583,10 +602,10 @@ final class WP_Customize_Nav_Menus {
 				<?php
 				printf(
 					'<button type="button" class="menus-move-up">%1$s</button><button type="button" class="menus-move-down">%2$s</button><button type="button" class="menus-move-left">%3$s</button><button type="button" class="menus-move-right">%4$s</button>',
-					esc_html( 'Move up' ),
-					esc_html( 'Move down' ),
-					esc_html( 'Move one level up' ),
-					esc_html( 'Move one level down' )
+					__( 'Move up' ),
+					__( 'Move down' ),
+					__( 'Move one level up' ),
+					__( 'Move one level down' )
 				);
 				?>
 			</div>
@@ -619,13 +638,14 @@ final class WP_Customize_Nav_Menus {
 			<div id="available-menu-items-search" class="accordion-section cannot-expand">
 				<div class="accordion-section-title">
 					<label class="screen-reader-text" for="menu-items-search"><?php _e( 'Search Menu Items' ); ?></label>
-					<input type="text" id="menu-items-search" placeholder="<?php esc_attr_e( 'Search menu items&hellip;' ) ?>" />
+					<input type="text" id="menu-items-search" placeholder="<?php esc_attr_e( 'Search menu items&hellip;' ) ?>" aria-describedby="menu-items-search-desc" />
+					<p class="screen-reader-text" id="menu-items-search-desc"><?php _e( 'The search results will be updated as you type.' ); ?></p>
 					<span class="spinner"></span>
 				</div>
 				<div class="accordion-section-content" data-type="search"></div>
 			</div>
 			<div id="new-custom-menu-item" class="accordion-section">
-				<h4 class="accordion-section-title"><?php _e( 'Links' ); ?><button type="button" class="not-a-button"><span class="screen-reader-text"><?php _e( 'Toggle' ); ?></span></button></h4>
+				<h4 class="accordion-section-title"><?php _e( 'Custom Links' ); ?><button type="button" class="not-a-button"><span class="screen-reader-text"><?php _e( 'Toggle' ); ?></span></button></h4>
 				<div class="accordion-section-content">
 					<input type="hidden" value="custom" id="custom-menu-item-type" name="menu-item[-1][menu-item-type]" />
 					<p id="menu-item-url-wrap">
@@ -708,7 +728,7 @@ final class WP_Customize_Nav_Menus {
 	 *
 	 * @since 4.3.0
 	 */
-	function customize_preview_init() {
+	public function customize_preview_init() {
 		add_action( 'template_redirect', array( $this, 'render_menu' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'customize_preview_enqueue_deps' ) );
 
@@ -728,7 +748,7 @@ final class WP_Customize_Nav_Menus {
 	 * @param array $args  An array containing wp_nav_menu() arguments.
 	 * @return array
 	 */
-	function filter_wp_nav_menu_args( $args ) {
+	public function filter_wp_nav_menu_args( $args ) {
 		$this->preview_nav_menu_instance_number += 1;
 		$args['instance_number'] = $this->preview_nav_menu_instance_number;
 
@@ -764,7 +784,7 @@ final class WP_Customize_Nav_Menus {
 	 * @param object $args             An object containing wp_nav_menu() arguments.
 	 * @return null
 	 */
-	function filter_wp_nav_menu( $nav_menu_content, $args ) {
+	public function filter_wp_nav_menu( $nav_menu_content, $args ) {
 		if ( ! empty( $args->can_partial_refresh ) && ! empty( $args->instance_number ) ) {
 			$nav_menu_content = sprintf(
 				'<div id="partial-refresh-menu-container-%1$d" class="partial-refresh-menu-container" data-instance-number="%1$d">%2$s</div>',
@@ -784,7 +804,7 @@ final class WP_Customize_Nav_Menus {
 	 * @param array $args The arguments to hash.
 	 * @return string
 	 */
-	function hash_nav_menu_args( $args ) {
+	public function hash_nav_menu_args( $args ) {
 		return wp_hash( wp_create_nonce( self::RENDER_AJAX_ACTION ) . serialize( $args ) );
 	}
 
@@ -793,7 +813,7 @@ final class WP_Customize_Nav_Menus {
 	 *
 	 * @since 4.3.0
 	 */
-	function customize_preview_enqueue_deps() {
+	public function customize_preview_enqueue_deps() {
 		wp_enqueue_script( 'customize-preview-nav-menus' );
 		wp_enqueue_style( 'customize-preview' );
 
@@ -805,7 +825,7 @@ final class WP_Customize_Nav_Menus {
 	 *
 	 * @since 4.3.0
 	 */
-	function export_preview_data() {
+	public function export_preview_data() {
 
 		// Why not wp_localize_script? Because we're not localizing, and it forces values into strings.
 		$exports = array(
@@ -835,7 +855,7 @@ final class WP_Customize_Nav_Menus {
 	 *
 	 * @see wp_nav_menu()
 	 */
-	function render_menu() {
+	public function render_menu() {
 		if ( empty( $_POST[ self::RENDER_QUERY_VAR ] ) ) {
 			return;
 		}

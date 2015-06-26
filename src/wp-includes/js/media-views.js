@@ -2625,10 +2625,8 @@ Attachment = View.extend({
 		'change [data-setting] input':    'updateSetting',
 		'change [data-setting] select':   'updateSetting',
 		'change [data-setting] textarea': 'updateSetting',
-		'click .close':                   'removeFromLibrary',
+		'click .attachment-close':        'removeFromLibrary',
 		'click .check':                   'checkClickHandler',
-		'click a':                        'preventDefault',
-		'keydown .close':                 'removeFromLibrary',
 		'keydown':                        'toggleSelectionHandler'
 	},
 
@@ -2756,8 +2754,8 @@ Attachment = View.extend({
 	toggleSelectionHandler: function( event ) {
 		var method;
 
-		// Don't do anything inside inputs.
-		if ( 'INPUT' === event.target.nodeName ) {
+		// Don't do anything inside inputs and on the attachment check and remove buttons.
+		if ( 'INPUT' === event.target.nodeName || 'BUTTON' === event.target.nodeName ) {
 			return;
 		}
 
@@ -2941,12 +2939,6 @@ Attachment = View.extend({
 
 		details = selection.single();
 		this.$el.toggleClass( 'details', details === this.model );
-	},
-	/**
-	 * @param {Object} event
-	 */
-	preventDefault: function( event ) {
-		event.preventDefault();
 	},
 	/**
 	 * @param {string} size
@@ -3182,7 +3174,6 @@ Details = Attachment.extend({
 		'click .trash-attachment':        'trashAttachment',
 		'click .untrash-attachment':      'untrashAttachment',
 		'click .edit-attachment':         'editAttachment',
-		'click .refresh-attachment':      'refreshAttachment',
 		'keydown':                        'toggleSelectionHandler'
 	},
 
@@ -3198,7 +3189,14 @@ Details = Attachment.extend({
 
 	initialFocus: function() {
 		if ( ! wp.media.isTouchDevice ) {
-			this.$( ':input' ).eq( 0 ).focus();
+			/*
+			Previously focused the first ':input' (the readonly URL text field).
+			Since the first ':input' is now a button (delete/trash): when pressing
+			spacebar on an attachment, Firefox fires deleteAttachment/trashAttachment
+			as soon as focus is moved. Explicitly target the first text field for now.
+			@todo change initial focus logic, also for accessibility.
+			*/
+			this.$( 'input[type="text"]' ).eq( 0 ).focus();
 		}
 	},
 	/**
@@ -3257,14 +3255,6 @@ Details = Attachment.extend({
 		} else {
 			this.$el.addClass('needs-refresh');
 		}
-	},
-	/**
-	 * @param {Object} event
-	 */
-	refreshAttachment: function( event ) {
-		this.$el.removeClass('needs-refresh');
-		event.preventDefault();
-		this.model.fetch();
 	},
 	/**
 	 * When reverse tabbing(shift+tab) out of the right details panel, deliver
@@ -7874,7 +7864,7 @@ EditorUploader = View.extend({
 	 * @param  {jQuery.Event} event The 'drop' event.
 	 */
 	drop: function( event ) {
-		var $wrap = null, uploadView;
+		var $wrap, uploadView;
 
 		this.containerDragleave( event );
 		this.dropzoneDragleave( event );
@@ -7891,13 +7881,15 @@ EditorUploader = View.extend({
 		}
 
 		if ( ! this.workflow ) {
-			this.workflow = wp.media.editor.open( 'content', {
+			this.workflow = wp.media.editor.open( window.wpActiveEditor, {
 				frame:    'post',
 				state:    'insert',
 				title:    l10n.addMedia,
 				multiple: true
 			});
+
 			uploadView = this.workflow.uploader;
+
 			if ( uploadView.uploader && uploadView.uploader.ready ) {
 				this.addFiles.apply( this );
 			} else {
@@ -8224,7 +8216,7 @@ UploaderStatus = View.extend({
 	 * @returns {string}
 	 */
 	filename: function( filename ) {
-		return wp.media.truncate( _.escape( filename ), 24 );
+		return _.escape( filename );
 	},
 	/**
 	 * @param {Backbone.Model} error

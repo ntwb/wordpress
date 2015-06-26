@@ -87,6 +87,7 @@ add_filter( 'post_mime_type', 'sanitize_mime_type' );
 
 // Places to balance tags on input
 foreach ( array( 'content_save_pre', 'excerpt_save_pre', 'comment_save_pre', 'pre_comment_content' ) as $filter ) {
+	add_filter( $filter, 'convert_invalid_entities' );
 	add_filter( $filter, 'balanceTags', 50 );
 }
 
@@ -201,6 +202,9 @@ add_filter( 'xmlrpc_pingback_error',    'xmlrpc_pingback_error'               );
 add_filter( 'title_save_pre',           'trim'                                );
 
 add_filter( 'http_request_host_is_external', 'allowed_http_request_hosts', 10, 2 );
+
+// Prepare the content for the Visual or Text editor
+add_filter( 'the_editor_content', 'format_for_editor', 10, 2 );
 
 // Actions
 add_action( 'wp_head',             '_wp_render_title_tag',            1     );

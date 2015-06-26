@@ -89,14 +89,35 @@ function wp_default_scripts( &$scripts ) {
 
 	$scripts->add( 'quicktags', "/wp-includes/js/quicktags$suffix.js", array(), false, 1 );
 	did_action( 'init' ) && $scripts->localize( 'quicktags', 'quicktagsL10n', array(
-		'closeAllOpenTags'      => esc_attr__( 'Close all open tags' ),
-		'closeTags'             => esc_attr__( 'close tags' ),
+		'closeAllOpenTags'      => __( 'Close all open tags' ),
+		'closeTags'             => __( 'close tags' ),
 		'enterURL'              => __( 'Enter the URL' ),
 		'enterImageURL'         => __( 'Enter the URL of the image' ),
 		'enterImageDescription' => __( 'Enter a description of the image' ),
-		'textdirection'         => esc_attr__( 'text direction' ),
-		'toggleTextdirection'   => esc_attr__( 'Toggle Editor Text Direction' ),
-		'dfw'                   => esc_attr__( 'Distraction-free writing mode' )
+		'textdirection'         => __( 'text direction' ),
+		'toggleTextdirection'   => __( 'Toggle Editor Text Direction' ),
+		'dfw'                   => __( 'Distraction-free writing mode' ),
+		'strong'          => __( 'Bold' ),
+		'strongClose'     => __( 'Close bold tag' ),
+		'em'              => __( 'Italic' ),
+		'emClose'         => __( 'Close italic tag' ),
+		'link'            => __( 'Insert link' ),
+		'blockquote'      => __( 'Blockquote' ),
+		'blockquoteClose' => __( 'Close blockquote tag' ),
+		'del'             => __( 'Deleted text (strikethrough)' ),
+		'delClose'        => __( 'Close deleted text tag' ),
+		'ins'             => __( 'Inserted text' ),
+		'insClose'        => __( 'Close inserted text tag' ),
+		'image'           => __( 'Insert image' ),
+		'ul'              => __( 'Bulleted list' ),
+		'ulClose'         => __( 'Close bulleted list tag' ),
+		'ol'              => __( 'Numbered list' ),
+		'olClose'         => __( 'Close numbered list tag' ),
+		'li'              => __( 'List item' ),
+		'liClose'         => __( 'Close list item tag' ),
+		'code'            => __( 'Code' ),
+		'codeClose'       => __( 'Close code tag' ),
+		'more'            => __( 'Insert Read More tag' ),
 	) );
 
 	$scripts->add( 'colorpicker', "/wp-includes/js/colorpicker$suffix.js", array('prototype'), '3517m' );
@@ -309,7 +330,7 @@ function wp_default_scripts( &$scripts ) {
 
 	$scripts->add( 'imgareaselect', "/wp-includes/js/imgareaselect/jquery.imgareaselect$suffix.js", array('jquery'), '0.9.10', 1 );
 
-	$scripts->add( 'mediaelement', "/wp-includes/js/mediaelement/mediaelement-and-player.min.js", array('jquery'), '2.16.2', 1 );
+	$scripts->add( 'mediaelement', "/wp-includes/js/mediaelement/mediaelement-and-player.min.js", array('jquery'), '2.17.0', 1 );
 	did_action( 'init' ) && $scripts->localize( 'mediaelement', 'mejsL10n', array(
 		'language' => get_bloginfo( 'language' ),
 		'strings'  => array(
@@ -371,11 +392,11 @@ function wp_default_scripts( &$scripts ) {
 
 	$scripts->add( 'wpdialogs', "/wp-includes/js/wpdialog$suffix.js", array( 'jquery-ui-dialog' ), false, 1 );
 
-	$scripts->add( 'word-count', "/wp-admin/js/word-count$suffix.js", array( 'jquery' ), false, 1 );
+	$scripts->add( 'word-count', "/wp-admin/js/word-count$suffix.js", array(), false, 1 );
 	did_action( 'init' ) && $scripts->localize( 'word-count', 'wordCountL10n', array(
 		/* translators: If your word count is based on single characters (East Asian characters),
 		   enter 'characters'. Otherwise, enter 'words'. Do not translate into your own language. */
-		'type' => 'characters' == _x( 'words', 'word count: words or characters?' ) ? 'c' : 'w',
+		'type' => _x( 'words', 'word count: words or characters?' )
 	) );
 
 	$scripts->add( 'media-upload', "/wp-admin/js/media-upload$suffix.js", array( 'thickbox', 'shortcode' ), false, 1 );
@@ -439,7 +460,8 @@ function wp_default_scripts( &$scripts ) {
 			'hotkeys_highlight_first' => isset($_GET['hotkeys_highlight_first']),
 			'hotkeys_highlight_last' => isset($_GET['hotkeys_highlight_last']),
 			'replyApprove' => __( 'Approve and Reply' ),
-			'reply' => __( 'Reply' )
+			'reply' => __( 'Reply' ),
+			'warnQuickEdit' => __( "Are you sure you want to edit this comment?\nThe changes you made will be lost." ),
 		) );
 
 		$scripts->add( 'xfn', "/wp-admin/js/xfn$suffix.js", array('jquery'), false, 1 );
@@ -451,7 +473,7 @@ function wp_default_scripts( &$scripts ) {
 			'tagDelimiter' => _x( ',', 'tag delimiter' ),
 		) );
 
-		$scripts->add( 'post', "/wp-admin/js/post$suffix.js", array( 'suggest', 'wp-lists', 'postbox', 'tags-box' ), false, 1 );
+		$scripts->add( 'post', "/wp-admin/js/post$suffix.js", array( 'suggest', 'wp-lists', 'postbox', 'tags-box', 'underscore', 'word-count' ), false, 1 );
 		did_action( 'init' ) && $scripts->localize( 'post', 'postL10n', array(
 			'ok' => __('OK'),
 			'cancel' => __('Cancel'),
@@ -687,7 +709,7 @@ function wp_default_styles( &$styles ) {
 	// External libraries and friends
 	$styles->add( 'imgareaselect',       '/wp-includes/js/imgareaselect/imgareaselect.css', array(), '0.9.8' );
 	$styles->add( 'wp-jquery-ui-dialog', "/wp-includes/css/jquery-ui-dialog$suffix.css", array( 'dashicons' ) );
-	$styles->add( 'mediaelement',        "/wp-includes/js/mediaelement/mediaelementplayer.min.css", array(), '2.16.2' );
+	$styles->add( 'mediaelement',        "/wp-includes/js/mediaelement/mediaelementplayer.min.css", array(), '2.17.0' );
 	$styles->add( 'wp-mediaelement',     "/wp-includes/js/mediaelement/wp-mediaelement.css", array( 'mediaelement' ) );
 	$styles->add( 'thickbox',            '/wp-includes/js/thickbox/thickbox.css', array( 'dashicons' ) );
 

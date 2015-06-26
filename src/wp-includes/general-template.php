@@ -2527,16 +2527,16 @@ function the_search_query() {
 }
 
 /**
- * Display the language attributes for the html tag.
+ * Get the language attributes for the html tag.
  *
  * Builds up a set of html attributes containing the text direction and language
  * information for the page.
  *
- * @since 2.1.0
+ * @since 4.3.0
  *
- * @param string $doctype The type of html document (xhtml|html).
+ * @param string $doctype Optional. The type of html document (xhtml|html). Default html.
  */
-function language_attributes($doctype = 'html') {
+function get_language_attributes( $doctype = 'html' ) {
 	$attributes = array();
 
 	if ( function_exists( 'is_rtl' ) && is_rtl() )
@@ -2556,10 +2556,27 @@ function language_attributes($doctype = 'html') {
 	 * Filter the language attributes for display in the html tag.
 	 *
 	 * @since 2.5.0
+	 * @since 4.3.0 Added the `$doctype` parameter.
 	 *
 	 * @param string $output A space-separated list of language attributes.
+	 * @param string $doctype The type of html document (xhtml|html).
 	 */
-	echo apply_filters( 'language_attributes', $output );
+	return apply_filters( 'language_attributes', $output, $doctype );
+}
+
+/**
+ * Display the language attributes for the html tag.
+ *
+ * Builds up a set of html attributes containing the text direction and language
+ * information for the page.
+ *
+ * @since 2.1.0
+ * @since 4.3.0 Converted into a wrapper for get_language_attributes().
+ *
+ * @param string $doctype Optional. The type of html document (xhtml|html). Default html.
+ */
+function language_attributes( $doctype = 'html' ) {
+	echo get_language_attributes( $doctype );
 }
 
 /**
@@ -2824,7 +2841,7 @@ function wp_admin_css_color( $key, $name, $url, $colors = array(), $icons = arra
  */
 function register_admin_color_schemes() {
 	$suffix = is_rtl() ? '-rtl' : '';
-	$suffix .= defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
+	$suffix .= SCRIPT_DEBUG ? '' : '.min';
 
 	wp_admin_css_color( 'fresh', _x( 'Default', 'admin color scheme' ),
 		false,

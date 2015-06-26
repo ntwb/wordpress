@@ -46,7 +46,17 @@ function wptexturize( $text, $reset = false ) {
 		$dynamic_replacements = null,
 		$default_no_texturize_tags = null,
 		$default_no_texturize_shortcodes = null,
-		$run_texturize = true;
+		$run_texturize = true,
+		$apos = null,
+		$prime = null,
+		$double_prime = null,
+		$opening_quote = null,
+		$closing_quote = null,
+		$opening_single_quote = null,
+		$closing_single_quote = null,
+		$open_q_flag = '<!--oq-->',
+		$open_sq_flag = '<!--osq-->',
+		$apos_flag = '<!--apos-->';
 
 	// If there's nothing to do, just stop.
 	if ( empty( $text ) || false === $run_texturize ) {
@@ -129,40 +139,30 @@ function wptexturize( $text, $reset = false ) {
 
 		// '99' and '99" are ambiguous among other patterns; assume it's an abbreviated year at the end of a quotation.
 		if ( "'" !== $apos || "'" !== $closing_single_quote ) {
-			$dynamic[ '/\'(\d\d)\'(?=\Z|[.,:;!?)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos . '$1' . $closing_single_quote;
+			$dynamic[ '/\'(\d\d)\'(?=\Z|[.,:;!?)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos_flag . '$1' . $closing_single_quote;
 		}
 		if ( "'" !== $apos || '"' !== $closing_quote ) {
-			$dynamic[ '/\'(\d\d)"(?=\Z|[.,:;!?)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos . '$1' . $closing_quote;
+			$dynamic[ '/\'(\d\d)"(?=\Z|[.,:;!?)}\-\]]|&gt;|' . $spaces . ')/' ] = $apos_flag . '$1' . $closing_quote;
 		}
 
 		// '99 '99s '99's (apostrophe)  But never '9 or '99% or '999 or '99.0.
 		if ( "'" !== $apos ) {
-			$dynamic[ '/\'(?=\d\d(?:\Z|(?![%\d]|[.,]\d)))/' ] = $apos;
+			$dynamic[ '/\'(?=\d\d(?:\Z|(?![%\d]|[.,]\d)))/' ] = $apos_flag;
 		}
 
 		// Quoted Numbers like '0.42'
 		if ( "'" !== $opening_single_quote && "'" !== $closing_single_quote ) {
-			$dynamic[ '/(?<=\A|' . $spaces . ')\'(\d[.,\d]*)\'/' ] = $opening_single_quote . '$1' . $closing_single_quote;
+			$dynamic[ '/(?<=\A|' . $spaces . ')\'(\d[.,\d]*)\'/' ] = $open_sq_flag . '$1' . $closing_single_quote;
 		}
 
 		// Single quote at start, or preceded by (, {, <, [, ", -, or spaces.
 		if ( "'" !== $opening_single_quote ) {
-			$dynamic[ '/(?<=\A|[([{"\-]|&lt;|' . $spaces . ')\'/' ] = $opening_single_quote;
+			$dynamic[ '/(?<=\A|[([{"\-]|&lt;|' . $spaces . ')\'/' ] = $open_sq_flag;
 		}
 
 		// Apostrophe in a word.  No spaces, double apostrophes, or other punctuation.
 		if ( "'" !== $apos ) {
-			$dynamic[ '/(?<!' . $spaces . ')\'(?!\Z|[.,:;!?"\'(){}[\]\-]|&[lg]t;|' . $spaces . ')/' ] = $apos;
-		}
-
-		// 9' (prime)
-		if ( "'" !== $prime ) {
-			$dynamic[ '/(?<=\d)\'/' ] = $prime;
-		}
-
-		// Single quotes followed by spaces or ending punctuation.
-		if ( "'" !== $closing_single_quote ) {
-			$dynamic[ '/\'(?=\Z|[.,:;!?)}\-\]]|&gt;|' . $spaces . ')/' ] = $closing_single_quote;
+			$dynamic[ '/(?<!' . $spaces . ')\'(?!\Z|[.,:;!?"\'(){}[\]\-]|&[lg]t;|' . $spaces . ')/' ] = $apos_flag;
 		}
 
 		$dynamic_characters['apos'] = array_keys( $dynamic );
@@ -171,22 +171,12 @@ function wptexturize( $text, $reset = false ) {
 
 		// Quoted Numbers like "42"
 		if ( '"' !== $opening_quote && '"' !== $closing_quote ) {
-			$dynamic[ '/(?<=\A|' . $spaces . ')"(\d[.,\d]*)"/' ] = $opening_quote . '$1' . $closing_quote;
-		}
-
-		// 9" (double prime)
-		if ( '"' !== $double_prime ) {
-			$dynamic[ '/(?<=\d)"/' ] = $double_prime;
+			$dynamic[ '/(?<=\A|' . $spaces . ')"(\d[.,\d]*)"/' ] = $open_q_flag . '$1' . $closing_quote;
 		}
 
 		// Double quote at start, or preceded by (, {, <, [, -, or spaces, and not followed by spaces.
 		if ( '"' !== $opening_quote ) {
-			$dynamic[ '/(?<=\A|[([{\-]|&lt;|' . $spaces . ')"(?!' . $spaces . ')/' ] = $opening_quote;
-		}
-
-		// Any remaining double quotes.
-		if ( '"' !== $closing_quote ) {
-			$dynamic[ '/"/' ] = $closing_quote;
+			$dynamic[ '/(?<=\A|[([{\-]|&lt;|' . $spaces . ')"(?!' . $spaces . ')/' ] = $open_q_flag;
 		}
 
 		$dynamic_characters['quote'] = array_keys( $dynamic );
@@ -300,9 +290,14 @@ function wptexturize( $text, $reset = false ) {
 
 			if ( false !== strpos( $curl, "'" ) ) {
 				$curl = preg_replace( $dynamic_characters['apos'], $dynamic_replacements['apos'], $curl );
+				$curl = wptexturize_primes( $curl, "'", $prime, $open_sq_flag, $closing_single_quote );
+				$curl = str_replace( $apos_flag, $apos, $curl );
+				$curl = str_replace( $open_sq_flag, $opening_single_quote, $curl );
 			}
 			if ( false !== strpos( $curl, '"' ) ) {
 				$curl = preg_replace( $dynamic_characters['quote'], $dynamic_replacements['quote'], $curl );
+				$curl = wptexturize_primes( $curl, '"', $double_prime, $open_q_flag, $closing_quote );
+				$curl = str_replace( $open_q_flag, $opening_quote, $curl );
 			}
 			if ( false !== strpos( $curl, '-' ) ) {
 				$curl = preg_replace( $dynamic_characters['dash'], $dynamic_replacements['dash'], $curl );
@@ -319,6 +314,74 @@ function wptexturize( $text, $reset = false ) {
 
 	// Replace each & with &#038; unless it already looks like an entity.
 	return preg_replace( '/&(?!#(?:\d+|x[a-f0-9]+);|[a-z1-4]{1,8};)/i', '&#038;', $text );
+}
+
+/**
+ * Implements a logic tree to determine whether or not "7'." represents seven feet,
+ * then converts the special char into either a prime char or a closing quote char.
+ *
+ * @since 4.3.0
+ *
+ * @param string $haystack The plain text to be searched.
+ * @param string $needle The character to search for such as ' or ".
+ * @param string $prime The prime char to use for replacement.
+ * @param string $open_quote The opening quote char. Opening quote replacement must be accomplished already.
+ * @param string $close_quote The closing quote char to use for replacement.
+ * @return string The $haystack value after primes and quotes replacements.
+ */
+function wptexturize_primes( $haystack, $needle, $prime, $open_quote, $close_quote ) {
+	$spaces = wp_spaces_regexp();
+	$flag = '<!--wp-prime-or-quote-->';
+	$quote_pattern = "/$needle(?=\\Z|[.,:;!?)}\\-\\]]|&gt;|" . $spaces . ")/";
+	$prime_pattern    = "/(?<=\\d)$needle/";
+	$flag_after_digit = "/(?<=\\d)$flag/";
+	$flag_no_digit    = "/(?<!\\d)$flag/";
+
+	$sentences = explode( $open_quote, $haystack );
+
+	foreach( $sentences as $key => &$sentence ) {
+		if ( false === strpos( $sentence, $needle ) ) {
+			continue;
+		} elseif ( 0 !== $key && 0 === substr_count( $sentence, $close_quote ) ) {
+			$sentence = preg_replace( $quote_pattern, $flag, $sentence, -1, $count );
+			if ( $count > 1 ) {
+				// This sentence appears to have multiple closing quotes.  Attempt Vulcan logic.
+				$sentence = preg_replace( $flag_no_digit, $close_quote, $sentence, -1, $count2 );
+				if ( 0 === $count2 ) {
+					// Try looking for a quote followed by a period.
+					$count2 = substr_count( $sentence, "$flag." );
+					if ( $count2 > 0 ) {
+						// Assume the rightmost quote-period match is the end of quotation.
+						$pos = strrpos( $sentence, "$flag." );
+					} else {
+						// When all else fails, make the rightmost candidate a closing quote.
+						// This is most likely to be problematic in the context of bug #18549.
+						$pos = strrpos( $sentence, $flag );
+					}
+					$sentence = substr_replace( $sentence, $close_quote, $pos, strlen( $flag ) );
+				}
+				// Use conventional replacement on any remaining primes and quotes.
+				$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+				$sentence = preg_replace( $flag_after_digit, $prime, $sentence );
+				$sentence = str_replace( $flag, $close_quote, $sentence );
+			} elseif ( 1 == $count ) {
+				// Found only one closing quote candidate, so give it priority over primes.
+				$sentence = str_replace( $flag, $close_quote, $sentence );
+				$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+			} else {
+				// No closing quotes found.  Just run primes pattern.
+				$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+			}
+		} else {
+			$sentence = preg_replace( $prime_pattern, $prime, $sentence );
+			$sentence = preg_replace( $quote_pattern, $close_quote, $sentence );
+		}
+		if ( '"' == $needle && false !== strpos( $sentence, '"' ) ) {
+			$sentence = str_replace( '"', $close_quote, $sentence );
+		}
+	}
+
+	return implode( $open_quote, $sentences );
 }
 
 /**
@@ -686,6 +749,12 @@ function _wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = fals
 		$_quote_style = ENT_COMPAT;
 	} elseif ( $quote_style === 'single' ) {
 		$quote_style = ENT_NOQUOTES;
+	}
+
+	if ( ! $double_encode ) {
+		// Guarantee every &entity; is valid, convert &garbage; into &amp;garbage;
+		// This is required for PHP < 5.4.0 because ENT_HTML401 flag is unavailable.
+		$string = wp_kses_normalize_entities( $string );
 	}
 
 	$string = @htmlspecialchars( $string, $quote_style, $charset, $double_encode );
@@ -1434,11 +1503,7 @@ function sanitize_html_class( $class, $fallback = '' ) {
 }
 
 /**
- * Converts a number of characters from a string.
- *
- * Metadata tags `<title>` and `<category>` are removed, `<br>` and `<hr>` are
- * converted into correct XHTML and Unicode characters are converted to the
- * valid range.
+ * Converts lone & characters into `&#038;` (a.k.a. `&amp;`)
  *
  * @since 0.71
  *
@@ -1447,58 +1512,64 @@ function sanitize_html_class( $class, $fallback = '' ) {
  * @return string Converted string.
  */
 function convert_chars( $content, $deprecated = '' ) {
-	if ( !empty( $deprecated ) )
+	if ( ! empty( $deprecated ) ) {
 		_deprecated_argument( __FUNCTION__, '0.71' );
+	}
 
-	// Translation of invalid Unicode references range to valid range
+	if ( strpos( $content, '&' ) !== false ) {
+		$content = preg_replace( '/&([^#])(?![a-z1-4]{1,8};)/i', '&#038;$1', $content );
+	}
+
+	return $content;
+}
+
+/**
+ * Converts invalid Unicode references range to valid range.
+ *
+ * @since 4.3.0
+ *
+ * @param string $content String with entities that need converting.
+ * @return string Converted string.
+ */
+function convert_invalid_entities( $content ) {
 	$wp_htmltranswinuni = array(
-	'&#128;' => '&#8364;', // the Euro sign
-	'&#129;' => '',
-	'&#130;' => '&#8218;', // these are Windows CP1252 specific characters
-	'&#131;' => '&#402;',  // they would look weird on non-Windows browsers
-	'&#132;' => '&#8222;',
-	'&#133;' => '&#8230;',
-	'&#134;' => '&#8224;',
-	'&#135;' => '&#8225;',
-	'&#136;' => '&#710;',
-	'&#137;' => '&#8240;',
-	'&#138;' => '&#352;',
-	'&#139;' => '&#8249;',
-	'&#140;' => '&#338;',
-	'&#141;' => '',
-	'&#142;' => '&#381;',
-	'&#143;' => '',
-	'&#144;' => '',
-	'&#145;' => '&#8216;',
-	'&#146;' => '&#8217;',
-	'&#147;' => '&#8220;',
-	'&#148;' => '&#8221;',
-	'&#149;' => '&#8226;',
-	'&#150;' => '&#8211;',
-	'&#151;' => '&#8212;',
-	'&#152;' => '&#732;',
-	'&#153;' => '&#8482;',
-	'&#154;' => '&#353;',
-	'&#155;' => '&#8250;',
-	'&#156;' => '&#339;',
-	'&#157;' => '',
-	'&#158;' => '&#382;',
-	'&#159;' => '&#376;'
+		'&#128;' => '&#8364;', // the Euro sign
+		'&#129;' => '',
+		'&#130;' => '&#8218;', // these are Windows CP1252 specific characters
+		'&#131;' => '&#402;',  // they would look weird on non-Windows browsers
+		'&#132;' => '&#8222;',
+		'&#133;' => '&#8230;',
+		'&#134;' => '&#8224;',
+		'&#135;' => '&#8225;',
+		'&#136;' => '&#710;',
+		'&#137;' => '&#8240;',
+		'&#138;' => '&#352;',
+		'&#139;' => '&#8249;',
+		'&#140;' => '&#338;',
+		'&#141;' => '',
+		'&#142;' => '&#381;',
+		'&#143;' => '',
+		'&#144;' => '',
+		'&#145;' => '&#8216;',
+		'&#146;' => '&#8217;',
+		'&#147;' => '&#8220;',
+		'&#148;' => '&#8221;',
+		'&#149;' => '&#8226;',
+		'&#150;' => '&#8211;',
+		'&#151;' => '&#8212;',
+		'&#152;' => '&#732;',
+		'&#153;' => '&#8482;',
+		'&#154;' => '&#353;',
+		'&#155;' => '&#8250;',
+		'&#156;' => '&#339;',
+		'&#157;' => '',
+		'&#158;' => '&#382;',
+		'&#159;' => '&#376;'
 	);
 
-	// Remove metadata tags
-	$content = preg_replace('/<title>(.+?)<\/title>/','',$content);
-	$content = preg_replace('/<category>(.+?)<\/category>/','',$content);
-
-	// Converts lone & characters into &#38; (a.k.a. &amp;)
-	$content = preg_replace('/&([^#])(?![a-z1-4]{1,8};)/i', '&#038;$1', $content);
-
-	// Fix Word pasting
-	$content = strtr($content, $wp_htmltranswinuni);
-
-	// Just a little XHTML help
-	$content = str_replace('<br>', '<br />', $content);
-	$content = str_replace('<hr>', '<hr />', $content);
+	if ( strpos( $content, '&#1' ) !== false ) {
+		$content = strtr( $content, $wp_htmltranswinuni );
+	}
 
 	return $content;
 }
@@ -2991,66 +3062,35 @@ function ent2ncr( $text ) {
 }
 
 /**
- * Formats text for the rich text editor.
+ * Formats text for the editor.
  *
- * The filter 'richedit_pre' is applied here. If $text is empty the filter will
+ * Generally the browsers treat everything inside a textarea as text, but
+ * it is still a good idea to HTML entity encode `<`, `>` and `&` in the content.
+ *
+ * The filter 'format_for_editor' is applied here. If $text is empty the filter will
  * be applied to an empty string.
  *
- * @since 2.0.0
+ * @since 4.3.0
  *
  * @param string $text The text to be formatted.
  * @return string The formatted text after filter is applied.
  */
-function wp_richedit_pre( $text ) {
-	if ( empty( $text ) ) {
-		/**
-		 * Filter text returned for the rich text editor.
-		 *
-		 * This filter is first evaluated, and the value returned, if an empty string
-		 * is passed to wp_richedit_pre(). If an empty string is passed, it results
-		 * in a break tag and line feed.
-		 *
-		 * If a non-empty string is passed, the filter is evaluated on the wp_richedit_pre()
-		 * return after being formatted.
-		 *
-		 * @since 2.0.0
-		 *
-		 * @param string $output Text for the rich text editor.
-		 */
-		return apply_filters( 'richedit_pre', '' );
+function format_for_editor( $text, $default_editor = null ) {
+	// Back-compat: check if any characters need encoding.
+	if ( ! empty( $text ) && ( false !== strpos( $text, '<' ) || false !== strpos( $text, '>' ) ||
+		preg_match( '/&(?!#(?:\d+|x[a-f0-9]+);|[a-z1-4]{1,8};)/i', $text ) ) ) {
+
+		$text = htmlspecialchars( $text, ENT_NOQUOTES, get_option( 'blog_charset' ) );
 	}
 
-	$output = convert_chars($text);
-	$output = wpautop($output);
-	$output = htmlspecialchars($output, ENT_NOQUOTES, get_option( 'blog_charset' ) );
-
-	/** This filter is documented in wp-includes/formatting.php */
-	return apply_filters( 'richedit_pre', $output );
-}
-
-/**
- * Formats text for the HTML editor.
- *
- * Unless $output is empty it will pass through htmlspecialchars before the
- * 'htmledit_pre' filter is applied.
- *
- * @since 2.5.0
- *
- * @param string $output The text to be formatted.
- * @return string Formatted text after filter applied.
- */
-function wp_htmledit_pre( $output ) {
-	if ( !empty($output) )
-		$output = htmlspecialchars($output, ENT_NOQUOTES, get_option( 'blog_charset' ) ); // convert only < > &
-
 	/**
-	 * Filter the text before it is formatted for the HTML editor.
+	 * Filter the text after it is formatted for the editor.
 	 *
-	 * @since 2.5.0
+	 * @since 4.3.0
 	 *
-	 * @param string $output The HTML-formatted text.
+	 * @param string $text The formatted text.
 	 */
-	return apply_filters( 'htmledit_pre', $output );
+	return apply_filters( 'format_for_editor', $text, $default_editor );
 }
 
 /**
@@ -4215,9 +4255,8 @@ function print_emoji_detection_script() {
 	);
 
 	$version = 'ver=' . $wp_version;
-	$develop_src = false !== strpos( $wp_version, '-src' );
 
-	if ( $develop_src || ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ) {
+	if ( SCRIPT_DEBUG ) {
 		$settings['source'] = array(
 			/** This filter is documented in wp-includes/class.wp-scripts.php */
 			'wpemoji' => apply_filters( 'script_loader_src', includes_url( "js/wp-emoji.js?$version" ), 'wpemoji' ),

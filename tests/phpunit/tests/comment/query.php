@@ -722,6 +722,53 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 		$this->assertEquals( array( $comments[2], $comments[0], $comments[1] ), $found );
 	}
 
+	/**
+	 * @group 32081
+	 */
+	public function test_meta_query_should_work_with_comment__in() {
+		$comments = $this->factory->comment->create_many( 3 );
+
+		add_comment_meta( $comments[0], 'foo', 'jjj' );
+		add_comment_meta( $comments[1], 'foo', 'zzz' );
+		add_comment_meta( $comments[2], 'foo', 'jjj' );
+
+		$q = new WP_Comment_Query( array(
+			'comment__in' => array( $comments[1], $comments[2] ),
+			'meta_query' => array(
+				array(
+					'key' => 'foo',
+					'value' => 'jjj',
+				),
+			),
+			'fields' => 'ids',
+		) );
+
+		$this->assertEquals( array( $comments[2] ), $q->get_comments() );
+	}
+
+	/**
+	 * @group 32081
+	 */
+	public function test_meta_query_should_work_with_comment__not_in() {
+		$comments = $this->factory->comment->create_many( 3 );
+
+		add_comment_meta( $comments[0], 'foo', 'jjj' );
+		add_comment_meta( $comments[1], 'foo', 'zzz' );
+		add_comment_meta( $comments[2], 'foo', 'jjj' );
+
+		$q = new WP_Comment_Query( array(
+			'comment__not_in' => array( $comments[1], $comments[2] ),
+			'meta_query' => array(
+				array(
+					'key' => 'foo',
+					'value' => 'jjj',
+				),
+			),
+			'fields' => 'ids',
+		) );
+
+		$this->assertEquals( array( $comments[0] ), $q->get_comments() );
+	}
 
 	/**
 	 * @ticket 27064
@@ -1631,5 +1678,63 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 		) );
 
 		$this->assertSame( $num_queries, $wpdb->num_queries );
+	}
+
+	/**
+	 * @ticket 32762
+	 */
+	public function test_it_should_be_possible_to_modify_meta_query_using_pre_get_comments_action() {
+		$comments = $this->factory->comment->create_many( 2, array(
+			'comment_post_ID' => $this->post_id,
+		) );
+
+		add_comment_meta( $comments[1], 'foo', 'bar' );
+
+		add_action( 'pre_get_comments', array( $this, 'modify_meta_query' ) );
+
+		$q = new WP_Comment_Query( array(
+			'comment_post_ID' => $this->post_id,
+			'fields' => 'ids',
+		) );
+
+		remove_action( 'pre_get_comments', array( $this, 'modify_meta_query' ) );
+
+		$this->assertEqualSets( array( $comments[1] ), $q->comments );
+	}
+
+	public function modify_meta_query( $q ) {
+		$q->meta_query = new WP_Meta_Query( array(
+			array(
+				'key' => 'foo',
+				'value' => 'bar',
+			),
+		) );
+	}
+
+	/**
+	 * @ticket 32762
+	 */
+	public function test_it_should_be_possible_to_modify_meta_params_using_pre_get_comments_action() {
+		$comments = $this->factory->comment->create_many( 2, array(
+			'comment_post_ID' => $this->post_id,
+		) );
+
+		add_comment_meta( $comments[1], 'foo', 'bar' );
+
+		add_action( 'pre_get_comments', array( $this, 'modify_meta_params' ) );
+
+		$q = new WP_Comment_Query( array(
+			'comment_post_ID' => $this->post_id,
+			'fields' => 'ids',
+		) );
+
+		remove_action( 'pre_get_comments', array( $this, 'modify_meta_params' ) );
+
+		$this->assertEqualSets( array( $comments[1] ), $q->comments );
+	}
+
+	public function modify_meta_params( $q ) {
+		$q->query_vars['meta_key'] = 'foo';
+		$q->query_vars['meta_value'] = 'bar';
 	}
 }

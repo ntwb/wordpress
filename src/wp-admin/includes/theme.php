@@ -11,9 +11,11 @@
  *
  * @since 2.8.0
  *
+ * @global WP_Filesystem_Base $wp_filesystem Subclass
+ *
  * @param string $stylesheet Stylesheet of the theme to delete
  * @param string $redirect Redirect to page when complete.
- * @return mixed
+ * @return void|bool|WP_Error When void, echoes content.
  */
 function delete_theme($stylesheet, $redirect = '') {
 	global $wp_filesystem;
@@ -121,7 +123,7 @@ function _get_template_edit_filename($fullpath, $containingfolder) {
  * @since 2.7.0
  * @see get_theme_update_available()
  *
- * @param object $theme Theme data object.
+ * @param WP_Theme $theme Theme data object.
  */
 function theme_update_available( $theme ) {
 	echo get_theme_update_available( $theme );
@@ -134,11 +136,13 @@ function theme_update_available( $theme ) {
  *
  * @since 3.8.0
  *
+ * @staticvar object $themes_update
+ *
  * @param WP_Theme $theme WP_Theme object.
  * @return false|string HTML for the update link, or false if invalid info was passed.
  */
 function get_theme_update_available( $theme ) {
-	static $themes_update;
+	static $themes_update = null;
 
 	if ( !current_user_can('update_themes' ) )
 		return false;
@@ -421,7 +425,7 @@ function wp_prepare_themes_for_js( $themes = null ) {
 	 * @param null|array $themes          An array of WP_Theme objects to prepare, if any.
 	 * @param string     $current_theme   The current theme slug.
 	 */
-	$prepared_themes = (array) apply_filters( 'pre_wp_prepare_themes_for_js', array(), $themes, $current_theme );
+	$prepared_themes = (array) apply_filters( 'pre_prepare_themes_for_js', array(), $themes, $current_theme );
 
 	if ( ! empty( $prepared_themes ) ) {
 		return $prepared_themes;
@@ -502,7 +506,8 @@ function wp_prepare_themes_for_js( $themes = null ) {
 	 * @param array $prepared_themes Array of themes.
 	 */
 	$prepared_themes = apply_filters( 'wp_prepare_themes_for_js', $prepared_themes );
-	return array_values( $prepared_themes );
+	$prepared_themes = array_values( $prepared_themes );
+	return array_filter( $prepared_themes );
 }
 
 /**
@@ -560,4 +565,3 @@ function customize_themes_print_templates() {
 	</script>
 	<?php
 }
-add_action( 'customize_controls_print_footer_scripts', 'customize_themes_print_templates' );

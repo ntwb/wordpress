@@ -93,8 +93,7 @@ window.wp = window.wp || {};
 		setMarkers: function( content ) {
 			var pieces = [ { content: content } ],
 				self = this,
-				instance,
-				current;
+				instance, current;
 
 			_.each( views, function( view, type ) {
 				current = pieces.slice();
@@ -102,7 +101,7 @@ window.wp = window.wp || {};
 
 				_.each( current, function( piece ) {
 					var remaining = piece.content,
-						result;
+						result, text;
 
 					// Ignore processed pieces, but retain their location.
 					if ( piece.processed ) {
@@ -119,10 +118,11 @@ window.wp = window.wp || {};
 						}
 
 						instance = self.createInstance( type, result.content, result.options );
+						text = instance.loader ? '.' : instance.text;
 
 						// Add the processed piece for the match.
 						pieces.push( {
-							content: '<p data-wpview-marker="' + instance.encodedText + '">' + instance.text + '</p>',
+							content: '<p data-wpview-marker="' + instance.encodedText + '">' + text + '</p>',
 							processed: true
 						} );
 
@@ -138,7 +138,8 @@ window.wp = window.wp || {};
 				} );
 			} );
 
-			return _.pluck( pieces, 'content' ).join( '' );
+			content = _.pluck( pieces, 'content' ).join( '' );
+			return content.replace( /<p>\s*<p data-wpview-marker=/g, '<p data-wpview-marker=' ).replace( /<\/p>\s*<\/p>/g, '</p>' );
 		},
 
 		/**
@@ -155,13 +156,14 @@ window.wp = window.wp || {};
 				encodedText,
 				instance;
 
-			text = tinymce.DOM.decode( text ),
-			encodedText = encodeURIComponent( text ),
-			instance = this.getInstance( encodedText );
+			text = tinymce.DOM.decode( text );
+			instance = this.getInstance( text );
 
 			if ( instance ) {
 				return instance;
 			}
+
+			encodedText = encodeURIComponent( text );
 
 			options = _.extend( options || {}, {
 				text: text,
@@ -322,9 +324,9 @@ window.wp = window.wp || {};
 			this.replaceMarkers();
 
 			if ( content ) {
-				this.setContent( content, function( editor, node ) {
+				this.setContent( content, function( editor, node, contentNode ) {
 					$( node ).data( 'rendered', true );
-					this.bindNode.call( this, editor, node );
+					this.bindNode.call( this, editor, node, contentNode );
 				}, force ? null : false );
 			} else {
 				this.setLoader();
@@ -346,8 +348,8 @@ window.wp = window.wp || {};
 		 * Runs before their content is removed from the DOM.
 		 */
 		unbind: function() {
-			this.getNodes( function( editor, node ) {
-				this.unbindNode.call( this, editor, node );
+			this.getNodes( function( editor, node, contentNode ) {
+				this.unbindNode.call( this, editor, node, contentNode );
 				$( node ).trigger( 'wp-mce-view-unbind' );
 			}, true );
 		},
@@ -416,7 +418,7 @@ window.wp = window.wp || {};
 		 */
 		replaceMarkers: function() {
 			this.getMarkers( function( editor, node ) {
-				if ( $( node ).text() !== this.text ) {
+				if ( ! this.loader && $( node ).text() !== this.text ) {
 					editor.dom.setAttrib( node, 'data-wpview-marker', null );
 					return;
 				}
@@ -485,7 +487,7 @@ window.wp = window.wp || {};
 			var MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver,
 				self = this;
 
-			this.getNodes( function( editor, node, content ) {
+			this.getNodes( function( editor, node, contentNode ) {
 				var dom = editor.dom,
 					styles = '',
 					bodyClasses = editor.getBody().className || '',
@@ -499,14 +501,21 @@ window.wp = window.wp || {};
 					}
 				} );
 
+				if ( self.iframeHeight ) {
+					dom.add( contentNode, 'div', { style: {
+						width: '100%',
+						height: self.iframeHeight
+					} } );
+				}
+
 				// Seems the browsers need a bit of time to insert/set the view nodes,
 				// or the iframe will fail especially when switching Text => Visual.
 				setTimeout( function() {
-					var iframe, iframeDoc, observer, i;
+					var iframe, iframeDoc, observer, i, block;
 
-					content.innerHTML = '';
+					contentNode.innerHTML = '';
 
-					iframe = dom.add( content, 'iframe', {
+					iframe = dom.add( contentNode, 'iframe', {
 						/* jshint scripturl: true */
 						src: tinymce.Env.ie ? 'javascript:""' : '',
 						frameBorder: '0',
@@ -516,10 +525,11 @@ window.wp = window.wp || {};
 						style: {
 							width: '100%',
 							display: 'block'
-						}
+						},
+						height: self.iframeHeight
 					} );
 
-					dom.add( content, 'div', { 'class': 'wpview-overlay' } );
+					dom.add( contentNode, 'div', { 'class': 'wpview-overlay' } );
 
 					iframeDoc = iframe.contentWindow.document;
 
@@ -559,18 +569,31 @@ window.wp = window.wp || {};
 					iframeDoc.close();
 
 					function resize() {
-						var $iframe, iframeDocHeight;
+						var $iframe;
+
+						if ( block ) {
+							return;
+						}
 
 						// Make sure the iframe still exists.
 						if ( iframe.contentWindow ) {
 							$iframe = $( iframe );
-							iframeDocHeight = $( iframeDoc.body ).height();
+							self.iframeHeight = $( iframeDoc.body ).height();
 
-							if ( $iframe.height() !== iframeDocHeight ) {
-								$iframe.height( iframeDocHeight );
+							if ( $iframe.height() !== self.iframeHeight ) {
+								$iframe.height( self.iframeHeight );
 								editor.nodeChanged();
 							}
 						}
+					}
+
+					if ( self.iframeHeight ) {
+						block = true;
+
+						setTimeout( function() {
+							block = false;
+							resize();
+						}, 3000 );
 					}
 
 					$( iframe.contentWindow ).on( 'load', resize );
@@ -603,7 +626,7 @@ window.wp = window.wp || {};
 						editor.off( 'wp-body-class-change', classChange );
 					} );
 
-					callback && callback.call( self, editor, node );
+					callback && callback.call( self, editor, node, contentNode );
 				}, 50 );
 			}, rendered );
 		},
@@ -818,12 +841,11 @@ window.wp = window.wp || {};
 		edit: function( text, update ) {
 			var media = wp.media.embed,
 				frame = media.edit( text, this.url ),
-				self = this,
-				events = 'change:url change:width change:height';
+				self = this;
 
 			this.pausePlayers();
 
-			frame.state( 'embed' ).props.on( events, function( model, url ) {
+			frame.state( 'embed' ).props.on( 'change:url', function( model, url ) {
 				if ( url && model.get( 'url' ) ) {
 					frame.state( 'embed' ).metadata = model.toJSON();
 				}
@@ -832,7 +854,7 @@ window.wp = window.wp || {};
 			frame.state( 'embed' ).on( 'select', function() {
 				var data = frame.state( 'embed' ).metadata;
 
-				if ( self.url && ! data.width ) {
+				if ( self.url ) {
 					update( data.url );
 				} else {
 					update( media.shortcode( data ).string() );

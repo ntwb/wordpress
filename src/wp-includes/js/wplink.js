@@ -68,7 +68,7 @@ var wpLink;
 				inputs.queryNoticeTextHint.addClass( 'screen-reader-text' ).hide();
 			} );
 
-			inputs.search.keyup( function() {
+			inputs.search.on( 'keyup input', function() {
 				var self = this;
 
 				window.clearTimeout( searchTimer );
@@ -142,6 +142,8 @@ var wpLink;
 		},
 
 		refresh: function() {
+			var text = '';
+
 			// Refresh rivers (clear links, check visibility)
 			rivers.search.refresh();
 			rivers.recent.refresh();
@@ -149,8 +151,21 @@ var wpLink;
 			if ( wpLink.isMCE() ) {
 				wpLink.mceRefresh();
 			} else {
-				inputs.wrap.removeClass( 'has-text-field' );
-				inputs.text.val( '' );
+				// For the Text editor the "Link text" field is always shown
+				if ( ! inputs.wrap.hasClass( 'has-text-field' ) ) {
+					inputs.wrap.addClass( 'has-text-field' );
+				}
+
+				if ( document.selection ) {
+					// Old IE
+					text = document.selection.createRange().text || '';
+				} else if ( typeof this.textarea.selectionStart !== 'undefined' &&
+					( this.textarea.selectionStart !== this.textarea.selectionEnd ) ) {
+					// W3C
+					text = this.textarea.value.substring( this.textarea.selectionStart, this.textarea.selectionEnd ) || '';
+				}
+
+				inputs.text.val( text );
 				wpLink.setDefaultValues();
 			}
 
@@ -251,6 +266,16 @@ var wpLink;
 			};
 		},
 
+		buildHtml: function(attrs) {
+			var html = '<a href="' + attrs.href + '"';
+
+			if ( attrs.target ) {
+				html += ' target="' + attrs.target + '"';
+			}
+
+			return html + '>';
+		},
+
 		update: function() {
 			if ( wpLink.isMCE() ) {
 				wpLink.mceUpdate();
@@ -275,14 +300,7 @@ var wpLink;
 				return;
 			}
 
-			// Build HTML
-			html = '<a href="' + attrs.href + '"';
-
-			if ( attrs.target ) {
-				html += ' target="' + attrs.target + '"';
-			}
-
-			html += '>';
+			html = wpLink.buildHtml(attrs);
 
 			// Insert HTML
 			if ( document.selection && wpLink.range ) {
@@ -339,7 +357,7 @@ var wpLink;
 			}
 
 			link = getLink();
-			text = inputs.text.val();
+			text = inputs.text.val() || attrs.href;
 
 			if ( link ) {
 				if ( text ) {
@@ -358,6 +376,8 @@ var wpLink;
 					editor.execCommand( 'mceInsertLink', false, attrs );
 				}
 			}
+
+			editor.nodeChanged();
 		},
 
 		updateFields: function( e, li ) {

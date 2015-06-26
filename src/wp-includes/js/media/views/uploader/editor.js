@@ -1,8 +1,8 @@
 /*globals wp, _, jQuery */
 
 /**
- * Creates a dropzone on WP editor instances (elements with .wp-editor-wrap
- * or #wp-fullscreen-body) and relays drag'n'dropped files to a media workflow.
+ * Creates a dropzone on WP editor instances (elements with .wp-editor-wrap)
+ * and relays drag'n'dropped files to a media workflow.
  *
  * wp.media.view.EditorUploader
  *
@@ -109,7 +109,7 @@ EditorUploader = View.extend({
 		}
 
 		View.prototype.render.apply( this, arguments );
-		$( '.wp-editor-wrap, #wp-fullscreen-body' ).each( _.bind( this.attach, this ) );
+		$( '.wp-editor-wrap' ).each( _.bind( this.attach, this ) );
 		return this;
 	},
 
@@ -128,7 +128,7 @@ EditorUploader = View.extend({
 	 * @param  {jQuery.Event} event The 'drop' event.
 	 */
 	drop: function( event ) {
-		var $wrap = null, uploadView;
+		var $wrap, uploadView;
 
 		this.containerDragleave( event );
 		this.dropzoneDragleave( event );
@@ -145,13 +145,15 @@ EditorUploader = View.extend({
 		}
 
 		if ( ! this.workflow ) {
-			this.workflow = wp.media.editor.open( 'content', {
+			this.workflow = wp.media.editor.open( window.wpActiveEditor, {
 				frame:    'post',
 				state:    'insert',
 				title:    l10n.addMedia,
 				multiple: true
 			});
+
 			uploadView = this.workflow.uploader;
+
 			if ( uploadView.uploader && uploadView.uploader.ready ) {
 				this.addFiles.apply( this );
 			} else {

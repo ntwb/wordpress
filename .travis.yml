@@ -1,4 +1,6 @@
 sudo: false
+cache:
+  apt: true
 language: php
 matrix:
   include:
@@ -14,6 +16,20 @@ matrix:
     env: WP_TRAVISCI=travis:phpunit
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_BUILD=true
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=memcache
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=apc
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=batcache
+    services: memcached
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=redis
+    services: redis-server
   - php: hhvm
     env: WP_TRAVISCI=travis:phpunit
   - php: nightly
@@ -33,10 +49,53 @@ before_install:
       sed -i "s/yourpasswordhere//" wp-tests-config.php
       svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
   fi
+- |
+  if [[ "$WP_TRAVISCI_BUILD" == "true" ]]; then
+      mysql -e "CREATE DATABASE wordpress_tests;" -uroot
+      cp wp-tests-config-sample.php wp-tests-config.php
+      sed -i "s/src/build/" wp-tests-config.php
+      sed -i "s/youremptytestdbnamehere/wordpress_tests/" wp-tests-config.php
+      sed -i "s/yourusernamehere/travis/" wp-tests-config.php
+      sed -i "s/yourpasswordhere//" wp-tests-config.php
+      svn checkout https://plugins.svn.wordpress.org/wordpress-importer/trunk tests/phpunit/data/plugins/wordpress-importer
+  fi
 before_script:
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "memcache" ]]; then
+      echo "extension = memcache.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.svn.wordpress.org/memcached/trunk/object-cache.php --no-check-certificate
+      mv object-cache.php src/wp-content/object-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "apc" ]]; then
+      echo "extension = apc.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enabled=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enable_cli=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/apc/trunk/object-cache.php --no-check-certificate
+      mv object-cache.php src/wp-content/object-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "batcache" ]]; then
+      echo "extension = apc.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enabled=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      echo "apc.enable_cli=1" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/batcache/trunk/advanced-cache.php --no-check-certificate
+      mv advanced-cache.php src/wp-content/advanced-cache.php
+  fi
+- |
+  if [[ "$WP_TRAVISCI_OBJECT_CACHE" == "redis" ]]; then
+      echo "extension = redis.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+      wget https://plugins.trac.wordpress.org/browser/wp-redis/trunk/object-cache.php --no-check-certificate
+      mv object-cache.php src/wp-content/object-cache.php
+  fi
+- node --version
+- npm --version
+- grunt --version
 - npm install -g npm
 - npm install -g grunt-cli
 - npm install
+- npm --version
+- grunt --version
 script: grunt $WP_TRAVISCI
 notifications:
   slack:

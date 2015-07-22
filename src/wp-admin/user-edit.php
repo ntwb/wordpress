@@ -202,17 +202,17 @@ include(ABSPATH . 'wp-admin/admin-header.php');
 <?php endif; ?>
 
 <div class="wrap" id="profile-page">
-<h2>
+<h1>
 <?php
 echo esc_html( $title );
 if ( ! IS_PROFILE_PAGE ) {
 	if ( current_user_can( 'create_users' ) ) { ?>
-		<a href="user-new.php" class="add-new-h2"><?php echo esc_html_x( 'Add New', 'user' ); ?></a>
+		<a href="user-new.php" class="page-title-action"><?php echo esc_html_x( 'Add New', 'user' ); ?></a>
 	<?php } elseif ( is_multisite() && current_user_can( 'promote_users' ) ) { ?>
-		<a href="user-new.php" class="add-new-h2"><?php echo esc_html_x( 'Add Existing', 'user' ); ?></a>
+		<a href="user-new.php" class="page-title-action"><?php echo esc_html_x( 'Add Existing', 'user' ); ?></a>
 	<?php }
 } ?>
-</h2>
+</h1>
 <form id="your-profile" action="<?php echo esc_url( self_admin_url( IS_PROFILE_PAGE ? 'profile.php' : 'user-edit.php' ) ); ?>" method="post" novalidate="novalidate"<?php
 	/**
 	 * Fires inside the your-profile form tag on the user editing screen.
@@ -462,26 +462,34 @@ if ( $show_password_fields ) :
 	<th><label for="pass1"><?php _e( 'New Password' ); ?></label></th>
 	<td>
 		<input class="hidden" value=" " /><!-- #24364 workaround -->
-		<input type="password" name="pass1" id="pass1" class="regular-text" size="16" value="" autocomplete="off" />
-		<p class="description"><?php _e( 'If you would like to change the password type a new one. Otherwise leave this blank.' ); ?></p>
+		<button type="button" class="button button-secondary wp-generate-pw hide-if-no-js"><?php _e( 'Generate new password' ); ?></button>
+		<div class="wp-pwd hide-if-js">
+			<input type="password" name="pass1" id="pass1" class="regular-text" value="" autocomplete="off" data-pw="<?php echo esc_attr( wp_generate_password( 24 ) ); ?>" aria-describedby="pass-strength-result" />
+			<button type="button" class="button button-secondary wp-hide-pw hide-if-no-js" data-toggle="0" aria-label="<?php esc_attr_e( 'Hide password' ); ?>">
+				<span class="dashicons dashicons-visibility"></span>
+				<span class="text"><?php _e( 'Hide' ); ?></span>
+			</button>
+			<div style="display:none" id="pass-strength-result" aria-live="polite"></div>
+		</div>
 	</td>
 </tr>
-<tr class="user-pass2-wrap">
+<tr class="user-pass2-wrap hide-if-js">
 	<th scope="row"><label for="pass2"><?php _e( 'Repeat New Password' ); ?></label></th>
 	<td>
-	<input name="pass2" type="password" id="pass2" class="regular-text" size="16" value="" autocomplete="off" />
+	<input name="pass2" type="password" id="pass2" class="regular-text" value="" autocomplete="off" />
 	<p class="description"><?php _e( 'Type your new password again.' ); ?></p>
-	<br />
-	<div id="pass-strength-result"><?php _e( 'Strength indicator' ); ?></div>
-	<p class="description indicator-hint"><?php echo wp_get_password_hint(); ?></p>
+	</td>
+</tr>
+<tr class="pw-weak">
+	<th><?php _e( 'Confirm Password' ); ?></th>
+	<td>
+		<label for="pw_weak">
+			<input type="checkbox" name="pw_weak" class="pw-checkbox" id="pw-weak" />
+			<?php _e( 'Confirm use of weak password' ); ?>
+		</label>
 	</td>
 </tr>
 <?php endif; ?>
-
-<?php
-// This is a temporary hook for WordPress 4.3 development. Do not use it or document it.
-do_action( '__temp_password_field', $profileuser );
-?>
 
 <?php
 if ( IS_PROFILE_PAGE && count( $sessions->get_all() ) === 1 ) : ?>

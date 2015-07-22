@@ -70,7 +70,7 @@
 								node = node.parentNode;
 							}
 
-							if ( ! node || node.nodeType !== 1 || ( 'ownerSVGElement' in node ) ||
+							if ( ! node || node.nodeType !== 1 ||
 								( node.className && typeof node.className === 'string' && node.className.indexOf( 'wp-exclude-emoji' ) !== -1 ) ) {
 
 								continue;
@@ -91,12 +91,13 @@
 		}
 
 		/**
-		 * Test if a text string contains emoji characters
+		 * Test if a text string contains emoji characters.
 		 *
 		 * @since 4.3.0
 		 *
 		 * @param {String} text The string to test
-		 * @returns Boolean
+		 *
+		 * @return {Boolean} Whether the string contains emoji characters.
 		 */
 		function test( text ) {
 			// Single char. U+20E3 to detect keycaps. U+00A9 "copyright sign" and U+00AE "registered sign" not included.
@@ -120,6 +121,8 @@
 		 * @param {Object} args Additional options for Twemoji.
 		 */
 		function parse( object, args ) {
+			var params;
+
 			if ( ! replaceEmoji || ! twemoji || ! object ||
 				( 'string' !== typeof object && ( ! object.childNodes || ! object.childNodes.length ) ) ) {
 
@@ -127,12 +130,10 @@
 			}
 
 			args = args || {};
-
-			return twemoji.parse( object, {
+			params = {
 				base: settings.baseUrl,
 				ext: settings.ext,
 				className: args.className || 'emoji',
-				imgAttr: args.imgAttr,
 				callback: function( icon, options ) {
 					// Ignore some standard characters that TinyMCE recommends in its character map.
 					switch ( icon ) {
@@ -155,7 +156,15 @@
 
 					return ''.concat( options.base, icon, options.ext );
 				}
-			} );
+			};
+
+			if ( typeof args.imgAttr === 'object' ) {
+				params.attributes = function() {
+					return args.imgAttr;
+				};
+			}
+
+			return twemoji.parse( object, params );
 		}
 
 		/**

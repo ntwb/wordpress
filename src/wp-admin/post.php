@@ -120,8 +120,9 @@ case 'post-quickdraft-save':
 	if ( ! wp_verify_nonce( $nonce, 'add-post' ) )
 		$error_msg = __( 'Unable to submit this form, please refresh and try again.' );
 
-	if ( ! current_user_can( 'edit_posts' ) )
-		$error_msg = __( 'Oops, you don&#8217;t have access to add new drafts.' );
+	if ( ! current_user_can( 'edit_posts' ) ) {
+		exit;
+	}
 
 	if ( $error_msg )
 		return wp_dashboard_quick_press( $error_msg );
@@ -129,8 +130,8 @@ case 'post-quickdraft-save':
 	$post = get_post( $_REQUEST['post_ID'] );
 	check_admin_referer( 'add-' . $post->post_type );
 
-	$_POST['comment_status'] = get_option( 'default_comment_status' );
-	$_POST['ping_status'] = get_option( 'default_ping_status' );
+	$_POST['comment_status'] = get_default_comment_status( $post->post_type );
+	$_POST['ping_status']    = get_default_comment_status( $post->post_type, 'pingback' );
 
 	edit_post();
 	wp_dashboard_quick_press();

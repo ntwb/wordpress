@@ -301,8 +301,7 @@ class WP_Upgrader {
 	 * @global WP_Filesystem_Base $wp_filesystem Subclass
 	 *
 	 * @param string $remote_destination The location on the remote filesystem to be cleared
-	 *
-	 * @return bool|WP_Error true upon success, {@see WP_Error} on failure.
+	 * @return bool|WP_Error True upon success, WP_Error on failure.
 	 */
 	public function clear_destination( $remote_destination ) {
 		global $wp_filesystem;
@@ -311,11 +310,12 @@ class WP_Upgrader {
 			return true;
 		}
 
-		// Check all files are writable before attempting to clear the destination
+		// Check all files are writable before attempting to clear the destination.
 		$unwritable_files = array();
 
 		$_files = $wp_filesystem->dirlist( $remote_destination, true, true );
-		// Flatten the resulting array, iterate using each as we append to the array during iteration
+
+		// Flatten the resulting array, iterate using each as we append to the array during iteration.
 		while ( $f = each( $_files ) ) {
 			$file = $f['value'];
 			$name = $f['key'];
@@ -329,10 +329,11 @@ class WP_Upgrader {
 			}
 		}
 
-		// Check writability
+		// Check writability.
 		foreach ( $_files as $filename => $file_details ) {
 			if ( ! $wp_filesystem->is_writable( $remote_destination . $filename ) ) {
-				// Attempt to alter permissions to allow writes and try again
+
+				// Attempt to alter permissions to allow writes and try again.
 				$wp_filesystem->chmod( $remote_destination . $filename, ( 'd' == $file_details['type'] ? FS_CHMOD_DIR : FS_CHMOD_FILE ) );
 				if ( ! $wp_filesystem->is_writable( $remote_destination . $filename ) ) {
 					$unwritable_files[] = $filename;
@@ -1832,7 +1833,7 @@ class Language_Pack_Upgrader extends WP_Upgrader {
 	 * @param string|false $update Optional. Whether an update offer is available. Default false.
 	 * @param array        $args   Optional. Other optional arguments, see
 	 *                             {@see Language_Pack_Upgrader::bulk_upgrade()}. Default empty array.
-	 * @return array|WP_Error The result of the upgrade, or a {@see wP_Error} object instead.
+	 * @return array|bool|WP_Error The result of the upgrade, or a {@see wP_Error} object instead.
 	 */
 	public function upgrade( $update = false, $args = array() ) {
 		if ( $update ) {
@@ -1862,7 +1863,7 @@ class Language_Pack_Upgrader extends WP_Upgrader {
 	 *     @type bool $clear_update_cache Whether to clear the update cache when done.
 	 *                                    Default true.
 	 * }
-	 * @return array|true|false|WP_Error Will return an array of results, or true if there are no updates,
+	 * @return array|bool|WP_Error Will return an array of results, or true if there are no updates,
 	 *                                   false or WP_Error for initial errors.
 	 */
 	public function bulk_upgrade( $language_updates = array(), $args = array() ) {

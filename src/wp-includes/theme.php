@@ -1159,7 +1159,7 @@ function get_random_header_image() {
  * @since 3.2.0
  *
  * @param string $type The random pool to use. any|default|uploaded
- * @return boolean
+ * @return bool
  */
 function is_random_header_image( $type = 'any' ) {
 	$header_image_mod = get_theme_mod( 'header_image', get_theme_support( 'custom-header', 'default-image' ) );
@@ -1209,10 +1209,13 @@ function get_uploaded_header_images() {
 		$url = esc_url_raw( wp_get_attachment_url( $header->ID ) );
 		$header_data = wp_get_attachment_metadata( $header->ID );
 		$header_index = basename($url);
+
 		$header_images[$header_index] = array();
-		$header_images[$header_index]['attachment_id'] =  $header->ID;
+		$header_images[$header_index]['attachment_id'] = $header->ID;
 		$header_images[$header_index]['url'] =  $url;
-		$header_images[$header_index]['thumbnail_url'] =  $url;
+		$header_images[$header_index]['thumbnail_url'] = $url;
+		$header_images[$header_index]['alt_text'] = get_post_meta( $header->ID, '_wp_attachment_image_alt', true );
+
 		if ( isset( $header_data['width'] ) )
 			$header_images[$header_index]['width'] = $header_data['width'];
 		if ( isset( $header_data['height'] ) )
@@ -1499,6 +1502,7 @@ function get_editor_stylesheets() {
 			}
 		}
 	}
+
 	/**
 	 * Filter the array of stylesheets applied to the editor.
 	 *
@@ -1927,22 +1931,27 @@ function require_if_theme_supports( $feature, $include ) {
  * Checks an attachment being deleted to see if it's a header or background image.
  *
  * If true it removes the theme modification which would be pointing at the deleted
- * attachment
+ * attachment.
  *
  * @access private
  * @since 3.0.0
- * @param int $id the attachment id
+ * @since 4.3.0 Also removes `header_image_data`.
+ *
+ * @param int $id The attachment id.
  */
 function _delete_attachment_theme_mod( $id ) {
 	$attachment_image = wp_get_attachment_url( $id );
-	$header_image = get_header_image();
+	$header_image     = get_header_image();
 	$background_image = get_background_image();
 
-	if ( $header_image && $header_image == $attachment_image )
+	if ( $header_image && $header_image == $attachment_image ) {
 		remove_theme_mod( 'header_image' );
+		remove_theme_mod( 'header_image_data' );
+	}
 
-	if ( $background_image && $background_image == $attachment_image )
+	if ( $background_image && $background_image == $attachment_image ) {
 		remove_theme_mod( 'background_image' );
+	}
 }
 
 /**

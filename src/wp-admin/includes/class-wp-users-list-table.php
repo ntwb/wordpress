@@ -419,7 +419,9 @@ class WP_Users_List_Table extends WP_List_Table {
 				$classes .= ' hidden';
 			}
 
-			$attributes = "class='$classes'";
+			$data = 'data-colname="' . wp_strip_all_tags( $column_display_name ) . '"';
+
+			$attributes = "class='$classes' $data";
 
 			if ( 'cb' === $column_name ) {
 				$r .= "<th scope='row' class='check-column'>$checkbox</th>";
@@ -473,7 +475,7 @@ class WP_Users_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * Get the name of the default primary column.
+	 * Gets the name of the default primary column.
 	 *
 	 * @since 4.3.0
 	 * @access protected

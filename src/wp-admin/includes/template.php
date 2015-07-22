@@ -784,9 +784,10 @@ function touch_time( $edit = 1, $for_post = 1, $tab_index = 0, $multi = 0 ) {
 	$month = '<label><span class="screen-reader-text">' . __( 'Month' ) . '</span><select ' . ( $multi ? '' : 'id="mm" ' ) . 'name="mm"' . $tab_index_attribute . ">\n";
 	for ( $i = 1; $i < 13; $i = $i +1 ) {
 		$monthnum = zeroise($i, 2);
-		$month .= "\t\t\t" . '<option value="' . $monthnum . '" ' . selected( $monthnum, $mm, false ) . '>';
+		$monthtext = $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) );
+		$month .= "\t\t\t" . '<option value="' . $monthnum . '" data-text="' . $monthtext . '" ' . selected( $monthnum, $mm, false ) . '>';
 		/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
-		$month .= sprintf( __( '%1$s-%2$s' ), $monthnum, $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) ) ) . "</option>\n";
+		$month .= sprintf( __( '%1$s-%2$s' ), $monthnum, $monthtext ) . "</option>\n";
 	}
 	$month .= '</select></label>';
 
@@ -797,7 +798,7 @@ function touch_time( $edit = 1, $for_post = 1, $tab_index = 0, $multi = 0 ) {
 
 	echo '<div class="timestamp-wrap">';
 	/* translators: 1: month, 2: day, 3: year, 4: hour, 5: minute */
-	printf( __( '%1$s %2$s, %3$s @ %4$s : %5$s' ), $month, $day, $year, $hour, $minute );
+	printf( __( '%1$s %2$s, %3$s @ %4$s:%5$s' ), $month, $day, $year, $hour, $minute );
 
 	echo '</div><input type="hidden" id="ss" name="ss" value="' . $ss . '" />';
 
@@ -1482,9 +1483,9 @@ function get_settings_errors( $setting = '', $sanitize = false ) {
  *
  * @since 3.0.0
  *
- * @param string $setting Optional slug title of a specific setting who's errors you want.
- * @param boolean $sanitize Whether to re-sanitize the setting value before returning errors.
- * @param boolean $hide_on_update If set to true errors will not be shown if the settings page has already been submitted.
+ * @param string $setting        Optional slug title of a specific setting who's errors you want.
+ * @param bool   $sanitize       Whether to re-sanitize the setting value before returning errors.
+ * @param bool   $hide_on_update If set to true errors will not be shown if the settings page has already been submitted.
  */
 function settings_errors( $setting = '', $sanitize = false, $hide_on_update = false ) {
 
@@ -1778,13 +1779,17 @@ function _media_states( $post ) {
 			$media_states[] = __( 'Background Image' );
 	}
 
+	if ( $post->ID == get_option( 'site_icon' ) ) {
+		$media_states[] = __( 'Site Icon' );
+	}
+
 	/**
 	 * Filter the default media display states for items in the Media list table.
 	 *
 	 * @since 3.2.0
 	 *
 	 * @param array $media_states An array of media states. Default 'Header Image',
-	 *                            'Background Image'.
+	 *                            'Background Image', 'Site Icon'.
 	 */
 	$media_states = apply_filters( 'display_media_states', $media_states );
 

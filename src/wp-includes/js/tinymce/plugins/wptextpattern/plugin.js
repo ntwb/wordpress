@@ -22,8 +22,8 @@
 		 *
 		 * @since 4.3.0
 		 *
-		 * @param {RegExp}   regExp
-		 * @param {Function} callback
+		 * @param {RegExp}   regExp   RegEx pattern.
+		 * @param {Function} callback Callback.
 		 */
 		function add( regExp, callback ) {
 			patterns.push( {
@@ -86,6 +86,10 @@
 				} else {
 					break;
 				}
+			}
+
+			if ( ! child ) {
+				return;
 			}
 
 			if ( ! child.nodeValue ) {

@@ -1,5 +1,3 @@
-/*globals wp, _, Backbone */
-
 /**
  * wp.media.view.MediaFrame.Manage
  *
@@ -41,7 +39,7 @@ Manage = MediaFrame.extend({
 		this.$window = $( window );
 		this.$adminBar = $( '#wpadminbar' );
 		this.$window.on( 'scroll resize', _.debounce( _.bind( this.fixPosition, this ), 15 ) );
-		$( document ).on( 'click', '.add-new-h2', _.bind( this.addNewClickHandler, this ) );
+		$( document ).on( 'click', '.page-title-action', _.bind( this.addNewClickHandler, this ) );
 
 		// Ensure core and media grid view UI is enabled.
 		this.$el.addClass('wp-core-ui');
@@ -62,10 +60,12 @@ Manage = MediaFrame.extend({
 				}
 			}).render();
 			this.uploader.ready();
-			this.$body.append( this.uploader.el );
+			$('body').append( this.uploader.el );
 
 			this.options.uploader = false;
 		}
+
+		this.gridRouter = new wp.media.view.MediaFrame.Manage.Router();
 
 		// Call 'initialize' directly on the parent class.
 		MediaFrame.prototype.initialize.apply( this, arguments );
@@ -73,23 +73,10 @@ Manage = MediaFrame.extend({
 		// Append the frame view directly the supplied container.
 		this.$el.appendTo( this.options.container );
 
-		this.setLibrary( this.options );
-		this.setRouter();
 		this.createStates();
 		this.bindRegionModeHandlers();
 		this.render();
 		this.bindSearchHandler();
-	},
-
-	setLibrary: function ( options ) {
-		this.library = wp.media.query( options.library );
-	},
-
-	setRouter: function () {
-		this.gridRouter = new wp.media.view.MediaFrame.Manage.Router({
-			controller: this,
-			library: this.library
-		});
 	},
 
 	bindSearchHandler: function() {
@@ -110,9 +97,7 @@ Manage = MediaFrame.extend({
 
 		// Update the URL when entering search string (at most once per second)
 		search.on( 'input', _.bind( input, this ) );
-		if ( currentSearch ) {
-			searchView.val( currentSearch ).trigger( 'input' );
-		}
+		searchView.val( currentSearch ).trigger( 'input' );
 
 		this.gridRouter.on( 'route:search', function () {
 			var href = window.location.href;
@@ -139,7 +124,7 @@ Manage = MediaFrame.extend({
 		// Add the default states.
 		this.states.add([
 			new Library({
-				library:            this.library,
+				library:            wp.media.query( options.library ),
 				multiple:           options.multiple,
 				title:              options.title,
 				content:            'browse',

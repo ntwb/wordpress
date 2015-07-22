@@ -1635,7 +1635,8 @@ function _post_type_meta_capabilities( $capabilities = null ) {
  * and the second one is for hierarchical post types (like pages).
  *
  * @since 3.0.0
- * @since 4.3.0 Added the `featured_image`, `set_featured_image`, `remove_featured_image`, and `use_featured_image` labels.
+ * @since 4.3.0 Added the `featured_image`, `set_featured_image`, `remove_featured_image`,
+ *              and `use_featured_image` labels.
  * @access private
  *
  * @param object $post_type_object Post type object.
@@ -3127,11 +3128,25 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 
 	$user_id = get_current_user_id();
 
-	$defaults = array('post_status' => 'draft', 'post_type' => 'post', 'post_author' => $user_id,
-		'ping_status' => get_option('default_ping_status'), 'post_parent' => 0,
-		'menu_order' => 0, 'to_ping' =>  '', 'pinged' => '', 'post_password' => '',
-		'guid' => '', 'post_content_filtered' => '', 'post_excerpt' => '', 'import_id' => 0,
-		'post_content' => '', 'post_title' => '', 'context' => '');
+	$defaults = array(
+		'post_author' => $user_id,
+		'post_content' => '',
+		'post_content_filtered' => '',
+		'post_title' => '',
+		'post_excerpt' => '',
+		'post_status' => 'draft',
+		'post_type' => 'post',
+		'comment_status' => '',
+		'ping_status' => '',
+		'post_password' => '',
+		'to_ping' =>  '',
+		'pinged' => '',
+		'post_parent' => 0,
+		'menu_order' => 0,
+		'guid' => '',
+		'import_id' => 0,
+		'context' => '',
+	);
 
 	$postarr = wp_parse_args($postarr, $defaults);
 
@@ -3302,11 +3317,12 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 		}
 	}
 
+	// Comment status.
 	if ( empty( $postarr['comment_status'] ) ) {
 		if ( $update ) {
 			$comment_status = 'closed';
 		} else {
-			$comment_status = get_option('default_comment_status');
+			$comment_status = get_default_comment_status( $post_type );
 		}
 	} else {
 		$comment_status = $postarr['comment_status'];
@@ -3315,7 +3331,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 	// These variables are needed by compact() later.
 	$post_content_filtered = $postarr['post_content_filtered'];
 	$post_author = empty( $postarr['post_author'] ) ? $user_id : $postarr['post_author'];
-	$ping_status = empty( $postarr['ping_status'] ) ? get_option( 'default_ping_status' ) : $postarr['ping_status'];
+	$ping_status = empty( $postarr['ping_status'] ) ? get_default_comment_status( $post_type, 'pingback' ) : $postarr['ping_status'];
 	$to_ping = isset( $postarr['to_ping'] ) ? sanitize_trackback_urls( $postarr['to_ping'] ) : '';
 	$pinged = isset( $postarr['pinged'] ) ? $postarr['pinged'] : '';
 	$import_id = isset( $postarr['import_id'] ) ? $postarr['import_id'] : 0;
@@ -3435,7 +3451,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 	}
 
 	if ( empty( $data['post_name'] ) && ! in_array( $data['post_status'], array( 'draft', 'pending', 'auto-draft' ) ) ) {
-		$data['post_name'] = sanitize_title( $data['post_title'], $post_ID );
+		$data['post_name'] = wp_unique_post_slug( sanitize_title( $data['post_title'], $post_ID ), $post_ID, $data['post_status'], $post_type, $post_parent );
 		$wpdb->update( $wpdb->posts, array( 'post_name' => $data['post_name'] ), $where );
 	}
 
@@ -3800,9 +3816,10 @@ function wp_unique_post_slug( $slug, $post_ID, $post_status, $post_type, $post_p
 		$check_sql = "SELECT post_name FROM $wpdb->posts WHERE post_name = %s AND post_type = %s AND ID != %d LIMIT 1";
 		$post_name_check = $wpdb->get_var( $wpdb->prepare( $check_sql, $slug, $post_type, $post_ID ) );
 
-		// Prevent post slugs that could result in URLs that conflict with date archives.
+		// Prevent new post slugs that could result in URLs that conflict with date archives.
+		$post = get_post( $post_ID );
 		$conflicts_with_date_archive = false;
-		if ( 'post' === $post_type && preg_match( '/^[0-9]+$/', $slug ) && $slug_num = intval( $slug ) ) {
+		if ( 'post' === $post_type && ( ! $post || $post->post_name !== $slug ) && preg_match( '/^[0-9]+$/', $slug ) && $slug_num = intval( $slug ) ) {
 			$permastructs   = array_values( array_filter( explode( '/', get_option( 'permalink_structure' ) ) ) );
 			$postname_index = array_search( '%postname%', $permastructs );
 
@@ -3992,11 +4009,14 @@ function wp_set_post_categories( $post_ID = 0, $post_categories = array(), $appe
 }
 
 /**
- * Transition the post status of a post.
+ * Fires actions related to the transitioning of a post's status.
  *
  * When a post is saved, the post status is "transitioned" from one status to another,
  * though this does not always mean the status has actually changed before and after
- * the save.
+ * the save. This function fires a number of action hooks related to that transition:
+ * the generic 'transition_post_status' action, as well as the dynamic hooks
+ * `"{$old_status}_to_{$new_status}"` and `"{$new_status}_{$post->post_type}"`. Note
+ * that the function does not transition the post object in the database.
  *
  * For instance: When publishing a post for the first time, the post status may transition
  * from 'draft' – or some other status – to 'publish'. However, if a post is already
@@ -4056,7 +4076,7 @@ function wp_transition_post_status( $new_status, $old_status, $post ) {
 }
 
 //
-// Trackback and ping functions
+// Comment, trackback, and pingback functions.
 //
 
 /**

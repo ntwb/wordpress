@@ -3364,6 +3364,7 @@ function wp_unique_term_slug( $slug, $term ) {
 	}
 
 	// If we didn't get a unique slug, try appending a number to make it unique.
+
 	/**
 	 * Filter whether the proposed unique term slug is bad.
 	 *
@@ -4213,11 +4214,13 @@ function _update_generic_term_count( $terms, $taxonomy ) {
 }
 
 /**
- * Create a new term for a term_taxonomy item that currently shares its term with another term_taxonomy.
+ * Create a new term for a term_taxonomy item that currently shares its term
+ * with another term_taxonomy.
  *
  * @ignore
  * @since 4.2.0
- * @since 4.3.0 Introduced `$record` parameter. `$term_id` and `$term_taxonomy_id` can now accept objects.
+ * @since 4.3.0 Introduced `$record` parameter. Also, `$term_id` and
+ *              `$term_taxonomy_id` can now accept objects.
  *
  * @global wpdb $wpdb
  *
@@ -4437,27 +4440,22 @@ function wp_get_split_term( $old_term_id, $taxonomy ) {
  * Generate a permalink for a taxonomy term archive.
  *
  * @since 2.5.0
- * @since 4.3.0 Introduced `$field` argument.
  *
  * @global WP_Rewrite $wp_rewrite
  *
  * @param object|int|string $term     The term object, ID, or slug whose link will be retrieved.
  * @param string            $taxonomy Optional. Taxonomy. Default empty.
- * @param string            $field    Optional. The term field that should be matched by the `$term` argument. Accepts
- *                                    any `$field` values accepted by `get_term_by()`: 'slug', 'name',
- *                                    'term_taxonomy_id', or 'id'. Default is 'slug', unless `$term` is an integer, in
- *                                    which case it's asssumed to be an ID.
  * @return string|WP_Error HTML link to taxonomy term archive on success, WP_Error if term does not exist.
  */
-function get_term_link( $term, $taxonomy = '', $field = null ) {
+function get_term_link( $term, $taxonomy = '' ) {
 	global $wp_rewrite;
 
 	if ( !is_object($term) ) {
-		if ( is_null( $field ) ) {
-			$field = is_int( $term ) ? 'id' : 'slug';
+		if ( is_int( $term ) ) {
+			$term = get_term( $term, $taxonomy );
+		} else {
+			$term = get_term_by( 'slug', $term, $taxonomy );
 		}
-
-		$term = get_term_by( $field, $term, $taxonomy );
 	}
 
 	if ( !is_object($term) )

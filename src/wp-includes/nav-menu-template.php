@@ -308,7 +308,7 @@ function wp_nav_menu( $args = array() ) {
 	 *  - Otherwise, bail.
 	 */
 	if ( ( !$menu || is_wp_error($menu) || ( isset($menu_items) && empty($menu_items) && !$args->theme_location ) )
-		&& $args->fallback_cb && is_callable( $args->fallback_cb ) )
+		&& isset( $args->fallback_cb ) && $args->fallback_cb && is_callable( $args->fallback_cb ) )
 			return call_user_func( $args->fallback_cb, (array) $args );
 
 	if ( ! $menu || is_wp_error( $menu ) )
@@ -562,7 +562,7 @@ function _wp_menu_item_classes_by_context( &$menu_items ) {
 			$_root_relative_current = untrailingslashit( $_SERVER['REQUEST_URI'] );
 			$current_url = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_root_relative_current );
 			$raw_item_url = strpos( $menu_item->url, '#' ) ? substr( $menu_item->url, 0, strpos( $menu_item->url, '#' ) ) : $menu_item->url;
-			$item_url = untrailingslashit( $raw_item_url );
+			$item_url = set_url_scheme( untrailingslashit( $raw_item_url ) );
 			$_indexless_current = untrailingslashit( preg_replace( '/' . preg_quote( $wp_rewrite->index, '/' ) . '$/', '', $current_url ) );
 
 			if ( $raw_item_url && in_array( $item_url, array( $current_url, $_indexless_current, $_root_relative_current ) ) ) {

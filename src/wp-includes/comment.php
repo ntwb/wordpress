@@ -1034,6 +1034,49 @@ function get_comment_statuses() {
 }
 
 /**
+ * Gets the default comment status for a post type.
+ *
+ * @since 4.3.0
+ *
+ * @param string $post_type    Optional. Post type. Default 'post'.
+ * @param string $comment_type Optional. Comment type. Default 'comment'.
+ * @return string Expected return value is 'open' or 'closed'.
+ */
+function get_default_comment_status( $post_type = 'post', $comment_type = 'comment' ) {
+	switch ( $comment_type ) {
+		case 'pingback' :
+		case 'trackback' :
+			$supports = 'trackbacks';
+			$option = 'ping';
+			break;
+		default :
+			$supports = 'comments';
+			$option = 'comment';
+	}
+
+	// Set the status.
+	if ( 'page' === $post_type ) {
+		$status = 'closed';
+	} elseif ( post_type_supports( $post_type, $supports ) ) {
+		$status = get_option( "default_{$option}_status" );
+	} else {
+		$status = 'closed';
+	}
+
+	/**
+	 * Filter the default comment status for the given post type.
+	 *
+	 * @since 4.3.0
+	 *
+	 * @param string $status       Default status for the given post type,
+	 *                             either 'open' or 'closed'.
+	 * @param string $post_type    Post type. Default is `post`.
+	 * @param string $comment_type Type of comment. Default is `comment`.
+	 */
+	return apply_filters( 'get_default_comment_status' , $status, $post_type, $comment_type );
+}
+
+/**
  * The date the last comment was modified.
  *
  * @since 1.5.0
@@ -1493,8 +1536,8 @@ function separate_comments(&$comments) {
  * @global WP_Query $wp_query
  *
  * @param array $comments Optional array of comment objects. Defaults to $wp_query->comments
- * @param int $per_page Optional comments per page.
- * @param boolean $threaded Optional control over flat or threaded comments.
+ * @param int   $per_page Optional comments per page.
+ * @param bool  $threaded Optional control over flat or threaded comments.
  * @return int Number of comment pages.
  */
 function get_comment_pages_count( $comments = null, $per_page = null, $threaded = null ) {
@@ -2271,6 +2314,7 @@ function wp_throttle_comment_flood($block, $time_lastcomment, $time_newcomment) 
  * See {@link https://core.trac.wordpress.org/ticket/9235}
  *
  * @since 1.5.0
+ * @since 4.3.0 'comment_agent' and 'comment_author_IP' can be set via `$commentdata`.
  *
  * @see wp_insert_comment()
  *
@@ -2309,8 +2353,15 @@ function wp_new_comment( $commentdata ) {
 	$parent_status = ( 0 < $commentdata['comment_parent'] ) ? wp_get_comment_status($commentdata['comment_parent']) : '';
 	$commentdata['comment_parent'] = ( 'approved' == $parent_status || 'unapproved' == $parent_status ) ? $commentdata['comment_parent'] : 0;
 
-	$commentdata['comment_author_IP'] = preg_replace( '/[^0-9a-fA-F:., ]/', '',$_SERVER['REMOTE_ADDR'] );
-	$commentdata['comment_agent']     = isset( $_SERVER['HTTP_USER_AGENT'] ) ? substr( $_SERVER['HTTP_USER_AGENT'], 0, 254 ) : '';
+	if ( ! isset( $commentdata['comment_author_IP'] ) ) {
+		$commentdata['comment_author_IP'] = $_SERVER['REMOTE_ADDR'];
+	}
+	$commentdata['comment_author_IP'] = preg_replace( '/[^0-9a-fA-F:., ]/', '', $commentdata['comment_author_IP'] );
+
+	if ( ! isset( $commentdata['comment_agent'] ) ) {
+		$commentdata['comment_agent'] = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT']: '';
+	}
+	$commentdata['comment_agent'] = substr( $commentdata['comment_agent'], 0, 254 );
 
 	if ( empty( $commentdata['comment_date'] ) ) {
 		$commentdata['comment_date'] = current_time('mysql');

@@ -531,14 +531,8 @@ function upgrade_all() {
 	if ( $wp_current_db_version < 29630 )
 		upgrade_400();
 
-	// Don't harsh my mellow. upgrade_430() must be called before
-	// upgrade_420() to catch bad comments prior to any auto-expansion of
-	// MySQL column widths.
-	if ( $wp_current_db_version < 32814 )
+	if ( $wp_current_db_version < 33055 )
 		upgrade_430();
-
-	if ( $wp_current_db_version < 31351 )
-		upgrade_420();
 
 	maybe_disable_link_manager();
 
@@ -1258,7 +1252,7 @@ function upgrade_300() {
 		add_site_option( 'siteurl', '' );
 
 	// 3.0 screen options key name changes.
-	if ( is_main_site() && !defined('DO_NOT_UPGRADE_GLOBAL_TABLES') ) {
+	if ( wp_should_upgrade_global_tables() ) {
 		$sql = "DELETE FROM $wpdb->usermeta
 			WHERE meta_key LIKE %s
 			OR meta_key LIKE %s
@@ -1298,7 +1292,7 @@ function upgrade_300() {
 function upgrade_330() {
 	global $wp_current_db_version, $wpdb, $wp_registered_widgets, $sidebars_widgets;
 
-	if ( $wp_current_db_version < 19061 && is_main_site() && ! defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) ) {
+	if ( $wp_current_db_version < 19061 && wp_should_upgrade_global_tables() ) {
 		$wpdb->query( "DELETE FROM $wpdb->usermeta WHERE meta_key IN ('show_admin_bar_admin', 'plugins_last_view')" );
 	}
 
@@ -1382,7 +1376,7 @@ function upgrade_340() {
 		$wpdb->show_errors();
 	}
 
-	if ( $wp_current_db_version < 20022 && is_main_site() && ! defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) ) {
+	if ( $wp_current_db_version < 20022 && wp_should_upgrade_global_tables() ) {
 		$wpdb->query( "DELETE FROM $wpdb->usermeta WHERE meta_key = 'themes_last_view'" );
 	}
 
@@ -1409,7 +1403,7 @@ function upgrade_350() {
 	if ( $wp_current_db_version < 22006 && $wpdb->get_var( "SELECT link_id FROM $wpdb->links LIMIT 1" ) )
 		update_option( 'link_manager_enabled', 1 ); // Previously set to 0 by populate_options()
 
-	if ( $wp_current_db_version < 21811 && is_main_site() && ! defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) ) {
+	if ( $wp_current_db_version < 21811 && wp_should_upgrade_global_tables() ) {
 		$meta_keys = array();
 		foreach ( array_merge( get_post_types(), get_taxonomies() ) as $name ) {
 			if ( false !== strpos( $name, '-' ) )
@@ -1494,16 +1488,38 @@ function upgrade_400() {
  * @global int   $wp_current_db_version
  * @global wpdb  $wpdb
  */
-function upgrade_420() {
+function upgrade_420() {}
+
+/**
+ * Executes changes made in WordPress 4.3.0.
+ *
+ * @since 4.3.0
+ *
+ * @global int  $wp_current_db_version Current version.
+ * @global wpdb $wpdb                  WordPress database abstraction object.
+ */
+function upgrade_430() {
 	global $wp_current_db_version, $wpdb;
 
-	if ( $wp_current_db_version < 31351 && $wpdb->charset === 'utf8mb4' ) {
+	if ( $wp_current_db_version < 32364 ) {
+		upgrade_430_fix_comments();
+	}
+
+	if ( $wp_current_db_version < 32814 ) {
+		split_all_shared_terms();
+	}
+
+	if ( $wp_current_db_version < 33055 && 'utf8mb4' === $wpdb->charset ) {
 		if ( is_multisite() ) {
 			$tables = $wpdb->tables( 'blog' );
 		} else {
 			$tables = $wpdb->tables( 'all' );
+			if ( ! wp_should_upgrade_global_tables() ) {
+				$global_tables = $wpdb->tables( 'global' );
+				$tables = array_diff_assoc( $tables, $global_tables );
+			}
 		}
-
+	
 		foreach ( $tables as $table ) {
 			maybe_convert_table_to_utf8mb4( $table );
 		}
@@ -1511,57 +1527,51 @@ function upgrade_420() {
 }
 
 /**
- * Execute changes made in WordPress 4.3.0.
+ * Executes comments changes made in WordPress 4.3.0.
  *
  * @since 4.3.0
  *
- * @global int   $wp_current_db_version
- * @global wpdb  $wpdb
+ * @global int  $wp_current_db_version Current version.
+ * @global wpdb $wpdb                  WordPress database abstraction object.
  */
-function upgrade_430() {
+function upgrade_430_fix_comments() {
 	global $wp_current_db_version, $wpdb;
 
-	if ( $wp_current_db_version < 32364 ) {
-		$content_length = $wpdb->get_col_length( $wpdb->comments, 'comment_content' );
+	$content_length = $wpdb->get_col_length( $wpdb->comments, 'comment_content' );
 
-		if ( is_wp_error( $content_length ) ) {
-			return;
-		}
-
-		if ( false === $content_length ) {
-			$content_length = array(
-				'type'   => 'byte',
-				'length' => 65535,
-			);
-		} elseif ( ! is_array( $content_length ) ) {
-			$length = (int) $content_length > 0 ? (int) $content_length : 65535;
-			$content_length = array(
-				'type'	 => 'byte',
-				'length' => $length
-			);
-		}
-
-		if ( 'byte' !== $content_length['type'] || 0 === $content_length['length'] ) {
-			// Sites with malformed DB schemas are on their own.
-			return;
-		}
-
-		$allowed_length = intval( $content_length['length'] ) - 10;
-
-		$comments = $wpdb->get_results(
-			"SELECT `comment_ID` FROM `{$wpdb->comments}`
-				WHERE `comment_date_gmt` > '2015-04-26'
-				AND LENGTH( `comment_content` ) >= {$allowed_length}
-				AND ( `comment_content` LIKE '%<%' OR `comment_content` LIKE '%>%' )"
-		);
-
-		foreach ( $comments as $comment ) {
-			wp_delete_comment( $comment->comment_ID, true );
-		}
+	if ( is_wp_error( $content_length ) ) {
+		return;
 	}
 
-	if ( $wp_current_db_version < 32814 ) {
-		split_all_shared_terms();
+	if ( false === $content_length ) {
+		$content_length = array(
+			'type'   => 'byte',
+			'length' => 65535,
+		);
+	} elseif ( ! is_array( $content_length ) ) {
+		$length = (int) $content_length > 0 ? (int) $content_length : 65535;
+		$content_length = array(
+			'type'	 => 'byte',
+			'length' => $length
+		);
+	}
+
+	if ( 'byte' !== $content_length['type'] || 0 === $content_length['length'] ) {
+		// Sites with malformed DB schemas are on their own.
+		return;
+	}
+
+	$allowed_length = intval( $content_length['length'] ) - 10;
+
+	$comments = $wpdb->get_results(
+		"SELECT `comment_ID` FROM `{$wpdb->comments}`
+			WHERE `comment_date_gmt` > '2015-04-26'
+			AND LENGTH( `comment_content` ) >= {$allowed_length}
+			AND ( `comment_content` LIKE '%<%' OR `comment_content` LIKE '%>%' )"
+	);
+
+	foreach ( $comments as $comment ) {
+		wp_delete_comment( $comment->comment_ID, true );
 	}
 }
 
@@ -1667,7 +1677,7 @@ function upgrade_network() {
 
 	// 4.2
 	if ( $wp_current_db_version < 31351 && $wpdb->charset === 'utf8mb4' ) {
-		if ( ! ( defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) && DO_NOT_UPGRADE_GLOBAL_TABLES ) ) {
+		if ( wp_should_upgrade_global_tables() ) {
 			$wpdb->query( "ALTER TABLE $wpdb->usermeta DROP INDEX meta_key, ADD INDEX meta_key(meta_key(191))" );
 			$wpdb->query( "ALTER TABLE $wpdb->site DROP INDEX domain, ADD INDEX domain(domain(140),path(51))" );
 			$wpdb->query( "ALTER TABLE $wpdb->sitemeta DROP INDEX meta_key, ADD INDEX meta_key(meta_key(191))" );
@@ -1682,8 +1692,8 @@ function upgrade_network() {
 	}
 
 	// 4.3
-	if ( $wp_current_db_version < 32378 && 'utf8mb4' === $wpdb->charset ) {
-		if ( ! ( defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) && DO_NOT_UPGRADE_GLOBAL_TABLES ) ) {
+	if ( $wp_current_db_version < 33055 && 'utf8mb4' === $wpdb->charset ) {
+		if ( wp_should_upgrade_global_tables() ) {
 			$upgrade = false;
 			$indexes = $wpdb->get_results( "SHOW INDEXES FROM $wpdb->signups" );
 			foreach( $indexes as $index ) {
@@ -1695,6 +1705,12 @@ function upgrade_network() {
 
 			if ( $upgrade ) {
 				$wpdb->query( "ALTER TABLE $wpdb->signups DROP INDEX domain_path, ADD INDEX domain_path(domain(140),path(51))" );
+			}
+
+			$tables = $wpdb->tables( 'global' );
+
+			foreach ( $tables as $table ) {
+				maybe_convert_table_to_utf8mb4( $table );
 			}
 		}
 	}
@@ -1855,9 +1871,11 @@ function maybe_convert_table_to_utf8mb4( $table ) {
 }
 
 /**
- * Split all shared taxonomy terms.
+ * Splits all shared taxonomy terms.
  *
  * @since 4.3.0
+ *
+ * @global wpdb $wpdb WordPress database abstraction object.
  */
 function split_all_shared_terms() {
 	global $wpdb;
@@ -2086,8 +2104,8 @@ function dbDelta( $queries = '', $execute = true ) {
 
 	$global_tables = $wpdb->tables( 'global' );
 	foreach ( $cqueries as $table => $qry ) {
-		// Upgrade global tables only for the main site. Don't upgrade at all if DO_NOT_UPGRADE_GLOBAL_TABLES is defined.
-		if ( in_array( $table, $global_tables ) && ( !is_main_site() || defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) ) ) {
+		// Upgrade global tables only for the main site. Don't upgrade at all if conditions are not optimal.
+		if ( in_array( $table, $global_tables ) && ! wp_should_upgrade_global_tables() ) {
 			unset( $cqueries[ $table ], $for_update[ $table ] );
 			continue;
 		}
@@ -2604,7 +2622,7 @@ function pre_schema_upgrade() {
 	}
 
 	// Multisite schema upgrades.
-	if ( $wp_current_db_version < 25448 && is_multisite() && ! defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) && is_main_network() ) {
+	if ( $wp_current_db_version < 25448 && is_multisite() && wp_should_upgrade_global_tables() ) {
 
 		// Upgrade verions prior to 3.7
 		if ( $wp_current_db_version < 25179 ) {
@@ -2622,7 +2640,7 @@ function pre_schema_upgrade() {
 
 	// Upgrade versions prior to 4.2.
 	if ( $wp_current_db_version < 31351 ) {
-		if ( ! is_multisite() ) {
+		if ( ! is_multisite() && wp_should_upgrade_global_tables() ) {
 			$wpdb->query( "ALTER TABLE $wpdb->usermeta DROP INDEX meta_key, ADD INDEX meta_key(meta_key(191))" );
 		}
 		$wpdb->query( "ALTER TABLE $wpdb->terms DROP INDEX slug, ADD INDEX slug(slug(191))" );
@@ -2659,3 +2677,49 @@ CREATE TABLE $wpdb->sitecategories (
 	dbDelta( $ms_queries );
 }
 endif;
+
+/**
+ * Determine if global tables should be upgraded.
+ * 
+ * This function performs a series of checks to ensure the environment allows
+ * for the safe upgrading of global WordPress database tables. It is necessary
+ * because global tables will commonly grow to millions of rows on large
+ * installations, and the ability to control their upgrade routines can be
+ * critical to the operation of large networks.
+ *
+ * In a future iteration, this function may use `wp_is_large_network()` to more-
+ * intelligently prevent global table upgrades. Until then, we make sure
+ * WordPress is on the main site of the main network, to avoid running queries
+ * more than once in multi-site or multi-network environments.
+ *
+ * @since 4.3.0
+ *
+ * @return bool Whether to run the upgrade routines on global tables.
+ */
+function wp_should_upgrade_global_tables() {
+
+	// Return false early if explicitly not upgrading
+	if ( defined( 'DO_NOT_UPGRADE_GLOBAL_TABLES' ) ) {
+		return false;
+	}
+
+	// Assume global tables should be upgraded
+	$should_upgrade = true;
+
+	// Set to false if not on main network (does not matter if not multi-network)
+	if ( ! is_main_network() ) {
+		$should_upgrade = false;
+	}
+
+	// Set to false if not on main site of current network (does not matter if not multi-site)
+	if ( ! is_main_site() ) {
+		$should_upgrade = false;
+	}
+
+	/**
+	 * Filter if upgrade routines should be run on global tables.
+	 *
+	 * @param bool $should_upgrade Whether to run the upgrade routines on global tables.
+	 */
+	return apply_filters( 'wp_should_upgrade_global_tables', $should_upgrade );
+}

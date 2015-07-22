@@ -119,6 +119,24 @@ class Tests_Shortcode extends WP_UnitTestCase {
 		$this->assertEquals( '[hyphen-foo-bar-baz]', do_shortcode( '[hyphen-foo-bar-baz]' ) );
 	}
 
+	/**
+	 * @ticket 9405
+	 */
+	function test_attr_hyphen() {
+		do_shortcode('[test-shortcode-tag foo="foo" foo-bar="foo-bar" foo-bar-="foo-bar-" -foo-bar="-foo-bar" -foo-bar-="-foo-bar-" foo-bar-baz="foo-bar-baz" -foo-bar-baz="-foo-bar-baz" foo--bar="foo--bar" /]');
+		$expected_attrs = array(
+			'foo' => 'foo',
+			'foo-bar' => 'foo-bar',
+			'foo-bar-' => 'foo-bar-',
+			'-foo-bar' => '-foo-bar',
+			'-foo-bar-' => '-foo-bar-',
+			'foo-bar-baz' => 'foo-bar-baz',
+			'-foo-bar-baz' => '-foo-bar-baz',
+			'foo--bar' => 'foo--bar',
+		);
+		$this->assertEquals( $expected_attrs, $this->atts );
+	}
+
 	function test_two_atts() {
 		do_shortcode('[test-shortcode-tag foo="asdf" bar="bing" /]');
 		$this->assertEquals( array('foo' => 'asdf', 'bar' => 'bing'), $this->atts );
@@ -383,6 +401,82 @@ EOF;
 		foreach($input as $in) {
 			$this->assertEquals( $output, shortcode_unautop( $in ) );
 		}
+	}
+
+	/**
+	 * Check for bugginess using normal input with latest patches.
+	 *
+	 * @dataProvider data_escaping
+	 */
+	function test_escaping( $input, $output ) {
+		return $this->assertEquals( $output, do_shortcode( $input ) );
+	}
+
+	function data_escaping() {
+		return array(
+			array(
+				'<!--[if lt IE 7]>',
+				'<!--[if lt IE 7]>',
+			),
+			array(
+				'[gallery title="<div>hello</div>"]',
+				'',
+			),
+			array(
+				'[caption caption="test" width="2"]<div>hello</div>[/caption]',
+				'<div style="width: 12px" class="wp-caption alignnone"><div>hello</div><p class="wp-caption-text">test</p></div>',
+			),
+			array(
+				'<div [gallery]>',
+				'<div >',
+			),
+			array(
+				'<div [[gallery]]>',
+				'<div [gallery]>',
+			),
+			array(
+				'[gallery]<div>Hello</div>[/gallery]',
+				'',
+			),
+		);
+	}
+
+	/**
+	 * Check for bugginess using normal input with latest patches.
+	 *
+	 * @dataProvider data_escaping2
+	 */
+	function test_escaping2( $input, $output ) {
+		return $this->assertEquals( $output, strip_shortcodes( $input ) );
+	}
+
+	function data_escaping2() {
+		return array(
+			array(
+				'<!--[if lt IE 7]>',
+				'<!--[if lt IE 7]>',
+			),
+			array(
+				'[gallery title="<div>hello</div>"]',
+				'',
+			),
+			array(
+				'[caption caption="test" width="2"]<div>hello</div>[/caption]',
+				'',
+			),
+			array(
+				'<div [gallery]>', // Shortcodes will never be stripped inside elements.
+				'<div [gallery]>',
+			),
+			array(
+				'<div [[gallery]]>', // Shortcodes will never be stripped inside elements.
+				'<div [[gallery]]>',
+			),
+			array(
+				'[gallery]<div>Hello</div>[/gallery]',
+				'',
+			),
+		);
 	}
 
 	/**

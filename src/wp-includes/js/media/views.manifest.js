@@ -1,5 +1,3 @@
-/*globals wp, jQuery, _, Backbone */
-
 var media = wp.media,
 	$ = jQuery,
 	l10n;
@@ -90,6 +88,8 @@ media.controller.EditImage = require( './controllers/edit-image.js' );
 media.controller.MediaLibrary = require( './controllers/media-library.js' );
 media.controller.Embed = require( './controllers/embed.js' );
 media.controller.Cropper = require( './controllers/cropper.js' );
+media.controller.CustomizeImageCropper = require( './controllers/customize-image-cropper.js' );
+media.controller.SiteIconCropper = require( './controllers/site-icon-cropper.js' );
 
 media.View = require( './views/view.js' );
 media.view.Frame = require( './views/frame.js' );
@@ -143,5 +143,7 @@ media.view.EmbedLink = require( './views/embed/link.js' );
 media.view.EmbedImage = require( './views/embed/image.js' );
 media.view.ImageDetails = require( './views/image-details.js' );
 media.view.Cropper = require( './views/cropper.js' );
+media.view.SiteIconCropper = require( './views/site-icon-cropper.js' );
+media.view.SiteIconPreview = require( './views/site-icon-preview.js' );
 media.view.EditImage = require( './views/edit-image.js' );
 media.view.Spinner = require( './views/spinner.js' );

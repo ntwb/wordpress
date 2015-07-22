@@ -1091,10 +1091,6 @@ function check_admin_referer( $action = -1, $query_arg = '_wpnonce' ) {
 	$adminurl = strtolower(admin_url());
 	$referer = strtolower(wp_get_referer());
 	$result = isset($_REQUEST[$query_arg]) ? wp_verify_nonce($_REQUEST[$query_arg], $action) : false;
-	if ( !$result && !(-1 == $action && strpos($referer, $adminurl) === 0) ) {
-		wp_nonce_ays($action);
-		die();
-	}
 
 	/**
 	 * Fires once the admin request has been validated or not.
@@ -1106,6 +1102,12 @@ function check_admin_referer( $action = -1, $query_arg = '_wpnonce' ) {
 	 *                          0-12 hours ago, 2 if the nonce is valid and generated between 12-24 hours ago.
 	 */
 	do_action( 'check_admin_referer', $action, $result );
+
+	if ( ! $result && ! ( -1 == $action && strpos( $referer, $adminurl ) === 0 ) ) {
+		wp_nonce_ays( $action );
+		die();
+	}
+
 	return $result;
 }
 endif;
@@ -1276,8 +1278,8 @@ function wp_safe_redirect($location, $status = 302) {
 	 *
 	 * @since 4.3.0
 	 *
-	 * @param string $fallback_url	The fallback URL to use by default.
-	 * @param int    $status        The redirect status.
+	 * @param string $fallback_url The fallback URL to use by default.
+	 * @param int    $status       The redirect status.
 	 */
 	$location = wp_validate_redirect( $location, apply_filters( 'wp_safe_redirect_fallback', admin_url(), $status ) );
 
@@ -1688,9 +1690,9 @@ if ( !function_exists('wp_new_user_notification') ) :
  * @since 2.0.0
  *
  * @param int    $user_id        User ID.
- * @param string $plaintext_pass Optional. The user's plaintext password. Default empty.
  */
-function wp_new_user_notification($user_id, $plaintext_pass = '') {
+function wp_new_user_notification($user_id) {
+	global $wpdb;
 	$user = get_userdata( $user_id );
 
 	// The blogname option is escaped with esc_html on the way into the database in sanitize_option
@@ -1703,14 +1705,26 @@ function wp_new_user_notification($user_id, $plaintext_pass = '') {
 
 	@wp_mail(get_option('admin_email'), sprintf(__('[%s] New User Registration'), $blogname), $message);
 
-	if ( empty($plaintext_pass) )
-		return;
+	// Generate something random for a password reset key.
+	$key = wp_generate_password( 20, false );
 
-	$message  = sprintf(__('Username: %s'), $user->user_login) . "\r\n";
-	$message .= sprintf(__('Password: %s'), $plaintext_pass) . "\r\n";
+	do_action( 'retrieve_password_key', $user->user_login, $key );
+
+	// Now insert the key, hashed, into the DB.
+	if ( empty( $wp_hasher ) ) {
+		require_once ABSPATH . WPINC . '/class-phpass.php';
+		$wp_hasher = new PasswordHash( 8, true );
+	}
+	$hashed = time() . ':' . $wp_hasher->HashPassword( $key );
+	$wpdb->update( $wpdb->users, array( 'user_activation_key' => $hashed ), array( 'user_login' => $user->user_login ) );
+
+	$message = sprintf(__('Username: %s'), $user->user_login) . "\r\n\r\n";
+	$message .= __('To set your password, visit the following address:') . "\r\n\r\n";
+	$message .= '<' . network_site_url("wp-login.php?action=rp&key=$key&login=" . rawurlencode($user->user_login), 'login') . ">\r\n\r\n";
+
 	$message .= wp_login_url() . "\r\n";
 
-	wp_mail($user->user_email, sprintf(__('[%s] Your username and password'), $blogname), $message);
+	wp_mail($user->user_email, sprintf(__('[%s] Your username and password info'), $blogname), $message);
 
 }
 endif;
@@ -2093,8 +2107,9 @@ function wp_rand( $min = 0, $max = 0 ) {
 		$rnd_value .= sha1($rnd_value);
 		$rnd_value .= sha1($rnd_value . $seed);
 		$seed = md5($seed . $rnd_value);
-		if ( ! defined( 'WP_SETUP_CONFIG' ) )
-			set_transient('random_seed', $seed);
+		if ( ! defined( 'WP_SETUP_CONFIG' ) && ! defined( 'WP_INSTALLING' ) ) {
+			set_transient( 'random_seed', $seed );
+		}
 	}
 
 	// Take the first 8 digits for our value
@@ -2235,6 +2250,8 @@ function get_avatar( $id_or_email, $size = 96, $default = '', $alt = '', $args =
 		return false;
 	}
 
+	$url2x = get_avatar_url( $id_or_email, array_merge( $args, array( 'size' => $args['size'] * 2 ) ) );
+
 	$args = get_avatar_data( $id_or_email, $args );
 
 	$url = $args['url'];
@@ -2242,8 +2259,6 @@ function get_avatar( $id_or_email, $size = 96, $default = '', $alt = '', $args =
 	if ( ! $url || is_wp_error( $url ) ) {
 		return false;
 	}
-
-	$url2x = add_query_arg( array( 's' => $args['size'] * 2 ), $args['url'] );
 
 	$class = array( 'avatar', 'avatar-' . (int) $args['size'], 'photo' );
 

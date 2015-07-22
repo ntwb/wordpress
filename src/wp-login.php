@@ -363,7 +363,7 @@ function retrieve_password() {
 		require_once ABSPATH . WPINC . '/class-phpass.php';
 		$wp_hasher = new PasswordHash( 8, true );
 	}
-	$hashed = $wp_hasher->HashPassword( $key );
+	$hashed = time() . ':' . $wp_hasher->HashPassword( $key );
 	$wpdb->update( $wpdb->users, array( 'user_activation_key' => $hashed ), array( 'user_login' => $user_login ) );
 
 	$message = __('Someone requested that the password be reset for the following account:') . "\r\n\r\n";
@@ -528,10 +528,11 @@ case 'retrievepassword' :
 	}
 
 	if ( isset( $_GET['error'] ) ) {
-		if ( 'invalidkey' == $_GET['error'] )
-			$errors->add( 'invalidkey', __( 'Sorry, that key does not appear to be valid.' ) );
-		elseif ( 'expiredkey' == $_GET['error'] )
-			$errors->add( 'expiredkey', __( 'Sorry, that key has expired. Please try again.' ) );
+		if ( 'invalidkey' == $_GET['error'] ) {
+			$errors->add( 'invalidkey', __( 'Your password reset link appears to be invalid. Please request a new link below.' ) );
+		} elseif ( 'expiredkey' == $_GET['error'] ) {
+			$errors->add( 'expiredkey', __( 'Your password reset link has expired. Please request a new link below.' ) );
+		}
 	}
 
 	$lostpassword_redirect = ! empty( $_REQUEST['redirect_to'] ) ? $_REQUEST['redirect_to'] : '';
@@ -651,16 +652,18 @@ case 'rp' :
 <form name="resetpassform" id="resetpassform" action="<?php echo esc_url( network_site_url( 'wp-login.php?action=resetpass', 'login_post' ) ); ?>" method="post" autocomplete="off">
 	<input type="hidden" id="user_login" value="<?php echo esc_attr( $rp_login ); ?>" autocomplete="off" />
 
-	<p>
-		<label for="pass1"><?php _e('New password') ?><br />
-		<input type="password" name="pass1" id="pass1" class="input" size="20" value="" autocomplete="off" /></label>
+	<p class="user-pass1-wrap">
+		<label for="pass1"><?php _e('New password') ?></label><br />
+		<div class="wp-pwd">
+			<input type="password" data-reveal="1" data-pw="<?php echo esc_attr( wp_generate_password( 24 ) ); ?>" name="pass1" id="pass1" class="input" size="20" value="" autocomplete="off" aria-describedby="pass-strength-result" />
+			<div id="pass-strength-result" class="hide-if-no-js" aria-live="polite"><?php _e( 'Strength indicator' ); ?></div>
+		</div>
 	</p>
-	<p>
-		<label for="pass2"><?php _e('Confirm new password') ?><br />
-		<input type="password" name="pass2" id="pass2" class="input" size="20" value="" autocomplete="off" /></label>
+	<p class="user-pass2-wrap">
+		<label for="pass2"><?php _e('Confirm new password') ?></label><br />
+		<input type="password" name="pass2" id="pass2" class="input" size="20" value="" autocomplete="off" />
 	</p>
 
-	<div id="pass-strength-result" class="hide-if-no-js"><?php _e('Strength indicator'); ?></div>
 	<p class="description indicator-hint"><?php echo wp_get_password_hint(); ?></p>
 	<br class="clear" />
 
@@ -754,7 +757,7 @@ case 'register' :
 	 */
 	do_action( 'register_form' );
 	?>
-	<p id="reg_passmail"><?php _e('A password will be e-mailed to you.') ?></p>
+	<p id="reg_passmail"><?php _e( 'Registration confirmation will be e-mailed to you.' ); ?></p>
 	<br class="clear" />
 	<input type="hidden" name="redirect_to" value="<?php echo esc_attr( $redirect_to ); ?>" />
 	<p class="submit"><input type="submit" name="wp-submit" id="wp-submit" class="button button-primary button-large" value="<?php esc_attr_e('Register'); ?>" /></p>

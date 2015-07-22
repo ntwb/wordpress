@@ -13,7 +13,7 @@ if ( !defined('ABSPATH') )
 <form name="post" action="comment.php" method="post" id="post">
 <?php wp_nonce_field('update-comment_' . $comment->comment_ID) ?>
 <div class="wrap">
-<h2><?php _e('Edit Comment'); ?></h2>
+<h1><?php _e( 'Edit Comment' ); ?></h1>
 
 <div id="poststuff">
 <input type="hidden" name="action" value="editedcomment" />
@@ -133,11 +133,11 @@ if ( $comment->comment_parent ) :
 
 <?php 
 	/**
-	 * Add additional miscellaneous actions to the edit comment form sidebar.
+	 * Filter miscellaneous actions for the edit comment form sidebar.
 	 *
 	 * @since 4.3.0
 	 *
-	 * @param string Output HTML to display miscellaneous action.
+	 * @param string $html    Output HTML to display miscellaneous action.
 	 * @param object $comment Current comment object.
 	 */
 	 echo apply_filters( 'edit_comment_misc_actions', '', $comment );

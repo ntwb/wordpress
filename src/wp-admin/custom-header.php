@@ -279,12 +279,13 @@ class Custom_Image_Header {
 			$header_thumbnail = $header['thumbnail_url'];
 			$header_url = $header['url'];
 			$header_desc = empty( $header['description'] ) ? '' : $header['description'];
+			$header_alt_text = empty( $header['alt_text'] ) ? $header_desc : $header['alt_text'];
 			echo '<div class="default-header">';
 			echo '<label><input name="default-header" type="radio" value="' . esc_attr( $header_key ) . '" ' . checked( $header_url, get_theme_mod( 'header_image' ), false ) . ' />';
 			$width = '';
 			if ( !empty( $header['attachment_id'] ) )
 				$width = ' width="230"';
-			echo '<img src="' . set_url_scheme( $header_thumbnail ) . '" alt="' . esc_attr( $header_desc ) .'" title="' . esc_attr( $header_desc ) . '"' . $width . ' /></label>';
+			echo '<img src="' . set_url_scheme( $header_thumbnail ) . '" alt="' . esc_attr( $header_alt_text ) .'" title="' . esc_attr( $header_desc ) . '"' . $width . ' /></label>';
 			echo '</div>';
 		}
 		echo '<div class="clear"></div></div>';
@@ -446,7 +447,7 @@ class Custom_Image_Header {
 ?>
 
 <div class="wrap">
-<h2><?php _e( 'Custom Header' ); ?></h2>
+<h1><?php _e( 'Custom Header' ); ?></h1>
 
 <?php if ( current_user_can( 'customize' ) ) { ?>
 <div class="notice notice-info hide-if-no-customize">
@@ -754,11 +755,11 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 		?>
 
 <div class="wrap">
-<h2><?php _e( 'Crop Header Image' ); ?></h2>
+<h1><?php _e( 'Crop Header Image' ); ?></h1>
 
 <form method="post" action="<?php echo esc_url(add_query_arg('step', 3)); ?>">
 	<p class="hide-if-no-js"><?php _e('Choose the part of the image you want to use as your header.'); ?></p>
-	<p class="hide-if-js"><strong><?php _e( 'You need Javascript to choose a part of the image.'); ?></strong></p>
+	<p class="hide-if-js"><strong><?php _e( 'You need JavaScript to choose a part of the image.'); ?></strong></p>
 
 	<div id="crop_image" style="position: relative">
 		<img src="<?php echo esc_url( $url ); ?>" id="upload" width="<?php echo $width; ?>" height="<?php echo $height; ?>" />

@@ -1193,6 +1193,44 @@ class wp_xmlrpc_server extends IXR_Server {
 	}
 
 	/**
+	 * Encapsulate the logic for sticking a post
+	 * and determining if the user has permission to do so
+	 *
+	 * @since 4.3.0
+	 * @access private
+	 *
+	 * @param array $post_data
+	 * @param bool  $update
+	 * @return void|IXR_Error
+	 */
+	private function _toggle_sticky( $post_data, $update = false ) {
+		$post_type = get_post_type_object( $post_data['post_type'] );
+
+		// Private and password-protected posts cannot be stickied.
+		if ( 'private' === $post_data['post_status'] || ! empty( $post_data['post_password'] ) ) {
+			// Error if the client tried to stick the post, otherwise, silently unstick.
+			if ( ! empty( $post_data['sticky'] ) ) {
+				return new IXR_Error( 401, __( 'Sorry, you cannot stick a private post.' ) );
+			}
+
+			if ( $update ) {
+				unstick_post( $post_data['ID'] );
+			}
+		} elseif ( isset( $post_data['sticky'] ) )  {
+			if ( ! current_user_can( $post_type->cap->edit_others_posts ) ) {
+				return new IXR_Error( 401, __( 'Sorry, you are not allowed to stick this post.' ) );
+			}
+
+			$sticky = wp_validate_boolean( $post_data['sticky'] );
+			if ( $sticky ) {
+				stick_post( $post_data['ID'] );
+			} else {
+				unstick_post( $post_data['ID'] );
+			}
+		}
+	}
+
+	/**
 	 * Helper method for wp_newPost() and wp_editPost(), containing shared logic.
 	 *
 	 * @since 3.4.0
@@ -1287,20 +1325,9 @@ class wp_xmlrpc_server extends IXR_Server {
 		$post_ID = $post_data['ID'];
 
 		if ( $post_data['post_type'] == 'post' ) {
-			// Private and password-protected posts cannot be stickied.
-			if ( $post_data['post_status'] == 'private' || ! empty( $post_data['post_password'] ) ) {
-				// Error if the client tried to stick the post, otherwise, silently unstick.
-				if ( ! empty( $post_data['sticky'] ) )
-					return new IXR_Error( 401, __( 'Sorry, you cannot stick a private post.' ) );
-				if ( $update )
-					unstick_post( $post_ID );
-			} elseif ( isset( $post_data['sticky'] ) )  {
-				if ( ! current_user_can( $post_type->cap->edit_others_posts ) )
-					return new IXR_Error( 401, __( 'Sorry, you are not allowed to stick this post.' ) );
-				if ( $post_data['sticky'] )
-					stick_post( $post_ID );
-				else
-					unstick_post( $post_ID );
+			$error = $this->_toggle_sticky( $post_data, $update );
+			if ( $error ) {
+				return $error;
 			}
 		}
 
@@ -2747,15 +2774,19 @@ class wp_xmlrpc_server extends IXR_Server {
 	 * @return array|IXR_Error
 	 */
 	public function wp_editPage( $args ) {
-		// Items not escaped here will be escaped in editPost.
-		$page_id  = (int) $this->escape($args[1]);
-		$username = $this->escape($args[2]);
-		$password = $this->escape($args[3]);
+		// Items will be escaped in mw_editPost.
+		$page_id  = (int) $args[1];
+		$username = $args[2];
+		$password = $args[3];
 		$content  = $args[4];
 		$publish  = $args[5];
 
-		if ( !$user = $this->login($username, $password) )
+		$escaped_username = $this->escape( $username );
+		$escaped_password = $this->escape( $password );
+
+		if ( !$user = $this->login( $escaped_username, $escaped_password ) ) {
 			return $this->error;
+		}
 
 		/** This action is documented in wp-includes/class-wp-xmlrpc-server.php */
 		do_action( 'xmlrpc_call', 'wp.editPage' );
@@ -4805,7 +4836,7 @@ class wp_xmlrpc_server extends IXR_Server {
 						$comment_status = 'open';
 						break;
 					default:
-						$comment_status = get_option('default_comment_status');
+						$comment_status = get_default_comment_status( $post_type );
 						break;
 				}
 			} else {
@@ -4818,12 +4849,12 @@ class wp_xmlrpc_server extends IXR_Server {
 						$comment_status = 'open';
 						break;
 					default:
-						$comment_status = get_option('default_comment_status');
+						$comment_status = get_default_comment_status( $post_type );
 						break;
 				}
 			}
 		} else {
-			$comment_status = get_option('default_comment_status');
+			$comment_status = get_default_comment_status( $post_type );
 		}
 
 		if ( isset($content_struct['mt_allow_pings']) ) {
@@ -4836,7 +4867,7 @@ class wp_xmlrpc_server extends IXR_Server {
 						$ping_status = 'open';
 						break;
 					default:
-						$ping_status = get_option('default_ping_status');
+						$ping_status = get_default_comment_status( $post_type, 'pingback' );
 						break;
 				}
 			} else {
@@ -4848,12 +4879,12 @@ class wp_xmlrpc_server extends IXR_Server {
 						$ping_status = 'open';
 						break;
 					default:
-						$ping_status = get_option('default_ping_status');
+						$ping_status = get_default_comment_status( $post_type, 'pingback' );
 						break;
 				}
 			}
 		} else {
-			$ping_status = get_option('default_ping_status');
+			$ping_status = get_default_comment_status( $post_type, 'pingback' );
 		}
 
 		if ( $post_more )
@@ -4898,10 +4929,12 @@ class wp_xmlrpc_server extends IXR_Server {
 
 		// Only posts can be sticky
 		if ( $post_type == 'post' && isset( $content_struct['sticky'] ) ) {
-			if ( $content_struct['sticky'] == true )
-				stick_post( $post_ID );
-			elseif ( $content_struct['sticky'] == false )
-				unstick_post( $post_ID );
+			$data = $postdata;
+			$data['sticky'] = $content_struct['sticky'];
+			$error = $this->_toggle_sticky( $data );
+			if ( $error ) {
+				return $error;
+			}
 		}
 
 		if ( isset($content_struct['custom_fields']) )
@@ -5116,7 +5149,7 @@ class wp_xmlrpc_server extends IXR_Server {
 						$comment_status = 'open';
 						break;
 					default:
-						$comment_status = get_option('default_comment_status');
+						$comment_status = get_default_comment_status( $post_type );
 						break;
 				}
 			} else {
@@ -5129,7 +5162,7 @@ class wp_xmlrpc_server extends IXR_Server {
 						$comment_status = 'open';
 						break;
 					default:
-						$comment_status = get_option('default_comment_status');
+						$comment_status = get_default_comment_status( $post_type );
 						break;
 				}
 			}
@@ -5145,7 +5178,7 @@ class wp_xmlrpc_server extends IXR_Server {
 						$ping_status = 'open';
 						break;
 					default:
-						$ping_status = get_option('default_ping_status');
+						$ping_status = get_default_comment_status( $post_type, 'pingback' );
 						break;
 				}
 			} else {
@@ -5157,7 +5190,7 @@ class wp_xmlrpc_server extends IXR_Server {
 						$ping_status = 'open';
 						break;
 					default:
-						$ping_status = get_option('default_ping_status');
+						$ping_status = get_default_comment_status( $post_type, 'pingback' );
 						break;
 				}
 			}
@@ -5246,10 +5279,12 @@ class wp_xmlrpc_server extends IXR_Server {
 
 		// Only posts can be sticky
 		if ( $post_type == 'post' && isset( $content_struct['sticky'] ) ) {
-			if ( $content_struct['sticky'] == true )
-				stick_post( $post_ID );
-			elseif ( $content_struct['sticky'] == false )
-				unstick_post( $post_ID );
+			$data = $newpost;
+			$data['sticky'] = $content_struct['sticky'];
+			$error = $this->_toggle_sticky( $data, true );
+			if ( $error ) {
+				return $error;
+			}
 		}
 
 		if ( isset($content_struct['custom_fields']) )

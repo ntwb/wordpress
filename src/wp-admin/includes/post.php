@@ -385,7 +385,7 @@ function edit_post( $post_data = null ) {
 
 	wp_set_post_lock( $post_ID );
 
-	if ( current_user_can( $ptype->cap->edit_others_posts ) ) {
+	if ( current_user_can( $ptype->cap->edit_others_posts ) && current_user_can( $ptype->cap->publish_posts ) ) {
 		if ( ! empty( $post_data['sticky'] ) )
 			stick_post( $post_ID );
 		else
@@ -610,8 +610,8 @@ function get_default_post_to_edit( $post_type = 'post', $create_in_db = false ) 
 		$post->post_status = 'draft';
 		$post->to_ping = '';
 		$post->pinged = '';
-		$post->comment_status = get_option( 'default_comment_status' );
-		$post->ping_status = get_option( 'default_ping_status' );
+		$post->comment_status = get_default_comment_status( $post_type );
+		$post->ping_status = get_default_comment_status( $post_type, 'pingback' );
 		$post->post_pingback = get_option( 'default_pingback_flag' );
 		$post->post_category = get_option( 'default_category' );
 		$post->page_template = 'default';

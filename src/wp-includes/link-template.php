@@ -903,14 +903,18 @@ function edit_tag_link( $link = '', $before = '', $after = '', $tag = null ) {
  * @param string $taxonomy    Taxonomy.
  * @param string $object_type The object type. Used to highlight the proper post type menu on the linked page.
  *                            Defaults to the first object_type associated with the taxonomy.
- * @return string The edit term link URL for the given term.
+ * @return string|null The edit term link URL for the given term, or null on failure.
  */
 function get_edit_term_link( $term_id, $taxonomy, $object_type = '' ) {
 	$tax = get_taxonomy( $taxonomy );
-	if ( !current_user_can( $tax->cap->edit_terms ) )
+	if ( ! $tax || ! current_user_can( $tax->cap->edit_terms ) ) {
 		return;
+	}
 
 	$term = get_term( $term_id, $taxonomy );
+	if ( ! $term || is_wp_error( $term ) ) {
+		return;
+	}
 
 	$args = array(
 		'action' => 'edit',
@@ -2053,8 +2057,8 @@ function get_next_posts_page_link($max_page = 0) {
  *
  * @since 0.71
  *
- * @param int     $max_page Optional. Max pages.
- * @param boolean $echo     Optional. Echo or return;
+ * @param int   $max_page Optional. Max pages.
+ * @param bool  $echo     Optional. Echo or return;
  * @return string|void The link URL for next posts page if `$echo = false`.
  */
 function next_posts( $max_page = 0, $echo = true ) {
@@ -2147,7 +2151,7 @@ function get_previous_posts_page_link() {
  *
  * @since 0.71
  *
- * @param boolean $echo Optional. Echo or return;
+ * @param bool $echo Optional. Echo or return;
  * @return string|void The previous posts page link if `$echo = false`.
  */
 function previous_posts( $echo = true ) {

@@ -99,16 +99,16 @@ before_script:
 - |
   if [[ "$TRAVIS_PHP_VERSION" == 5.6* ]] ; then
     composer require codeclimate/php-test-reporter --dev
-    phpunit --coverage-clover clover.xml
+    phpunit --coverage-clover build/logs/clover.xml
     ./vendor/bin/test-reporter
   fi
 script: grunt $WP_TRAVISCI
 after_script:
   # Push coverage off to Codecov
-  - bash <(curl -s https://codecov.io/bash)
+  # bash <(curl -s https://codecov.io/bash)
   # Push coverage off to Scrutinizer
-  - wget https://scrutinizer-ci.com/ocular.phar
-  - php ocular.phar code-coverage:upload --format=php-clover clover.xml
+  # wget https://scrutinizer-ci.com/ocular.phar
+  # php ocular.phar code-coverage:upload --format=php-clover clover.xml
 notifications:
   slack:
     secure: lih3IWJqM6ppyK17lTElNOso2pgWgdi325QkYQiuluk2rOf7t5IuE+hHuO81TG8nC1ySQccbeNOoL+qQwMmb20ER5yHHndlh2Ml1i9LgL+RInstkqAtmU9uhAmvlS0n5L55aeGCjE3+IOLyNwCHxaC6xPdAl9uASN8hpQlqD4kg=

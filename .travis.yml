@@ -96,6 +96,7 @@ before_script:
 - npm install
 - npm --version
 - grunt --version
+- composer require codeclimate/php-test-reporter --dev
 - if [[ "$TRAVIS_PHP_VERSION" == 5.6* ]] ; then phpunit --coverage-clover clover.xml; fi;
 script: grunt $WP_TRAVISCI
 after_script:

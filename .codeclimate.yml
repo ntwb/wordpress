@@ -1,7 +1,8 @@
+---
 engines:
   rubocop:
     enabled: false
-  golint:
+  coffeelint:
     enabled: false
   eslint:
     enabled: true
@@ -10,11 +11,11 @@ engines:
   phpcodesniffer:
     enabled: true
 ratings:
-   paths:
-   - src/**
-   - "**.css"
-   - "**.js"
-   - "**.php"
+  paths:
+  - "**.js"
+  - "**.css"
+  - "**.php"
 exclude_paths:
+- node_modules/**/*
 - src/wp-includes/SimplePie/**/*
 - tests/**/*

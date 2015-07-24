@@ -99,7 +99,7 @@ before_script:
 - |
   if [[ "$TRAVIS_PHP_VERSION" == 5.6* ]] ; then
     composer require codeclimate/php-test-reporter --dev
-    phpunit --coverage-clover build/logs/clover.xml
+    phpunit --coverage-clover clover.xml
     ./vendor/bin/test-reporter
   fi
 script: grunt $WP_TRAVISCI

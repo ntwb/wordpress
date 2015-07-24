@@ -16,6 +16,8 @@ ratings:
   - "**.css"
   - "**.php"
 exclude_paths:
+- build/**/*
 - node_modules/**/*
 - src/wp-includes/SimplePie/**/*
 - tests/**/*
+- tools/**/*

@@ -38,6 +38,9 @@ matrix:
   - php: hhvm
   - php: nightly
   fast_finish: true
+cache:
+  directories:
+  - node_modules
 before_install:
 - WP_CORE_DIR=/tmp/wordpress/
 - |

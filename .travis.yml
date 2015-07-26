@@ -124,11 +124,9 @@ after_script:
   - cd tests/phpunit/
   - |
     if [[ "$WP_TRAVISCI" == "travis:codecoverage" ]] ; then
-      CODECLIMATE_REPO_TOKEN="370358b39ba3d10eaa1cea21ce57c3eaf9403b481e37ab86b348fcff3127affd" vendor/bin/test-reporter --stdout > codeclimate.json
+      CODECLIMATE_REPO_TOKEN="370358b39ba3d10eaa1cea21ce57c3eaf9403b481e37ab86b348fcff3127affd" ../../vendor/bin/test-reporter --stdout > codeclimate.json
       "curl -X POST -d @codeclimate.json -H 'Content-Type: application/json' -H 'User-Agent: Code Climate (PHP Test Reporter v0.1.1)' https://codeclimate.com/test_reports"
     fi
-    find . -name "code*"
-    find . -name "clov*"
 notifications:
   slack:
     secure: lih3IWJqM6ppyK17lTElNOso2pgWgdi325QkYQiuluk2rOf7t5IuE+hHuO81TG8nC1ySQccbeNOoL+qQwMmb20ER5yHHndlh2Ml1i9LgL+RInstkqAtmU9uhAmvlS0n5L55aeGCjE3+IOLyNwCHxaC6xPdAl9uASN8hpQlqD4kg=

@@ -675,6 +675,9 @@ module.exports = function(grunt) {
 		'phpunit:multisite',
 		'phpunit:external-http'
 	] );
+	grunt.registerTask('travis:codecoverage', 'Runs PHPUnit Travis CI Code Coverage task.', [
+		'phpunit:codecoverage'
+	] );
 
 	// Patch task.
 	grunt.renameTask('patch_wordpress', 'patch');

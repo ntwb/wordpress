@@ -396,6 +396,10 @@ module.exports = function(grunt) {
 			'external-http': {
 				cmd: 'phpunit',
 				args: ['-c', 'phpunit.xml.dist', '--group', 'external-http']
+			},
+			codecoverage: {
+				cmd: 'phpunit',
+				args: ['-c', 'tests/phpunit/codecoverage.xml']
 			}
 		},
 		uglify: {
@@ -661,8 +665,16 @@ module.exports = function(grunt) {
 	grunt.registerTask('test', 'Runs all QUnit and PHPUnit tasks.', ['qunit:compiled', 'phpunit']);
 
 	// Travis CI tasks.
-	grunt.registerTask('travis:js', 'Runs Javascript Travis CI tasks.', [ 'jshint:corejs', 'qunit:compiled' ]);
-	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.', 'phpunit');
+	grunt.registerTask('travis:js', 'Runs Javascript Travis CI tasks.', [
+		'jshint:corejs',
+		'qunit:compiled'
+	]);
+	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.', [
+		'phpunit:default',
+		'phpunit:ajax',
+		'phpunit:multisite',
+		'phpunit:external-http'
+	] );
 
 	// Patch task.
 	grunt.renameTask('patch_wordpress', 'patch');

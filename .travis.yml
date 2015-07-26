@@ -122,8 +122,8 @@ after_script:
   # wget https://scrutinizer-ci.com/ocular.phar
   # php ocular.phar code-coverage:upload --format=php-clover clover.xml
   - |
-    if [[ "$TRAVIS_PHP_VERSION" == 5.6* ]] ; then
-      CODECLIMATE_REPO_TOKEN="370358b39ba3d10eaa1cea21ce57c3eaf9403b481e37ab86b348fcff3127affd" ./vendor/bin/test-reporter --stdout > codeclimate.json
+    if [[ "$WP_TRAVISCI" == "travis:codecoverage" ]] ; then
+      CODECLIMATE_REPO_TOKEN="370358b39ba3d10eaa1cea21ce57c3eaf9403b481e37ab86b348fcff3127affd" vendor/bin/test-reporter --stdout > codeclimate.json
       "curl -X POST -d @codeclimate.json -H 'Content-Type: application/json' -H 'User-Agent: Code Climate (PHP Test Reporter v0.1.1)' https://codeclimate.com/test_reports"
     fi
 notifications:

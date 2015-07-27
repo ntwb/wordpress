@@ -126,7 +126,7 @@ after_script:
   - pwd
   - |
     if [[ "$WP_TRAVISCI" == "travis:codecoverage" ]] ; then
-      CODECLIMATE_REPO_TOKEN="370358b39ba3d10eaa1cea21ce57c3eaf9403b481e37ab86b348fcff3127affd" ../../vendor/bin/test-reporter --stdout > codeclimate.json
+      ../../vendor/bin/test-reporter --stdout > codeclimate.json
       "curl -X POST -d @codeclimate.json -H 'Content-Type: application/json' -H 'User-Agent: Code Climate (PHP Test Reporter v0.1.1)' https://codeclimate.com/test_reports"
     fi
 notifications:

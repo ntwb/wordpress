@@ -124,6 +124,9 @@ after_script:
   - pwd
   - cd tests/phpunit/
   - pwd
+  - ls
+  - find . -name "code*"
+  - find . -name "clov*"
   - |
     if [[ "$WP_TRAVISCI" == "travis:codecoverage" ]] ; then
       ../../vendor/bin/test-reporter --stdout > codeclimate.json

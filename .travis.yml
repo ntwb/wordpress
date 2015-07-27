@@ -132,6 +132,10 @@ after_script:
       ../../vendor/bin/test-reporter --stdout > codeclimate.json
       "curl -X POST -d @codeclimate.json -H 'Content-Type: application/json' -H 'User-Agent: Code Climate (PHP Test Reporter v0.1.1)' https://codeclimate.com/test_reports"
     fi
+  - pwd
+  - ls
+  - find . -name "code*"
+  - find . -name "clov*"
 notifications:
   slack:
     secure: lih3IWJqM6ppyK17lTElNOso2pgWgdi325QkYQiuluk2rOf7t5IuE+hHuO81TG8nC1ySQccbeNOoL+qQwMmb20ER5yHHndlh2Ml1i9LgL+RInstkqAtmU9uhAmvlS0n5L55aeGCjE3+IOLyNwCHxaC6xPdAl9uASN8hpQlqD4kg=

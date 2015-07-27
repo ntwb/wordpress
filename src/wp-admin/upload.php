@@ -129,7 +129,7 @@ if ( $doaction ) {
 					wp_die( __( 'You are not allowed to move this post to the trash.' ) );
 
 				if ( !wp_trash_post( $post_id ) )
-					wp_die( __( 'Error in moving to trash.' ) );
+					wp_die( __( 'Error in moving to Trash.' ) );
 			}
 			$location = add_query_arg( array( 'trashed' => count( $post_ids ), 'ids' => join( ',', $post_ids ) ), $location );
 			break;
@@ -141,7 +141,7 @@ if ( $doaction ) {
 					wp_die( __( 'You are not allowed to move this post out of the trash.' ) );
 
 				if ( !wp_untrash_post( $post_id ) )
-					wp_die( __( 'Error in restoring from trash.' ) );
+					wp_die( __( 'Error in restoring from Trash.' ) );
 			}
 			$location = add_query_arg( 'untrashed', count( $post_ids ), $location );
 			break;
@@ -264,11 +264,11 @@ if ( ! empty( $_GET['untrashed'] ) && $untrashed = absint( $_GET['untrashed'] ) 
 	$_SERVER['REQUEST_URI'] = remove_query_arg(array('untrashed'), $_SERVER['REQUEST_URI']);
 }
 
-$messages[1] = __('Media attachment updated.');
-$messages[2] = __('Media permanently deleted.');
-$messages[3] = __('Error saving media attachment.');
-$messages[4] = __('Media moved to the trash.') . ' <a href="' . esc_url( wp_nonce_url( 'upload.php?doaction=undo&action=untrash&ids='.(isset($_GET['ids']) ? $_GET['ids'] : ''), "bulk-media" ) ) . '">' . __('Undo') . '</a>';
-$messages[5] = __('Media restored from the trash.');
+$messages[1] = __( 'Media attachment updated.' );
+$messages[2] = __( 'Media attachment permanently deleted.' );
+$messages[3] = __( 'Error saving media attachment.' );
+$messages[4] = __( 'Media attachment moved to the trash.' ) . ' <a href="' . esc_url( wp_nonce_url( 'upload.php?doaction=undo&action=untrash&ids='.(isset($_GET['ids']) ? $_GET['ids'] : ''), "bulk-media" ) ) . '">' . __( 'Undo' ) . '</a>';
+$messages[5] = __( 'Media attachment restored from the trash.' );
 
 if ( ! empty( $_GET['message'] ) && isset( $messages[ $_GET['message'] ] ) ) {
 	$message = $messages[ $_GET['message'] ];

@@ -121,7 +121,9 @@ after_script:
   # Push coverage off to Scrutinizer
   # wget https://scrutinizer-ci.com/ocular.phar
   # php ocular.phar code-coverage:upload --format=php-clover clover.xml
+  - pwd
   - cd tests/phpunit/
+  - pwd
   - |
     if [[ "$WP_TRAVISCI" == "travis:codecoverage" ]] ; then
       CODECLIMATE_REPO_TOKEN="370358b39ba3d10eaa1cea21ce57c3eaf9403b481e37ab86b348fcff3127affd" ../../vendor/bin/test-reporter --stdout > codeclimate.json

@@ -12,41 +12,20 @@
  */
 ( function( tinymce, setTimeout ) {
 	tinymce.PluginManager.add( 'wptextpattern', function( editor ) {
-		var $$ = editor.$,
-			VK = tinymce.util.VK,
-			patterns = [],
-			canUndo = false;
-
-		/**
-		 * Add a pattern to format with a callback.
-		 *
-		 * @since 4.3.0
-		 *
-		 * @param {RegExp}   regExp   RegEx pattern.
-		 * @param {Function} callback Callback.
-		 */
-		function add( regExp, callback ) {
-			patterns.push( {
-				regExp: regExp,
-				callback: callback
-			} );
-		}
-
-		add( /^[*-]\s/, function() {
-			this.execCommand( 'InsertUnorderedList' );
-		} );
-
-		add( /^1[.)]\s/, function() {
-			this.execCommand( 'InsertOrderedList' );
-		} );
-
-		add( /^>\s/, function() {
-			this.formatter.toggle( 'blockquote' );
-		} );
-
-		add( /^(#{2,6})\s/, function() {
-			this.formatter.toggle( 'h' + arguments[1].length );
-		} );
+		var VK = tinymce.util.VK,
+			canUndo = false,
+			spacePatterns = [
+				{ regExp: /^[*-]\s/, cmd: 'InsertUnorderedList' },
+				{ regExp: /^1[.)]\s/, cmd: 'InsertOrderedList' }
+			],
+			enterPatterns = [
+				{ start: '##', format: 'h2' },
+				{ start: '###', format: 'h3' },
+				{ start: '####', format: 'h4' },
+				{ start: '#####', format: 'h5' },
+				{ start: '######', format: 'h6' },
+				{ start: '>', format: 'blockquote' }
+			];
 
 		editor.on( 'selectionchange', function() {
 			canUndo = false;
@@ -57,24 +36,21 @@
 				editor.undoManager.undo();
 				event.preventDefault();
 			}
-		} );
+
+			if ( event.keyCode === VK.ENTER && ! VK.modifierPressed( event ) ) {
+				enter();
+			}
+		}, true );
 
 		editor.on( 'keyup', function( event ) {
-			var rng, node, text, parent, child;
-
-			if ( event.keyCode !== VK.SPACEBAR ) {
-				return;
+			if ( event.keyCode === VK.SPACEBAR && ! VK.modifierPressed( event ) ) {
+				space();
 			}
+		} );
 
-			rng = editor.selection.getRng();
-			node = rng.startContainer;
-
-			if ( ! node || node.nodeType !== 3 ) {
-				return;
-			}
-
-			text = node.nodeValue;
-			parent = editor.dom.getParent( node, 'p' );
+		function firstNode( node ) {
+			var parent = editor.dom.getParent( node, 'p' ),
+				child;
 
 			if ( ! parent ) {
 				return;
@@ -92,49 +68,44 @@
 				return;
 			}
 
-			if ( ! child.nodeValue ) {
+			if ( ! child.data ) {
 				child = child.nextSibling;
 			}
 
-			if ( child !== node ) {
+			return child;
+		}
+
+		function space() {
+			var rng = editor.selection.getRng(),
+				node = rng.startContainer,
+				parent,
+				text;
+
+			if ( ! node || firstNode( node ) !== node ) {
 				return;
 			}
 
-			tinymce.each( patterns, function( pattern ) {
-				var args,
-					replace = text.replace( pattern.regExp, function() {
-						args = arguments;
-						return '';
-					} );
+			parent = node.parentNode;
+			text = node.data;
 
-				if ( text === replace ) {
-					return;
-				}
+			tinymce.each( spacePatterns, function( pattern ) {
+				var match = text.match( pattern.regExp );
 
-				if ( rng.startOffset !== text.length - replace.length ) {
+				if ( ! match || rng.startOffset !== match[0].length ) {
 					return;
 				}
 
 				editor.undoManager.add();
 
 				editor.undoManager.transact( function() {
-					var $$parent;
+					node.deleteData( 0, match[0].length );
 
-					if ( replace ) {
-						$$( node ).replaceWith( document.createTextNode( replace ) );
-					} else  {
-						$$parent = $$( node.parentNode );
-
-						$$( node ).remove();
-
-						if ( ! $$parent.html() ) {
-							$$parent.append( '<br>' );
-						}
+					if ( ! parent.innerHTML ) {
+						parent.appendChild( document.createElement( 'br' ) );
 					}
 
 					editor.selection.setCursorLocation( parent );
-
-					pattern.callback.apply( editor, args );
+					editor.execCommand( pattern.cmd );
 				} );
 
 				// We need to wait for native events to be triggered.
@@ -144,6 +115,53 @@
 
 				return false;
 			} );
-		} );
+		}
+
+		function enter() {
+			var selection = editor.selection,
+				rng = selection.getRng(),
+				offset = rng.startOffset,
+				start = rng.startContainer,
+				node = firstNode( start ),
+				i = enterPatterns.length,
+				text, pattern;
+
+			if ( ! node ) {
+				return;
+			}
+
+			text = node.data;
+
+			while ( i-- ) {
+				 if ( text.indexOf( enterPatterns[ i ].start ) === 0 ) {
+				 	pattern = enterPatterns[ i ];
+				 	break;
+				 }
+			}
+
+			if ( ! pattern ) {
+				return;
+			}
+
+			if ( node === start ) {
+				if ( tinymce.trim( text ) === pattern.start ) {
+					return;
+				}
+
+				offset = Math.max( 0, offset - pattern.start.length );
+			}
+
+			editor.undoManager.add();
+
+			editor.undoManager.transact( function() {
+				node.deleteData( 0, pattern.start.length );
+
+				editor.formatter.apply( pattern.format, {}, start );
+
+				rng.setStart( start, offset );
+				rng.collapse( true );
+				selection.setRng( rng );
+			} );
+		}
 	} );
 } )( window.tinymce, window.setTimeout );

@@ -34,11 +34,11 @@ matrix:
     services: redis-server
   - php: hhvm
     env: WP_TRAVISCI=travis:phpunit
-  - php: nightly
+  - php: 7.0
     env: WP_TRAVISCI=travis:phpunit
   allow_failures:
   - php: hhvm
-  - php: nightly
+  - php: 7.0
   fast_finish: true
 cache:
   directories:

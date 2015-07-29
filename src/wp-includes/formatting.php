@@ -504,8 +504,8 @@ function wpautop( $pee, $br = true ) {
 	// Standardize newline characters to "\n".
 	$pee = str_replace(array("\r\n", "\r"), "\n", $pee);
 
-	// Strip newlines from all elements.
-	$pee = wp_replace_in_html_tags( $pee, array( "\n" => " " ) );
+	// Find newlines in all elements and add placeholders.
+	$pee = wp_replace_in_html_tags( $pee, array( "\n" => " <!-- wpnl --> " ) );
 
 	// Collapse line breaks before and after <option> elements so they don't get autop'd.
 	if ( strpos( $pee, '<option' ) !== false ) {
@@ -592,7 +592,57 @@ function wpautop( $pee, $br = true ) {
 	if ( !empty($pre_tags) )
 		$pee = str_replace(array_keys($pre_tags), array_values($pre_tags), $pee);
 
+	// Restore newlines in all elements.
+	$pee = str_replace( " <!-- wpnl --> ", "\n", $pee );
+
 	return $pee;
+}
+
+/**
+ * Separate HTML elements and comments from the text.
+ *
+ * @since 4.2.4
+ *
+ * @param string $input The text which has to be formatted.
+ * @return array The formatted text.
+ */
+function wp_html_split( $input ) {
+	static $regex;
+
+	if ( ! isset( $regex ) ) {
+		$comments =
+			  '!'           // Start of comment, after the <.
+			. '(?:'         // Unroll the loop: Consume everything until --> is found.
+			.     '-(?!->)' // Dash not followed by end of comment.
+			.     '[^\-]*+' // Consume non-dashes.
+			. ')*+'         // Loop possessively.
+			. '(?:-->)?';   // End of comment. If not found, match all input.
+
+		$cdata =
+			  '!\[CDATA\['  // Start of comment, after the <.
+			. '[^\]]*+'     // Consume non-].
+			. '(?:'         // Unroll the loop: Consume everything until ]]> is found.
+			.     '](?!]>)' // One ] not followed by end of comment.
+			.     '[^\]]*+' // Consume non-].
+			. ')*+'         // Loop possessively.
+			. '(?:]]>)?';   // End of comment. If not found, match all input.
+
+		$regex =
+			  '/('              // Capture the entire match.
+			.     '<'           // Find start of element.
+			.     '(?(?=!--)'   // Is this a comment?
+			.         $comments // Find end of comment.
+			.     '|'
+			.         '(?(?=!\[CDATA\[)' // Is this a comment?
+			.             $cdata // Find end of comment.
+			.         '|'
+			.             '[^>]*>?' // Find end of element. If not found, match all input.
+			.         ')'
+			.     ')'
+			. ')/s';
+	}
+
+	return preg_split( $regex, $input, -1, PREG_SPLIT_DELIM_CAPTURE );
 }
 
 /**
@@ -606,25 +656,7 @@ function wpautop( $pee, $br = true ) {
  */
 function wp_replace_in_html_tags( $haystack, $replace_pairs ) {
 	// Find all elements.
-	$comments =
-		  '!'           // Start of comment, after the <.
-		. '(?:'         // Unroll the loop: Consume everything until --> is found.
-		.     '-(?!->)' // Dash not followed by end of comment.
-		.     '[^\-]*+' // Consume non-dashes.
-		. ')*+'         // Loop possessively.
-		. '(?:-->)?';   // End of comment. If not found, match all input.
-
-	$regex =
-		  '/('              // Capture the entire match.
-		.     '<'           // Find start of element.
-		.     '(?(?=!--)'   // Is this a comment?
-		.         $comments // Find end of comment.
-		.     '|'
-		.         '[^>]*>?' // Find end of element. If not found, match all input.
-		.     ')'
-		. ')/s';
-
-	$textarr = preg_split( $regex, $haystack, -1, PREG_SPLIT_DELIM_CAPTURE );
+	$textarr = wp_html_split( $haystack );
 	$changed = false;
 
 	// Optimize when searching for one item.
@@ -2812,13 +2844,17 @@ function wp_trim_excerpt( $text = '' ) {
  * @return string Trimmed text.
  */
 function wp_trim_words( $text, $num_words = 55, $more = null ) {
-	if ( null === $more )
+	if ( null === $more ) {
 		$more = __( '&hellip;' );
+	}
+
 	$original_text = $text;
 	$text = wp_strip_all_tags( $text );
-	/* translators: If your word count is based on single characters (East Asian characters),
-	   enter 'characters'. Otherwise, enter 'words'. Do not translate into your own language. */
-	if ( 'characters' == _x( 'words', 'word count: words or characters?' ) && preg_match( '/^utf\-?8$/i', get_option( 'blog_charset' ) ) ) {
+
+	/* translators: If your word count is based on single characters (e.g. East Asian characters),
+	   enter 'characters_excluding_spaces' or 'characters_including_spaces'. Otherwise, enter 'words'.
+	   Do not translate into your own language. */
+	if ( strpos( _x( 'words', 'Word count type. Do not translate!' ), 'characters' ) === 0 && preg_match( '/^utf\-?8$/i', get_option( 'blog_charset' ) ) ) {
 		$text = trim( preg_replace( "/[\n\r\t ]+/", ' ', $text ), ' ' );
 		preg_match_all( '/./u', $text, $words_array );
 		$words_array = array_slice( $words_array[0], 0, $num_words + 1 );
@@ -2827,6 +2863,7 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
 		$words_array = preg_split( "/[\n\r\t ]+/", $text, $num_words + 1, PREG_SPLIT_NO_EMPTY );
 		$sep = ' ';
 	}
+
 	if ( count( $words_array ) > $num_words ) {
 		array_pop( $words_array );
 		$text = implode( $sep, $words_array );
@@ -2834,6 +2871,7 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
 	} else {
 		$text = implode( $sep, $words_array );
 	}
+
 	/**
 	 * Filter the text content after words have been trimmed.
 	 *

@@ -21,6 +21,18 @@ matrix:
   - php: 5.6
     env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_BUILD=true
   - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 5.5
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 10.0
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 10.1
+  - php: 5.6
     env: WP_TRAVISCI=travis:phpunit WP_TRAVISCI_OBJECT_CACHE=memcache
     services: memcached
   - php: 5.6

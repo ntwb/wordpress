@@ -198,7 +198,7 @@ class WP_Comments_List_Table extends WP_List_Table {
 		$stati = array(
 				'all' => _nx_noop('All', 'All', 'comments'), // singular not used
 				'moderated' => _n_noop('Pending <span class="count">(<span class="pending-count">%s</span>)</span>', 'Pending <span class="count">(<span class="pending-count">%s</span>)</span>'),
-				'approved' => _n_noop('Approved', 'Approved'), // singular not used
+				'approved' => _n_noop('Approved <span class="count">(<span class="approved-count">%s</span>)</span>', 'Approved <span class="count">(<span class="approved-count">%s</span>)</span>'),
 				'spam' => _n_noop('Spam <span class="count">(<span class="spam-count">%s</span>)</span>', 'Spam <span class="count">(<span class="spam-count">%s</span>)</span>'),
 				'trash' => _n_noop('Trash <span class="count">(<span class="trash-count">%s</span>)</span>', 'Trash <span class="count">(<span class="trash-count">%s</span>)</span>')
 			);
@@ -409,7 +409,10 @@ class WP_Comments_List_Table extends WP_List_Table {
 	</tbody>
 
 	<tbody id="the-extra-comment-list" data-wp-lists="list:comment" style="display: none;">
-		<?php $this->items = $this->extra_items; $this->display_rows(); ?>
+		<?php
+			$this->items = $this->extra_items;
+			$this->display_rows_or_placeholder();
+		?>
 	</tbody>
 
 	<tfoot>
@@ -472,8 +475,6 @@ class WP_Comments_List_Table extends WP_List_Table {
  			return;
 		}
 
-		$post = get_post();
-
 		$the_comment_status = wp_get_comment_status( $comment->comment_ID );
 
 		$out = '';
@@ -534,9 +535,9 @@ class WP_Comments_List_Table extends WP_List_Table {
 
 			$format = '<a data-comment-id="%d" data-post-id="%d" data-action="%s" class="%s" title="%s" href="#">%s</a>';
 
-			$actions['quickedit'] = sprintf( $format, $comment->comment_ID, $post->ID, 'edit', 'vim-q comment-inline',esc_attr__( 'Edit this item inline' ), __( 'Quick&nbsp;Edit' ) );
+			$actions['quickedit'] = sprintf( $format, $comment->comment_ID, $comment->comment_post_ID, 'edit', 'vim-q comment-inline',esc_attr__( 'Edit this item inline' ), __( 'Quick&nbsp;Edit' ) );
 
-			$actions['reply'] = sprintf( $format, $comment->comment_ID, $post->ID, 'replyto', 'vim-r comment-inline', esc_attr__( 'Reply to this comment' ), __( 'Reply' ) );
+			$actions['reply'] = sprintf( $format, $comment->comment_ID, $comment->comment_post_ID, 'replyto', 'vim-r comment-inline', esc_attr__( 'Reply to this comment' ), __( 'Reply' ) );
 		}
 
 		/** This filter is documented in wp-admin/includes/dashboard.php */
@@ -672,6 +673,10 @@ class WP_Comments_List_Table extends WP_List_Table {
 	public function column_response() {
 		$post = get_post();
 
+		if ( ! $post ) {
+			return;
+		}
+
 		if ( isset( $this->pending_count[$post->ID] ) ) {
 			$pending_comments = $this->pending_count[$post->ID];
 		} else {
@@ -687,16 +692,16 @@ class WP_Comments_List_Table extends WP_List_Table {
 		}
 
 		echo '<div class="response-links">';
-		echo $post_link;
-		$post_type_object = get_post_type_object( $post->post_type );
-		echo "<a href='" . get_permalink( $post->ID ) . "' class='comments-view-item-link'>" . $post_type_object->labels->view_item . '</a>';
 		if ( 'attachment' == $post->post_type && ( $thumb = wp_get_attachment_image( $post->ID, array( 80, 60 ), true ) ) ) {
 			echo $thumb;
 		}
-		echo '</div>';
-		echo '<span class="post-com-count-wrapper">';
+		echo $post_link;
+		$post_type_object = get_post_type_object( $post->post_type );
+		echo "<a href='" . get_permalink( $post->ID ) . "' class='comments-view-item-link'>" . $post_type_object->labels->view_item . '</a>';
+		echo '<span class="post-com-count-wrapper post-com-count-', $post->ID, '">';
 		$this->comments_bubble( $post->ID, $pending_comments );
 		echo '</span> ';
+		echo '</div>';
 	}
 
 	/**

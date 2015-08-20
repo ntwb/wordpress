@@ -12,6 +12,7 @@
 		$weakRow,
 		$weakCheckbox,
 
+		$toggleButton,
 		$submitButtons,
 		$submitButton,
 		currentPass;
@@ -22,7 +23,11 @@
 		} else {
 			$pass1.val( $pass1.data( 'pw' ) );
 			$pass1.trigger( 'pwupdate' );
-			$pass1Wrap.addClass( 'show-password' );
+			if ( 1 !== parseInt( $toggleButton.data( 'start-masked' ), 10 ) ) {
+				$pass1Wrap.addClass( 'show-password' );
+			} else {
+				$toggleButton.trigger( 'click' );
+			}
 		}
 	}
 
@@ -42,7 +47,7 @@
 			.addClass( $pass1[0].className )
 			.data( 'pw', $pass1.data( 'pw' ) )
 			.val( $pass1.val() )
-			.on( 'input propertychange', function () {
+			.on( 'keyup', function () {
 				if ( $pass1Text.val() === currentPass ) {
 					return;
 				}
@@ -57,13 +62,15 @@
 			generatePassword();
 		}
 
-		$pass1.on( 'input propertychange pwupdate', function () {
+		$pass1.on( 'keyup pwupdate', function () {
 			if ( $pass1.val() === currentPass ) {
 				return;
 			}
 
 			currentPass = $pass1.val();
-			$pass1Text.val( currentPass );
+			if ( $pass1Text.val() !== currentPass ) {
+				$pass1Text.val( currentPass );
+			}
 			$pass1.add( $pass1Text ).removeClass( 'short bad good strong' );
 
 			if ( passStrength.className ) {
@@ -82,11 +89,11 @@
 	}
 
 	function bindToggleButton() {
-		var toggleButton = $pass1Row.find('.wp-hide-pw');
-		toggleButton.show().on( 'click', function () {
-			if ( 1 === parseInt( toggleButton.data( 'toggle' ), 10 ) ) {
+		$toggleButton = $pass1Row.find('.wp-hide-pw');
+		$toggleButton.show().on( 'click', function () {
+			if ( 1 === parseInt( $toggleButton.data( 'toggle' ), 10 ) ) {
 				$pass1Wrap.addClass( 'show-password' );
-				toggleButton
+				$toggleButton
 					.data( 'toggle', 0 )
 					.attr({
 						'aria-label': userProfileL10n.ariaHide
@@ -105,7 +112,7 @@
 				}
 			} else {
 				$pass1Wrap.removeClass( 'show-password' );
-				toggleButton
+				$toggleButton
 					.data( 'toggle', 1 )
 					.attr({
 						'aria-label': userProfileL10n.ariaShow
@@ -158,7 +165,7 @@
 		 * This fixes the issue by copying any changes from the hidden
 		 * pass2 field to the pass1 field, then running check_pass_strength.
 		 */
-		$pass2 = $('#pass2').on( 'input propertychange', function () {
+		$pass2 = $('#pass2').on( 'keyup', function () {
 			if ( $pass2.val().length > 0 ) {
 				$pass1.val( $pass2.val() );
 				$pass2.val('');
@@ -239,7 +246,7 @@
 		var $colorpicker, $stylesheet, user_id, current_user_id,
 			select = $( '#display_name' );
 
-		$('#pass1').val('').on( 'input propertychange pwupdate', check_pass_strength );
+		$('#pass1').val('').on( 'keyup pwupdate', check_pass_strength );
 		$('#pass-strength-result').show();
 		$('.color-palette').click( function() {
 			$(this).siblings('input[name="admin_color"]').prop('checked', true);

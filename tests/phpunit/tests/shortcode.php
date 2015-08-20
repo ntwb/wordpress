@@ -419,6 +419,14 @@ EOF;
 				'<!--[if lt IE 7]>',
 			),
 			array(
+				'1 <a href="[test-shortcode-tag]"> 2 <a href="[test-shortcode-tag]" >',
+				'1 <a href=""> 2 <a href="" >',
+			),
+			array(
+				'1 <a noise="[test-shortcode-tag]"> 2 <a noise=" [test-shortcode-tag] " >',
+				'1 <a noise="[test-shortcode-tag]"> 2 <a noise=" [test-shortcode-tag] " >',
+			),
+			array(
 				'[gallery title="<div>hello</div>"]',
 				'',
 			),
@@ -433,6 +441,14 @@ EOF;
 			array(
 				'<div [[gallery]]>',
 				'<div [gallery]>',
+			),
+			array(
+				'<[[gallery]]>',
+				'<[gallery]>',
+			),
+			array(
+				'<div style="background:url([[gallery]])">',
+				'<div style="background:url([[gallery]])">',
 			),
 			array(
 				'[gallery]<div>Hello</div>[/gallery]',
@@ -471,6 +487,10 @@ EOF;
 			array(
 				'<div [[gallery]]>', // Shortcodes will never be stripped inside elements.
 				'<div [[gallery]]>',
+			),
+			array(
+				'<[[gallery]]>',
+				'<[[gallery]]>',
 			),
 			array(
 				'[gallery]<div>Hello</div>[/gallery]',

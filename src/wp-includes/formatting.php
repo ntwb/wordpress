@@ -491,7 +491,7 @@ function wpautop( $pee, $br = true ) {
 		$pee .= $last_pee;
 	}
 	// Change multiple <br>s into two line breaks, which will turn into paragraphs.
-	$pee = preg_replace('|<br />\s*<br />|', "\n\n", $pee);
+	$pee = preg_replace('|<br\s*/?>\s*<br\s*/?>|', "\n\n", $pee);
 
 	$allblocks = '(?:table|thead|tfoot|caption|col|colgroup|tbody|tr|td|th|div|dl|dd|dt|ul|ol|li|pre|form|map|area|blockquote|address|math|style|p|h[1-6]|hr|fieldset|legend|section|article|aside|hgroup|header|footer|nav|figure|figcaption|details|menu|summary)';
 
@@ -573,6 +573,9 @@ function wpautop( $pee, $br = true ) {
 	if ( $br ) {
 		// Replace newlines that shouldn't be touched with a placeholder.
 		$pee = preg_replace_callback('/<(script|style).*?<\/\\1>/s', '_autop_newline_preservation_helper', $pee);
+
+		// Normalize <br>
+		$pee = str_replace( array( '<br>', '<br/>' ), '<br />', $pee );
 
 		// Replace any new line characters that aren't preceded by a <br /> with a <br />.
 		$pee = preg_replace('|(?<!<br />)\s*\n|', "<br />\n", $pee);
@@ -2851,9 +2854,11 @@ function wp_trim_words( $text, $num_words = 55, $more = null ) {
 	$original_text = $text;
 	$text = wp_strip_all_tags( $text );
 
-	/* translators: If your word count is based on single characters (e.g. East Asian characters),
-	   enter 'characters_excluding_spaces' or 'characters_including_spaces'. Otherwise, enter 'words'.
-	   Do not translate into your own language. */
+	/*
+	 * translators: If your word count is based on single characters (e.g. East Asian characters),
+	 * enter 'characters_excluding_spaces' or 'characters_including_spaces'. Otherwise, enter 'words'.
+	 * Do not translate into your own language.
+	 */
 	if ( strpos( _x( 'words', 'Word count type. Do not translate!' ), 'characters' ) === 0 && preg_match( '/^utf\-?8$/i', get_option( 'blog_charset' ) ) ) {
 		$text = trim( preg_replace( "/[\n\r\t ]+/", ' ', $text ), ' ' );
 		preg_match_all( '/./u', $text, $words_array );

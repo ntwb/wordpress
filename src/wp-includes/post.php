@@ -312,7 +312,7 @@ function _wp_relative_upload_path( $path ) {
  *
  * @param mixed  $args   Optional. User defined arguments for replacing the defaults. Default empty.
  * @param string $output Optional. Constant for return type. Accepts OBJECT, ARRAY_A, ARRAY_N.
- *                       Default OBJECt.
+ *                       Default OBJECT.
  * @return array Array of children, where the type of each element is determined by $output parameter.
  *               Empty array on failure.
  */
@@ -1844,6 +1844,21 @@ function set_post_type( $post_id = 0, $post_type = 'post' ) {
 }
 
 /**
+ * Determines whether a post type is considered "viewable".
+ *
+ * For built-in post types such as posts and pages, the 'public' value will be evaluated.
+ * For all others, the 'publicly_queryable' value will be used.
+ *
+ * @since 4.4.0
+ *
+ * @param object $post_type_object Post type object.
+ * @return bool Whether the post type should be considered viewable.
+ */
+function is_post_type_viewable( $post_type_object ) {
+	return $post_type_object->publicly_queryable || ( $post_type_object->_builtin && $post_type_object->public );
+}
+
+/**
  * Retrieve list of latest posts or posts matching criteria.
  *
  * The defaults are as follows:
@@ -2937,10 +2952,11 @@ function wp_untrash_post_comments( $post = null ) {
 
 	foreach ( $group_by_status as $status => $comments ) {
 		// Sanity check. This shouldn't happen.
-		if ( 'post-trashed' == $status )
+		if ( 'post-trashed' == $status ) {
 			$status = '0';
-		$comments_in = implode( "', '", $comments );
-		$wpdb->query( "UPDATE $wpdb->comments SET comment_approved = '$status' WHERE comment_ID IN ('" . $comments_in . "')" );
+		}
+		$comments_in = implode( ', ', array_map( 'intval', $comments ) );
+		$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->comments SET comment_approved = %s WHERE comment_ID IN ($comments_in)", $status ) );
 	}
 
 	clean_comment_cache( array_keys($statuses) );
@@ -3454,6 +3470,7 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 	if ( empty( $data['post_name'] ) && ! in_array( $data['post_status'], array( 'draft', 'pending', 'auto-draft' ) ) ) {
 		$data['post_name'] = wp_unique_post_slug( sanitize_title( $data['post_title'], $post_ID ), $post_ID, $data['post_status'], $post_type, $post_parent );
 		$wpdb->update( $wpdb->posts, array( 'post_name' => $data['post_name'] ), $where );
+		clean_post_cache( $post_ID );
 	}
 
 	if ( is_object_in_taxonomy( $post_type, 'category' ) ) {

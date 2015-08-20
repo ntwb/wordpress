@@ -177,7 +177,7 @@
 			// If the available widgets panel is open and the customize controls are
 			// interacted with (i.e. available widgets panel is blurred) then close the
 			// available widgets panel. Also close on back button click.
-			$( '#customize-controls, .customize-overlay-close, #available-widgets .customize-section-title' ).on( 'click keydown', function( e ) {
+			$( '#customize-controls, #available-widgets .customize-section-title' ).on( 'click keydown', function( e ) {
 				var isAddNewBtn = $( e.target ).is( '.add-new-widget, .add-new-widget *' );
 				if ( $( 'body' ).hasClass( 'adding-widget' ) && ! isAddNewBtn ) {
 					self.close();
@@ -786,12 +786,11 @@
 
 			// Handle widgets that support live previews
 			$widgetContent.on( 'change input propertychange', ':input', function( e ) {
-				if ( self.liveUpdateMode ) {
-					if ( e.type === 'change' ) {
-						self.updateWidget();
-					} else if ( this.checkValidity && this.checkValidity() ) {
-						updateWidgetDebounced();
-					}
+				if ( ! self.liveUpdateMode ) {
+					return;
+				}
+				if ( e.type === 'change' || ( this.checkValidity && this.checkValidity() ) ) {
+					updateWidgetDebounced();
 				}
 			} );
 
@@ -1041,6 +1040,7 @@
 			params.wp_customize = 'on';
 			params.nonce = api.Widgets.data.nonce;
 			params.theme = api.settings.theme.stylesheet;
+			params.customized = wp.customize.previewer.query().customized;
 
 			data = $.param( params );
 			$inputs = this._getInputs( $widgetContent );
@@ -1270,7 +1270,7 @@
 
 			if ( expanded ) {
 
-				if ( 'undefined' != typeof api.section( self.section ) && ! api.section( self.section ).expanded() ) {
+				if ( self.section() && api.section( self.section() ) ) {
 					self.expandControlSection();
 				}
 

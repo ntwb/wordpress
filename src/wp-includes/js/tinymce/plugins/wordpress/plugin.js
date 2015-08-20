@@ -267,10 +267,17 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 		if ( editor.plugins.wptextpattern ) {
 			// Text pattern section
 			html = html +
-				'<h2>' + __( 'When starting a new paragraph with one of these patterns followed by a space, the formatting will be applied automatically. Press Backspace or Escape to undo.' ) + '</h2>' +
+				'<h2>' + __( 'When starting a new paragraph with one of these formatting shortcuts followed by a space, the formatting will be applied automatically. Press Backspace or Escape to undo.' ) + '</h2>' +
 				'<table>' +
-					tr({ '*</kbd>&nbsp;<kbd>-':  'Bullet list' }) +
-					tr({ '1.</kbd>&nbsp;<kbd>1)':  'Numbered list' }) +
+					tr({ '*':  'Bullet list' }) +
+					tr({ '-':  'Bullet list' }) +
+					tr({ '1.':  'Numbered list' }) +
+					tr({ '1)':  'Numbered list' }) +
+				'</table>';
+
+			html = html +
+				'<h2>' + __( 'The following formatting shortcuts are replaced when pressing Enter. Press Escape or the Undo button to undo.' ) + '</h2>' +
+				'<table>' +
 					tr({ '>': 'Blockquote' }) +
 					tr({ '##': 'Heading 2' }) +
 					tr({ '###': 'Heading 3' }) +
@@ -513,11 +520,6 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 			editor.settings.height = 300;
 		}
 
-		// Start hidden when the Text editor is set to load first.
-		if ( tinymce.$( '#wp-' + editor.id + '-wrap' ).hasClass( 'html-active' ) ) {
-			editor.hide();
-		}
-
 		each( {
 			c: 'JustifyCenter',
 			r: 'JustifyRight',
@@ -555,11 +557,17 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 			activeToolbar,
 			currentSelection,
 			timeout,
+			container = editor.getContainer(),
 			wpAdminbar = document.getElementById( 'wpadminbar' ),
 			mceIframe = document.getElementById( editor.id + '_ifr' ),
-			mceToolbar = tinymce.$( '.mce-toolbar-grp', editor.getContainer() )[0],
-			mceStatusbar = tinymce.$( '.mce-statusbar', editor.getContainer() )[0],
+			mceToolbar,
+			mceStatusbar,
 			wpStatusbar;
+
+			if ( container ) {
+				mceToolbar = tinymce.$( '.mce-toolbar-grp', container )[0];
+				mceStatusbar = tinymce.$( '.mce-statusbar', container )[0];
+			}
 
 			if ( editor.id === 'content' ) {
 				wpStatusbar = document.getElementById( 'post-status-info' );
@@ -700,7 +708,14 @@ tinymce.PluginManager.add( 'wordpress', function( editor ) {
 					scrollY = window.pageYOffset || document.documentElement.scrollTop,
 					windowWidth = window.innerWidth,
 					windowHeight = window.innerHeight,
-					iframeRect = mceIframe.getBoundingClientRect(),
+					iframeRect = mceIframe ? mceIframe.getBoundingClientRect() : {
+						top: 0,
+						right: windowWidth,
+						bottom: windowHeight,
+						left: 0,
+						width: windowWidth,
+						height: windowHeight
+					},
 					toolbar = this.getEl(),
 					toolbarWidth = toolbar.offsetWidth,
 					toolbarHeight = toolbar.offsetHeight,

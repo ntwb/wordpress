@@ -390,11 +390,11 @@ var wpNavMenu;
 
 			// Refresh the accessibility when the user comes close to the item in any way
 			menu.on( 'mouseenter.refreshAccessibility focus.refreshAccessibility touchstart.refreshAccessibility' , '.menu-item' , function(){
-				api.refreshAdvancedAccessibilityOfItem( $( this ).find( '.item-edit' ) );
+				api.refreshAdvancedAccessibilityOfItem( $( this ).find( 'a.item-edit' ) );
 			} );
 
 			// We have to update on click as well because we might hover first, change the item, and then click.
-			menu.on( 'click', '.item-edit', function() {
+			menu.on( 'click', 'a.item-edit', function() {
 				api.refreshAdvancedAccessibilityOfItem( $( this ) );
 			} );
 
@@ -494,7 +494,7 @@ var wpNavMenu;
 				title = menus.subMenuFocus.replace( '%1$s', itemName ).replace( '%2$d', itemPosition ).replace( '%3$s', parentItemName );
 			}
 
-			$this.prop('title', title).html( title );
+			$this.prop('title', title).text( title );
 
 			// Mark this item's accessibility as refreshed
 			$this.data( 'needs_accessibility_refresh', false );
@@ -511,16 +511,16 @@ var wpNavMenu;
 			$( '.menu-item-settings .field-move a' ).hide();
 
 			// Mark all menu items as unprocessed
-			$( '.item-edit' ).data( 'needs_accessibility_refresh', true );
+			$( 'a.item-edit' ).data( 'needs_accessibility_refresh', true );
 
 			// All open items have to be refreshed or they will show no links
-			$( '.menu-item-edit-active .item-edit' ).each( function() {
+			$( '.menu-item-edit-active a.item-edit' ).each( function() {
 				api.refreshAdvancedAccessibilityOfItem( this );
 			} );
 		},
 
 		refreshKeyboardAccessibility : function() {
-			$( '.item-edit' ).off( 'focus' ).on( 'focus', function(){
+			$( 'a.item-edit' ).off( 'focus' ).on( 'focus', function(){
 				$(this).off( 'keydown' ).on( 'keydown', function(e){
 
 					var arrows,

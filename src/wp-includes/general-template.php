@@ -724,29 +724,28 @@ function get_bloginfo( $show = '', $filter = 'raw' ) {
 /**
  * Returns the Site Icon URL.
  *
- * @param  null|int $blog_id Id of the blog to get the site icon for.
- * @param  int      $size    Size of the site icon.
- * @param  string   $url     Fallback url if no site icon is found.
- * @return string            Site Icon URL.
+ * @param  int    $size    Size of the site icon.
+ * @param  string $url     Fallback url if no site icon is found.
+ * @param  int    $blog_id Id of the blog to get the site icon for.
+ * @return string          Site Icon URL.
  */
-function get_site_icon_url( $blog_id = null, $size = 512, $url = '' ) {
-	if ( function_exists( 'get_blog_option' ) ) {
-		if ( ! is_int( $blog_id ) ) {
-			$blog_id = get_current_blog_id();
-		}
+function get_site_icon_url( $size = 512, $url = '', $blog_id = 0 ) {
+	if ( $blog_id && is_multisite() ) {
 		$site_icon_id = get_blog_option( $blog_id, 'site_icon' );
 	} else {
 		$site_icon_id = get_option( 'site_icon' );
 	}
 
-	if ( $site_icon_id  ) {
+	if ( $site_icon_id ) {
 		if ( $size >= 512 ) {
 			$size_data = 'full';
 		} else {
 			$size_data = array( $size, $size );
 		}
 		$url_data = wp_get_attachment_image_src( $site_icon_id, $size_data );
-		$url = $url_data[0];
+		if ( $url_data ) {
+			$url = $url_data[0];
+		}
 	}
 
 	return $url;
@@ -755,22 +754,22 @@ function get_site_icon_url( $blog_id = null, $size = 512, $url = '' ) {
 /**
  * Displays the Site Icon URL.
  *
- * @param null|int $blog_id Id of the blog to get the site icon for.
- * @param int      $size    Size of the site icon.
- * @param string   $url     Fallback url if no site icon is found.
+ * @param  int    $size    Size of the site icon.
+ * @param  string $url     Fallback url if no site icon is found.
+ * @param  int    $blog_id Id of the blog to get the site icon for.
  */
-function site_icon_url( $blog_id = null, $size = 512, $url = '' ) {
-	echo esc_url( get_site_icon_url( $blog_id, $size, $url ) );
+function site_icon_url( $size = 512, $url = '', $blog_id = 0 ) {
+	echo esc_url( get_site_icon_url( $size, $url, $blog_id ) );
 }
 
 /**
  * Whether the site has a Site Icon.
  *
- * @param int|null $blog_id Optional. Blog ID. Default: Current blog.
+ * @param int $blog_id Optional. Blog ID. Default: Current blog.
  * @return bool
  */
-function has_site_icon( $blog_id = null ) {
-	return !! get_site_icon_url( $blog_id, 512 );
+function has_site_icon( $blog_id = 0 ) {
+	return (bool) get_site_icon_url( 512, '', $blog_id );
 }
 
 /**
@@ -2450,10 +2449,10 @@ function wp_site_icon() {
 	}
 
 	$meta_tags = array(
-		sprintf( '<link rel="icon" href="%s" sizes="32x32" />', esc_url( get_site_icon_url( null, 32 ) ) ),
-		sprintf( '<link rel="icon" href="%s" sizes="192x192" />', esc_url( get_site_icon_url( null, 192 ) ) ),
-		sprintf( '<link rel="apple-touch-icon-precomposed" href="%s">', esc_url( get_site_icon_url( null, 180 ) ) ),
-		sprintf( '<meta name="msapplication-TileImage" content="%s">', esc_url( get_site_icon_url( null, 270 ) ) ),
+		sprintf( '<link rel="icon" href="%s" sizes="32x32" />', esc_url( get_site_icon_url( 32 ) ) ),
+		sprintf( '<link rel="icon" href="%s" sizes="192x192" />', esc_url( get_site_icon_url( 192 ) ) ),
+		sprintf( '<link rel="apple-touch-icon-precomposed" href="%s">', esc_url( get_site_icon_url( 180 ) ) ),
+		sprintf( '<meta name="msapplication-TileImage" content="%s">', esc_url( get_site_icon_url( 270 ) ) ),
 	);
 
 	/**

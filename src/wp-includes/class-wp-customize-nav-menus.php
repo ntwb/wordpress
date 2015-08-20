@@ -217,7 +217,7 @@ final class WP_Customize_Nav_Menus {
 		$items = $this->search_available_items_query( array( 'pagenum' => $p, 's' => $s ) );
 
 		if ( empty( $items ) ) {
-			wp_send_json_error( array( 'message' => __( 'No menu items found.' ) ) );
+			wp_send_json_error( array( 'message' => __( 'No results found.' ) ) );
 		} else {
 			wp_send_json_success( array( 'items' => $items ) );
 		}
@@ -336,8 +336,8 @@ final class WP_Customize_Nav_Menus {
 				'movedDown'         => __( 'Menu item moved down' ),
 				'movedLeft'         => __( 'Menu item moved out of submenu' ),
 				'movedRight'        => __( 'Menu item is now a sub-item' ),
-				/* translators: %s: &#9656 is the unicode right-pointing triangle */
-				'customizingMenus'  => __( 'Customizing &#9656; Menus' ),
+				/* translators: &#9656; is the unicode right-pointing triangle, and %s is the section title in the Customizer */
+				'customizingMenus'  => sprintf( __( 'Customizing &#9656; %s' ), esc_html( $this->manager->get_panel( 'nav_menus' )->title ) ),
 				/* translators: %s: title of menu item which is invalid */
 				'invalidTitleTpl'   => __( '%s (Invalid)' ),
 				/* translators: %s: title of menu item in draft status */
@@ -575,7 +575,7 @@ final class WP_Customize_Nav_Menus {
 			'type' => 'new_menu',
 		) );
 
-		$this->manager->add_control( new WP_New_Menu_Customize_Control( $this->manager, 'create_new_menu', array(
+		$this->manager->add_control( new WP_Customize_New_Menu_Control( $this->manager, 'create_new_menu', array(
 			'section' => 'add_menu',
 		) ) );
 	}
@@ -718,6 +718,7 @@ final class WP_Customize_Nav_Menus {
 					<input type="text" id="menu-items-search" placeholder="<?php esc_attr_e( 'Search menu items&hellip;' ) ?>" aria-describedby="menu-items-search-desc" />
 					<p class="screen-reader-text" id="menu-items-search-desc"><?php _e( 'The search results will be updated as you type.' ); ?></p>
 					<span class="spinner"></span>
+					<span class="clear-results"><span class="screen-reader-text"><?php _e( 'Clear Results' ); ?></span></span>
 				</div>
 				<ul class="accordion-section-content" data-type="search"></ul>
 			</div>

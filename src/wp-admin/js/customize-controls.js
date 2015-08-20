@@ -68,13 +68,14 @@
 		params = params || {};
 		focus = function () {
 			var focusContainer;
-			if ( construct.extended( api.Panel ) && construct.expanded() ) {
-				focusContainer = construct.container.find( '.control-panel-content:first' );
+			if ( construct.expanded && construct.expanded() ) {
+				focusContainer = construct.container.find( 'ul:first' );
 			} else {
 				focusContainer = construct.container;
 			}
-			focusContainer.find( ':focusable:first' ).focus();
-			focusContainer[0].scrollIntoView( true );
+
+			// Note that we can't use :focusable due to a jQuery UI issue. See: https://github.com/jquery/jquery-ui/pull/1583
+			focusContainer.find( 'input, select, textarea, button, object, a[href], [tabindex]' ).filter( ':visible' ).first().focus();
 		};
 		if ( params.completeCallback ) {
 			completeCallback = params.completeCallback;
@@ -580,13 +581,14 @@
 		 * @param {Object}  args
 		 */
 		onChangeExpanded: function ( expanded, args ) {
-			var position, scroll, section = this,
+			var section = this,
 				container = section.container.closest( '.wp-full-overlay-sidebar-content' ),
 				content = section.container.find( '.accordion-section-content' ),
 				overlay = section.container.closest( '.wp-full-overlay' ),
 				backBtn = section.container.find( '.customize-section-back' ),
 				sectionTitle = section.container.find( '.accordion-section-title' ).first(),
-				expand;
+				headerActionsHeight = $( '#customize-header-actions' ).height(),
+				resizeContentHeight, expand, position, scroll;
 
 			if ( expanded && ! section.container.hasClass( 'open' ) ) {
 
@@ -594,7 +596,7 @@
 					expand = args.completeCallback;
 				} else {
 					container.scrollTop( 0 );
-					expand = function () {
+					resizeContentHeight = function() {
 						var matchMedia, offset;
 						matchMedia = window.matchMedia || window.msMatchMedia;
 						offset = 90; // 45px for customize header actions + 45px for footer actions.
@@ -603,19 +605,32 @@
 						if ( matchMedia && matchMedia( '(max-width: 640px)' ).matches ) {
 							offset = 45;
 						}
-
+						content.css( 'height', ( window.innerHeight - offset ) );
+					};
+					expand = function() {
 						section.container.addClass( 'open' );
 						overlay.addClass( 'section-open' );
 						position = content.offset().top;
 						scroll = container.scrollTop();
-						content.css( 'margin-top', ( 45 - position - scroll ) );
-						content.css( 'height', ( window.innerHeight - offset ) );
+						content.css( 'margin-top', ( headerActionsHeight - position - scroll ) );
+						resizeContentHeight();
 						sectionTitle.attr( 'tabindex', '-1' );
 						backBtn.attr( 'tabindex', '0' );
 						backBtn.focus();
 						if ( args.completeCallback ) {
 							args.completeCallback();
 						}
+
+						// Fix the height after browser resize.
+						$( window ).on( 'resize.customizer-section', _.debounce( resizeContentHeight, 100 ) );
+
+						// Fix the top margin after reflow.
+						api.bind( 'pane-contents-reflowed', _.debounce( function() {
+							var offset = ( content.offset().top - headerActionsHeight );
+							if ( 0 < offset ) {
+								content.css( 'margin-top', ( parseInt( content.css( 'margin-top' ), 10 ) - offset ) );
+							}
+						}, 100 ) );
 					};
 				}
 
@@ -639,7 +654,7 @@
 			} else if ( ! expanded && section.container.hasClass( 'open' ) ) {
 				section.container.removeClass( 'open' );
 				overlay.removeClass( 'section-open' );
-				content.css( 'margin-top', 'inherit' );
+				content.css( 'margin-top', '' );
 				container.scrollTop( 0 );
 				backBtn.attr( 'tabindex', '-1' );
 				sectionTitle.attr( 'tabindex', '0' );
@@ -647,6 +662,7 @@
 				if ( args.completeCallback ) {
 					args.completeCallback();
 				}
+				$( window ).off( 'resize.customizer-section' );
 			} else {
 				if ( args.completeCallback ) {
 					args.completeCallback();
@@ -1234,7 +1250,8 @@
 				topPanel = overlay.find( '#customize-theme-controls > ul > .accordion-section > .accordion-section-title' ),
 				backBtn = section.find( '.customize-panel-back' ),
 				panelTitle = section.find( '.accordion-section-title' ).first(),
-				content = section.find( '.control-panel-content' );
+				content = section.find( '.control-panel-content' ),
+				headerActionsHeight = $( '#customize-header-actions' ).height();
 
 			if ( expanded ) {
 
@@ -1254,7 +1271,7 @@
 					content.parent().show();
 					position = content.offset().top;
 					scroll = container.scrollTop();
-					content.css( 'margin-top', ( $( '#customize-header-actions' ).height() - position - scroll ) );
+					content.css( 'margin-top', ( headerActionsHeight - position - scroll ) );
 					section.addClass( 'current-panel' );
 					overlay.addClass( 'in-sub-panel' );
 					container.scrollTop( 0 );
@@ -1265,6 +1282,11 @@
 				topPanel.attr( 'tabindex', '-1' );
 				backBtn.attr( 'tabindex', '0' );
 				backBtn.focus();
+
+				// Fix the top margin after reflow.
+				api.bind( 'pane-contents-reflowed', _.debounce( function() {
+					content.css( 'margin-top', ( parseInt( content.css( 'margin-top' ), 10 ) - ( content.offset().top - headerActionsHeight ) ) );
+				}, 100 ) );
 			} else {
 				siblings.removeClass( 'open' );
 				section.removeClass( 'current-panel' );
@@ -2602,7 +2624,11 @@
 				_( constructs ).each( function ( activeConstructs, type ) {
 					api[ type ].each( function ( construct, id ) {
 						var active = !! ( activeConstructs && activeConstructs[ id ] );
-						construct.active( active );
+						if ( active ) {
+							construct.activate();
+						} else {
+							construct.deactivate();
+						}
 					} );
 				} );
 			} );
@@ -3036,9 +3062,10 @@
 			return;
 		}
 
-		// Redirect to the fallback preview if any incompatibilities are found.
-		if ( ! $.support.postMessage || ( ! $.support.cors && api.settings.isCrossDomain ) )
-			return window.location = api.settings.url.fallback;
+		// Bail if any incompatibilities are found.
+		if ( ! $.support.postMessage || ( ! $.support.cors && api.settings.isCrossDomain ) ) {
+			return;
+		}
 
 		var parent, topFocus,
 			body = $( document.body ),
@@ -3384,18 +3411,6 @@
 			if ( 13 === event.which ) // enter
 				api.previewer.save();
 			event.preventDefault();
-		});
-
-		// Go back to the top-level Customizer accordion.
-		$( '#customize-header-actions' ).on( 'click keydown', '.control-panel-back', function( event ) {
-			if ( api.utils.isKeydownButNotEnterEvent( event ) ) {
-				return;
-			}
-
-			event.preventDefault(); // Keep this AFTER the key filter above
-			api.panel.each( function ( panel ) {
-				panel.collapse();
-			});
 		});
 
 		closeBtn.keydown( function( event ) {

@@ -333,8 +333,10 @@ class WP_Posts_List_Table extends WP_List_Table {
 			 * Posts list table, and sorting by date on the Pages list table.
 			 *
 			 * @since 2.1.0
+			 *
+			 * @param string $post_type The post type slug.
 			 */
-			do_action( 'restrict_manage_posts' );
+			do_action( 'restrict_manage_posts', $this->screen->post_type );
 
 			submit_button( __( 'Filter' ), 'button', 'filter_action', false, array( 'id' => 'post-query-submit' ) );
 		}
@@ -1070,7 +1072,7 @@ class WP_Posts_List_Table extends WP_List_Table {
 				$actions['delete'] = "<a class='submitdelete' title='" . esc_attr__( 'Delete this item permanently' ) . "' href='" . get_delete_post_link( $post->ID, '', true ) . "'>" . __( 'Delete Permanently' ) . "</a>";
 		}
 
-		if ( $post_type_object->public ) {
+		if ( is_post_type_viewable( $post_type_object ) ) {
 			$title = _draft_or_post_title();
 			if ( in_array( $post->post_status, array( 'pending', 'draft', 'future' ) ) ) {
 				if ( $can_edit_post ) {
@@ -1471,13 +1473,13 @@ class WP_Posts_List_Table extends WP_List_Table {
 			<option value="-1"><?php _e( '&mdash; No Change &mdash;' ); ?></option>
 			<option value="0"><?php echo get_post_format_string( 'standard' ); ?></option>
 			<?php
-
-			foreach ( $post_formats[0] as $format ) {
-				?>
-				<option value="<?php echo esc_attr( $format ); ?>"><?php echo esc_html( get_post_format_string( $format ) ); ?></option>
-				<?php
+			if ( is_array( $post_formats[0] ) ) {
+				foreach ( $post_formats[0] as $format ) {
+					?>
+					<option value="<?php echo esc_attr( $format ); ?>"><?php echo esc_html( get_post_format_string( $format ) ); ?></option>
+					<?php
+				}
 			}
-
 			?>
 		</select></label>
 	<?php
@@ -1513,8 +1515,8 @@ class WP_Posts_List_Table extends WP_List_Table {
 				 *
 				 * @since 2.7.0
 				 *
-				 * @param string  $column_name Name of the column to edit.
-				 * @param WP_Post $post_type   The post type slug.
+				 * @param string $column_name Name of the column to edit.
+				 * @param string $post_type   The post type slug.
 				 */
 				do_action( 'quick_edit_custom_box', $column_name, $screen->post_type );
 			}

@@ -1688,10 +1688,14 @@ if ( !function_exists('wp_new_user_notification') ) :
  * A new user registration notification is also sent to admin email.
  *
  * @since 2.0.0
+ * @since 4.3.0 The `$plaintext_pass` parameter was changed to `$notify`.
  *
- * @param int    $user_id        User ID.
+ * @param int    $user_id User ID.
+ * @param string $notify  Optional. Type of notification that should happen. Accepts 'admin' or an empty
+ *                        string (admin only), or 'both' (admin and user). The empty string value was kept
+ *                        for backward-compatibility purposes with the renamed parameter. Default empty.
  */
-function wp_new_user_notification($user_id) {
+function wp_new_user_notification( $user_id, $notify = '' ) {
 	global $wpdb;
 	$user = get_userdata( $user_id );
 
@@ -1705,9 +1709,14 @@ function wp_new_user_notification($user_id) {
 
 	@wp_mail(get_option('admin_email'), sprintf(__('[%s] New User Registration'), $blogname), $message);
 
+	if ( 'admin' === $notify || empty( $notify ) ) {
+		return;
+	}
+
 	// Generate something random for a password reset key.
 	$key = wp_generate_password( 20, false );
 
+	/** This action is documented in wp-login.php */
 	do_action( 'retrieve_password_key', $user->user_login, $key );
 
 	// Now insert the key, hashed, into the DB.
@@ -1725,7 +1734,6 @@ function wp_new_user_notification($user_id) {
 	$message .= wp_login_url() . "\r\n";
 
 	wp_mail($user->user_email, sprintf(__('[%s] Your username and password info'), $blogname), $message);
-
 }
 endif;
 

@@ -534,6 +534,9 @@ function upgrade_all() {
 	if ( $wp_current_db_version < 33055 )
 		upgrade_430();
 
+	if ( $wp_current_db_version < 33056 )
+		upgrade_431();
+
 	maybe_disable_link_manager();
 
 	maybe_disable_automattic_widgets();
@@ -1505,8 +1508,10 @@ function upgrade_430() {
 		upgrade_430_fix_comments();
 	}
 
+	// Shared terms are split in a separate process.
 	if ( $wp_current_db_version < 32814 ) {
-		split_all_shared_terms();
+		update_option( 'finished_splitting_shared_terms', 0 );
+		wp_schedule_single_event( time() + ( 1 * MINUTE_IN_SECONDS ), 'wp_split_shared_term_batch' );
 	}
 
 	if ( $wp_current_db_version < 33055 && 'utf8mb4' === $wpdb->charset ) {
@@ -1519,7 +1524,7 @@ function upgrade_430() {
 				$tables = array_diff_assoc( $tables, $global_tables );
 			}
 		}
-	
+
 		foreach ( $tables as $table ) {
 			maybe_convert_table_to_utf8mb4( $table );
 		}
@@ -1572,6 +1577,23 @@ function upgrade_430_fix_comments() {
 
 	foreach ( $comments as $comment ) {
 		wp_delete_comment( $comment->comment_ID, true );
+	}
+}
+
+/**
+ * Executes changes made in WordPress 4.3.1.
+ *
+ * @since 4.3.1
+ */
+function upgrade_431() {
+	// Fix incorrect cron entries for term splitting
+	$cron_array = _get_cron_array();
+	if ( isset( $cron_array['wp_batch_split_terms'] ) ) {
+		foreach ( $cron_array['wp_batch_split_terms'] as $timestamp_hook => $cron_data ) {
+			foreach ( $cron_data as $key => $args ) {
+				wp_unschedule_event( 'wp_batch_split_terms', $timestamp_hook, $args['args'] );
+			}
+		}
 	}
 }
 
@@ -1685,6 +1707,11 @@ function upgrade_network() {
 
 			$tables = $wpdb->tables( 'global' );
 
+			// sitecategories may not exist.
+			if ( ! $wpdb->get_var( "SHOW TABLES LIKE '{$tables['sitecategories']}'" ) ) {
+				unset( $tables['sitecategories'] );
+			}
+
 			foreach ( $tables as $table ) {
 				maybe_convert_table_to_utf8mb4( $table );
 			}
@@ -1708,6 +1735,11 @@ function upgrade_network() {
 			}
 
 			$tables = $wpdb->tables( 'global' );
+
+			// sitecategories may not exist.
+			if ( ! $wpdb->get_var( "SHOW TABLES LIKE '{$tables['sitecategories']}'" ) ) {
+				unset( $tables['sitecategories'] );
+			}
 
 			foreach ( $tables as $table ) {
 				maybe_convert_table_to_utf8mb4( $table );
@@ -1868,76 +1900,6 @@ function maybe_convert_table_to_utf8mb4( $table ) {
 	}
 
 	return $wpdb->query( "ALTER TABLE $table CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci" );
-}
-
-/**
- * Splits all shared taxonomy terms.
- *
- * @since 4.3.0
- *
- * @global wpdb $wpdb WordPress database abstraction object.
- */
-function split_all_shared_terms() {
-	global $wpdb;
-
-	// Get a list of shared terms (those with more than one associated row in term_taxonomy).
-	$shared_terms = $wpdb->get_results(
-		"SELECT tt.term_id, t.*, count(*) as term_tt_count FROM {$wpdb->term_taxonomy} tt
-		 LEFT JOIN {$wpdb->terms} t ON t.term_id = tt.term_id
-		 GROUP BY t.term_id
-		 HAVING term_tt_count > 1"
-	);
-
-	if ( empty( $shared_terms ) ) {
-		return;
-	}
-
-	// Rekey shared term array for faster lookups.
-	$_shared_terms = array();
-	foreach ( $shared_terms as $shared_term ) {
-		$term_id = intval( $shared_term->term_id );
-		$_shared_terms[ $term_id ] = $shared_term;
-	}
-	$shared_terms = $_shared_terms;
-
-	// Get term taxonomy data for all shared terms.
-	$shared_term_ids = implode( ',', array_keys( $shared_terms ) );
-	$shared_tts = $wpdb->get_results( "SELECT * FROM {$wpdb->term_taxonomy} WHERE `term_id` IN ({$shared_term_ids})" );
-
-	// Split term data recording is slow, so we do it just once, outside the loop.
-	$suspend = wp_suspend_cache_invalidation( true );
-	$split_term_data = get_option( '_split_terms', array() );
-	$skipped_first_term = $taxonomies = array();
-	foreach ( $shared_tts as $shared_tt ) {
-		$term_id = intval( $shared_tt->term_id );
-
-		// Don't split the first tt belonging to a given term_id.
-		if ( ! isset( $skipped_first_term[ $term_id ] ) ) {
-			$skipped_first_term[ $term_id ] = 1;
-			continue;
-		}
-
-		if ( ! isset( $split_term_data[ $term_id ] ) ) {
-			$split_term_data[ $term_id ] = array();
-		}
-
-		// Keep track of taxonomies whose hierarchies need flushing.
-		if ( ! isset( $taxonomies[ $shared_tt->taxonomy ] ) ) {
-			$taxonomies[ $shared_tt->taxonomy ] = 1;
-		}
-
-		// Split the term.
-		$split_term_data[ $term_id ][ $shared_tt->taxonomy ] = _split_shared_term( $shared_terms[ $term_id ], $shared_tt, false );
-	}
-
-	// Rebuild the cached hierarchy for each affected taxonomy.
-	foreach ( array_keys( $taxonomies ) as $tax ) {
-		delete_option( "{$tax}_children" );
-		_get_term_hierarchy( $tax );
-	}
-
-	wp_suspend_cache_invalidation( $suspend );
-	update_option( '_split_terms', $split_term_data );
 }
 
 /**
@@ -2680,7 +2642,7 @@ endif;
 
 /**
  * Determine if global tables should be upgraded.
- * 
+ *
  * This function performs a series of checks to ensure the environment allows
  * for the safe upgrading of global WordPress database tables. It is necessary
  * because global tables will commonly grow to millions of rows on large

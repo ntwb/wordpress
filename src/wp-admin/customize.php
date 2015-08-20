@@ -123,26 +123,18 @@ do_action( 'customize_controls_print_scripts' );
 <div class="wp-full-overlay expanded">
 	<form id="customize-controls" class="wrap wp-full-overlay-sidebar">
 		<div id="customize-header-actions" class="wp-full-overlay-header">
-			<div class="primary-actions">
-				<?php
-					$save_text = $wp_customize->is_theme_active() ? __( 'Save &amp; Publish' ) : __( 'Save &amp; Activate' );
-					submit_button( $save_text, 'primary save', 'save', false );
-				?>
-				<span class="spinner"></span>
-				<a class="customize-controls-preview-toggle" href="#">
-					<span class="controls"><?php _e( 'Customize' ); ?></span>
-					<span class="preview"><?php _e( 'Preview' ); ?></span>
-				</a>
-				<a class="customize-controls-close" href="<?php echo esc_url( $return ); ?>">
-					<span class="screen-reader-text"><?php _e( 'Cancel' ); ?></span>
-				</a>
-				<span class="control-panel-back" tabindex="-1"><span class="screen-reader-text"><?php _e( 'Back' ); ?></span></span>
-			</div>
-			<div class="secondary-actions">
-				<button type="button" class="customize-overlay-close">
-					<span class="screen-reader-text"><?php _e( 'Close overlay' ); ?></span>
-				</button>
-			</div>
+			<?php
+			$save_text = $wp_customize->is_theme_active() ? __( 'Save &amp; Publish' ) : __( 'Save &amp; Activate' );
+			submit_button( $save_text, 'primary save', 'save', false );
+			?>
+			<span class="spinner"></span>
+			<a class="customize-controls-preview-toggle" href="#">
+				<span class="controls"><?php _e( 'Customize' ); ?></span>
+				<span class="preview"><?php _e( 'Preview' ); ?></span>
+			</a>
+			<a class="customize-controls-close" href="<?php echo esc_url( $return ); ?>">
+				<span class="screen-reader-text"><?php _e( 'Cancel' ); ?></span>
+			</a>
 		</div>
 
 		<div id="widgets-right"><!-- For Widget Customizer, many widgets try to look for instances under div#widgets-right, so we have to add that ID to a container div in the Customizer for compat -->
@@ -213,14 +205,6 @@ do_action( 'customize_controls_print_scripts' );
 	 */
 	$allowed_urls = array_unique( apply_filters( 'customize_allowed_urls', $allowed_urls ) );
 
-	$fallback_url = add_query_arg( array(
-		'preview'        => 1,
-		'template'       => $wp_customize->get_template(),
-		'stylesheet'     => $wp_customize->get_stylesheet(),
-		'preview_iframe' => true,
-		'TB_iframe'      => 'true'
-	), home_url( '/' ) );
-
 	$login_url = add_query_arg( array(
 		'interim-login' => 1,
 		'customize-login' => 1
@@ -239,7 +223,6 @@ do_action( 'customize_controls_print_scripts' );
 			'ajax'          => esc_url_raw( admin_url( 'admin-ajax.php', 'relative' ) ),
 			'allowed'       => array_map( 'esc_url_raw', $allowed_urls ),
 			'isCrossDomain' => $cross_domain,
-			'fallback'      => esc_url_raw( $fallback_url ),
 			'home'          => esc_url_raw( home_url( '/' ) ),
 			'login'         => esc_url_raw( $login_url ),
 		),

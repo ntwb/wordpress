@@ -276,9 +276,8 @@ class wp_xmlrpc_server extends IXR_Server {
 	 * Check user's credentials. Deprecated.
 	 *
 	 * @since 1.5.0
-	 * @deprecated 2.8.0
-	 * @deprecated use wp_xmlrpc_server::login
-	 * @see wp_xmlrpc_server::login
+	 * @deprecated 2.8.0 Use wp_xmlrpc_server::login()
+	 * @see wp_xmlrpc_server::login()
 	 *
 	 * @param string $username User's username.
 	 * @param string $password User's password.
@@ -760,7 +759,7 @@ class wp_xmlrpc_server extends IXR_Server {
 			'post_content'      => $post['post_content'],
 			'post_parent'       => strval( $post['post_parent'] ),
 			'post_mime_type'    => $post['post_mime_type'],
-			'link'              => post_permalink( $post['ID'] ),
+			'link'              => get_permalink( $post['ID'] ),
 			'guid'              => $post['guid'],
 			'menu_order'        => intval( $post['menu_order'] ),
 			'comment_status'    => $post['comment_status'],
@@ -930,7 +929,7 @@ class wp_xmlrpc_server extends IXR_Server {
 	protected function _prepare_page( $page ) {
 		// Get all of the page content and link.
 		$full_page = get_extended( $page->post_content );
-		$link = post_permalink( $page->ID );
+		$link = get_permalink( $page->ID );
 
 		// Get info the page parent if there is one.
 		$parent_title = "";
@@ -5281,6 +5280,7 @@ class wp_xmlrpc_server extends IXR_Server {
 		if ( $post_type == 'post' && isset( $content_struct['sticky'] ) ) {
 			$data = $newpost;
 			$data['sticky'] = $content_struct['sticky'];
+			$data['post_type'] = 'post';
 			$error = $this->_toggle_sticky( $data, true );
 			if ( $error ) {
 				return $error;
@@ -5382,7 +5382,7 @@ class wp_xmlrpc_server extends IXR_Server {
 			}
 
 			$post = get_extended($postdata['post_content']);
-			$link = post_permalink($postdata['ID']);
+			$link = get_permalink($postdata['ID']);
 
 			// Get the author info.
 			$author = get_userdata($postdata['post_author']);
@@ -5522,7 +5522,7 @@ class wp_xmlrpc_server extends IXR_Server {
 			}
 
 			$post = get_extended($entry['post_content']);
-			$link = post_permalink($entry['ID']);
+			$link = get_permalink($entry['ID']);
 
 			// Get the post author info.
 			$author = get_userdata($entry['post_author']);

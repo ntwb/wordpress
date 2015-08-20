@@ -2,7 +2,7 @@
 var setCommentsList, theList, theExtraList, commentReply;
 
 (function($) {
-var getCount, updateCount, updatePending;
+var getCount, updateCount, updateCountText, updatePending, updateApproved;
 
 setCommentsList = function() {
 	var totalInput, perPageInput, pageInput, dimAfter, delBefore, updateTotalCount, delAfter, refillTheExtraList, diff,
@@ -12,8 +12,9 @@ setCommentsList = function() {
 	perPageInput = $('input[name="_per_page"]', '#comments-form');
 	pageInput = $('input[name="_page"]', '#comments-form');
 
+	// this fires when viewing "All"
 	dimAfter = function( r, settings ) {
-		var editRow, replyID, replyButton,
+		var editRow, replyID, replyButton, response,
 			c = $( '#' + settings.element );
 
 		editRow = $('#replyrow');
@@ -33,7 +34,14 @@ setCommentsList = function() {
 		}
 
 		diff = $('#' + settings.element).is('.' + settings.dimClass) ? 1 : -1;
-		updatePending( diff );
+		if ( true !== settings.parsed && settings.parsed.responses.length ) {
+			response = settings.parsed.responses[0].supplemental;
+			updatePending( diff, response.postId );
+			updateApproved( -1 * diff, response.postId );
+		} else {
+			updatePending( diff );
+			updateApproved( -1 * diff  );
+		}
 	};
 
 	// Send current total, page, per_page and url
@@ -127,63 +135,248 @@ setCommentsList = function() {
 		el.html(n);
 	};
 
-	updatePending = function( diff ) {
-		$('span.pending-count').each(function() {
+	updatePending = function( diff, commentPostId ) {
+		var postSelector = '.post-com-count-' + commentPostId,
+			noClass = 'comment-count-no-pending',
+			pendingClass = 'comment-count-pending',
+			counts = $( 'span.pending-count' ),
+			pending,
+			noPending;
+
+		counts.each(function() {
 			var a = $(this), n = getCount(a) + diff;
 			if ( n < 1 )
 				n = 0;
 			a.closest('.awaiting-mod')[ 0 === n ? 'addClass' : 'removeClass' ]('count-0');
 			updateCount( a, n );
 		});
+
+		if ( ! commentPostId ) {
+			return;
+		}
+
+		// cache selectors to not get dupes
+		pending = $( 'span.' + pendingClass, postSelector );
+		noPending = $( 'span.' + noClass, postSelector );
+
+		pending.each(function() {
+			var a = $(this), n = getCount(a) + diff;
+			if ( n < 1 )
+				n = 0;
+
+			if ( 0 === n ) {
+				a.removeClass( pendingClass ).addClass( noClass );
+			}
+			updateCount( a, n );
+		});
+
+		noPending.each(function() {
+			var a = $(this);
+			if ( diff > 0 ) {
+				a.removeClass( noClass ).addClass( pendingClass );
+			}
+			updateCount( a, diff );
+		});
+	};
+
+	updateApproved = function( diff, commentPostId ) {
+		var postSelector = '.post-com-count-' + commentPostId,
+			noClass = 'comment-count-no-comments',
+			approvedClass = 'comment-count-approved',
+			approved,
+			noComments;
+
+		updateCountText( 'span.approved-count', diff );
+
+		if ( ! commentPostId ) {
+			return;
+		}
+
+		// cache selectors to not get dupes
+		approved = $( 'span.' + approvedClass, postSelector );
+		noComments = $( 'span.' + noClass, postSelector );
+
+		approved.each(function() {
+			var a = $(this), n = getCount(a) + diff;
+			if ( n < 1 )
+				n = 0;
+
+			if ( 0 === n ) {
+				a.removeClass( approvedClass ).addClass( noClass );
+			}
+			updateCount( a, n );
+		});
+
+		noComments.each(function() {
+			var a = $(this);
+			if ( diff > 0 ) {
+				a.removeClass( noClass ).addClass( approvedClass );
+			}
+			updateCount( a, diff );
+		});
+	};
+
+	updateCountText = function( selector, diff ) {
+		$( selector ).each(function() {
+			var a = $(this), n = getCount(a) + diff;
+			if ( n < 1 ) {
+				n = 0;
+			}
+			updateCount( a, n );
+		});
 	};
 
 	// In admin-ajax.php, we send back the unix time stamp instead of 1 on success
 	delAfter = function( r, settings ) {
-		var total_items_i18n, total, spam, trash, pending,
-			untrash = $(settings.target).parent().is('span.untrash'),
-			unspam = $(settings.target).parent().is('span.unspam'),
-			unapproved = $('#' + settings.element).is('.unapproved');
+		var total_items_i18n, total, animated, animatedCallback,
+			response = true === settings.parsed ? {} : settings.parsed.responses[0],
+			commentStatus = true === settings.parsed ? '' : response.supplemental.status,
+			commentPostId = true === settings.parsed ? '' : response.supplemental.postId,
 
-		function getUpdate(s) {
-			if ( $(settings.target).parent().is('span.' + s) )
-				return 1;
-			else if ( $('#' + settings.element).is('.' + s) )
-				return -1;
+			targetParent = $( settings.target ).parent(),
+			commentRow = $('#' + settings.element),
 
-			return 0;
+			spamDiff, trashDiff, pendingDiff, approvedDiff,
+
+			approved = commentRow.hasClass( 'approved' ),
+			unapproved = commentRow.hasClass( 'unapproved' ),
+			spammed = commentRow.hasClass( 'spam' ),
+			trashed = commentRow.hasClass( 'trash' );
+
+		// the order of these checks is important
+		// .unspam can also have .approve or .unapprove
+		// .untrash can also have .approve or .unapprove
+
+		if ( targetParent.is( 'span.undo' ) ) {
+			// the comment was spammed
+			if ( targetParent.hasClass( 'unspam' ) ) {
+				spamDiff = -1;
+
+				if ( 'trash' === commentStatus ) {
+					trashDiff = 1;
+				} else if ( '1' === commentStatus ) {
+					approvedDiff = 1;
+				} else if ( '0' === commentStatus ) {
+					pendingDiff = 1;
+				}
+
+			// the comment was trashed
+			} else if ( targetParent.hasClass( 'untrash' ) ) {
+				trashDiff = -1;
+
+				if ( 'spam' === commentStatus ) {
+					spamDiff = 1;
+				} else if ( '1' === commentStatus ) {
+					approvedDiff = 1;
+				} else if ( '0' === commentStatus ) {
+					pendingDiff = 1;
+				}
+			}
+
+		// user clicked "Spam"
+		} else if ( targetParent.is( 'span.spam' ) ) {
+			// the comment is currently approved
+			if ( approved ) {
+				approvedDiff = -1;
+			// the comment is currently pending
+			} else if ( unapproved ) {
+				pendingDiff = -1;
+			// the comment was in the trash
+			} else if ( trashed ) {
+				trashDiff = -1;
+			}
+			// you can't spam an item on the spam screen
+			spamDiff = 1;
+
+		// user clicked "Unspam"
+		} else if ( targetParent.is( 'span.unspam' ) ) {
+			if ( approved ) {
+				pendingDiff = 1;
+			} else if ( unapproved ) {
+				approvedDiff = 1;
+			} else if ( trashed ) {
+				// the comment was previously approved
+				if ( targetParent.hasClass( 'approve' ) ) {
+					approvedDiff = 1;
+				// the comment was previously pending
+				} else if ( targetParent.hasClass( 'unapprove' ) ) {
+					pendingDiff = 1;
+				}
+			} else if ( spammed ) {
+				if ( targetParent.hasClass( 'approve' ) ) {
+					approvedDiff = 1;
+
+				} else if ( targetParent.hasClass( 'unapprove' ) ) {
+					pendingDiff = 1;
+				}
+			}
+			// you can Unspam an item on the spam screen
+			spamDiff = -1;
+
+		// user clicked "Trash"
+		} else if ( targetParent.is( 'span.trash' ) ) {
+			if ( approved ) {
+				approvedDiff = -1;
+			} else if ( unapproved ) {
+				pendingDiff = -1;
+			// the comment was in the spam queue
+			} else if ( spammed ) {
+				spamDiff = -1;
+			}
+			// you can't trash an item on the trash screen
+			trashDiff = 1;
+
+		// user clicked "Restore"
+		} else if ( targetParent.is( 'span.untrash' ) ) {
+			if ( approved ) {
+				pendingDiff = 1;
+			} else if ( unapproved ) {
+				approvedDiff = 1;
+			} else if ( trashed ) {
+				if ( targetParent.hasClass( 'approve' ) ) {
+					approvedDiff = 1;
+				} else if ( targetParent.hasClass( 'unapprove' ) ) {
+					pendingDiff = 1;
+				}
+			}
+			// you can't go from trash to spam
+			// you can untrash on the trash screen
+			trashDiff = -1;
+
+		// User clicked "Approve"
+		} else if ( targetParent.is( 'span.approve:not(.unspam):not(.untrash)' ) ) {
+			approvedDiff = 1;
+			pendingDiff = -1;
+
+		// User clicked "Unapprove"
+		} else if ( targetParent.is( 'span.unapprove:not(.unspam):not(.untrash)' ) ) {
+			approvedDiff = -1;
+			pendingDiff = 1;
+
+		// User clicked "Delete Permanently"
+		} else if ( targetParent.is( 'span.delete' ) ) {
+			if ( spammed ) {
+				spamDiff = -1;
+			} else if ( trashed ) {
+				trashDiff = -1;
+			}
 		}
 
-		if ( untrash )
-			trash = -1;
-		else
-			trash = getUpdate('trash');
-
-		if ( unspam )
-			spam = -1;
-		else
-			spam = getUpdate('spam');
-
-		if ( $(settings.target).parent().is('span.unapprove') || ( ( untrash || unspam ) && unapproved ) ) {
-			// a comment was 'deleted' from another list (e.g. approved, spam, trash) and moved to pending,
-			// or a trash/spam of a pending comment was undone
-			pending = 1;
-		} else if ( unapproved ) {
-			// a pending comment was trashed/spammed/approved
-			pending = -1;
+		if ( pendingDiff ) {
+			updatePending( pendingDiff, commentPostId );
 		}
 
-		if ( pending )
-			updatePending(pending);
+		if ( approvedDiff ) {
+			updateApproved( approvedDiff, commentPostId );
+		}
 
-		$('span.spam-count').each( function() {
-			var a = $(this), n = getCount(a) + spam;
-			updateCount(a, n);
-		});
+		if ( spamDiff ) {
+			updateCountText( 'span.spam-count', spamDiff );
+		}
 
-		$('span.trash-count').each( function() {
-			var a = $(this), n = getCount(a) + trash;
-			updateCount(a, n);
-		});
+		if ( trashDiff ) {
+			updateCountText( 'span.trash-count', trashDiff );
+		}
 
 		if ( ! $('#dashboard_right_now').length ) {
 			total = totalInput.val() ? parseInt( totalInput.val(), 10 ) : 0;
@@ -195,26 +388,43 @@ setCommentsList = function() {
 			if ( total < 0 )
 				total = 0;
 
-			if ( ( 'object' == typeof r ) && lastConfidentTime < settings.parsed.responses[0].supplemental.time ) {
-				total_items_i18n = settings.parsed.responses[0].supplemental.total_items_i18n || '';
-				if ( total_items_i18n ) {
-					$('.displaying-num').text( total_items_i18n );
-					$('.total-pages').text( settings.parsed.responses[0].supplemental.total_pages_i18n );
-					$('.tablenav-pages').find('.next-page, .last-page').toggleClass('disabled', settings.parsed.responses[0].supplemental.total_pages == $('.current-page').val());
+			if ( 'object' === typeof r ) {
+				if ( response.supplemental.total_items_i18n && lastConfidentTime < response.supplemental.time ) {
+					total_items_i18n = response.supplemental.total_items_i18n || '';
+					if ( total_items_i18n ) {
+						$('.displaying-num').text( total_items_i18n );
+						$('.total-pages').text( response.supplemental.total_pages_i18n );
+						$('.tablenav-pages').find('.next-page, .last-page').toggleClass('disabled', response.supplemental.total_pages == $('.current-page').val());
+					}
+					updateTotalCount( total, response.supplemental.time, true );
+				} else if ( response.supplemental.time ) {
+					updateTotalCount( total, response.supplemental.time, false );
 				}
-				updateTotalCount( total, settings.parsed.responses[0].supplemental.time, true );
 			} else {
 				updateTotalCount( total, r, false );
 			}
 		}
 
-		if ( ! theExtraList || theExtraList.size() === 0 || theExtraList.children().size() === 0 || untrash || unspam ) {
+		if ( ! theExtraList || theExtraList.size() === 0 || theExtraList.children().size() === 0 ) {
 			return;
 		}
 
-		theList.get(0).wpList.add( theExtraList.children(':eq(0)').remove().clone() );
+		theList.get(0).wpList.add( theExtraList.children( ':eq(0):not(.no-items)' ).remove().clone() );
 
 		refillTheExtraList();
+
+		animated = $( ':animated', '#the-comment-list' );
+		animatedCallback = function () {
+			if ( ! $( '#the-comment-list tr:visible' ).length ) {
+				theList.get(0).wpList.add( theExtraList.find( '.no-items' ).clone() );
+			}
+		};
+
+		if ( animated.length ) {
+			animated.promise().done( animatedCallback );
+		} else {
+			animatedCallback();
+		}
 	};
 
 	refillTheExtraList = function(ev) {
@@ -493,7 +703,7 @@ commentReply = {
 
 		if ( r.supplemental.parent_approved ) {
 			pid = $('#comment-' + r.supplemental.parent_approved);
-			updatePending( -1 );
+			updatePending( -1, r.supplemental.parent_post_id );
 
 			if ( this.comments_listing == 'moderated' ) {
 				pid.animate( { 'backgroundColor':'#CCEEBB' }, 400, function(){

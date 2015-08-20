@@ -13,7 +13,6 @@
 ( function( tinymce, setTimeout ) {
 	tinymce.PluginManager.add( 'wptextpattern', function( editor ) {
 		var VK = tinymce.util.VK,
-			canUndo = false,
 			spacePatterns = [
 				{ regExp: /^[*-]\s/, cmd: 'InsertUnorderedList' },
 				{ regExp: /^1[.)]\s/, cmd: 'InsertOrderedList' }
@@ -25,30 +24,34 @@
 				{ start: '#####', format: 'h5' },
 				{ start: '######', format: 'h6' },
 				{ start: '>', format: 'blockquote' }
-			];
+			],
+			canUndo, refNode, refPattern;
 
 		editor.on( 'selectionchange', function() {
-			canUndo = false;
+			canUndo = null;
 		} );
 
 		editor.on( 'keydown', function( event ) {
-			if ( canUndo && ( event.keyCode === VK.BACKSPACE || event.keyCode === 27 /* ESCAPE */ ) ) {
+			if ( ( canUndo && event.keyCode === 27 /* ESCAPE */ ) || ( canUndo === 'space' && event.keyCode === VK.BACKSPACE ) ) {
 				editor.undoManager.undo();
 				event.preventDefault();
+				event.stopImmediatePropagation();
 			}
 
 			if ( event.keyCode === VK.ENTER && ! VK.modifierPressed( event ) ) {
-				enter();
+				watchEnter();
 			}
 		}, true );
 
 		editor.on( 'keyup', function( event ) {
-			if ( event.keyCode === VK.SPACEBAR && ! VK.modifierPressed( event ) ) {
+			if ( event.keyCode === VK.SPACEBAR && ! event.ctrlKey && ! event.metaKey && ! event.altKey ) {
 				space();
+			} else if ( event.keyCode === VK.ENTER && ! VK.modifierPressed( event ) ) {
+				enter();
 			}
 		} );
 
-		function firstNode( node ) {
+		function firstTextNode( node ) {
 			var parent = editor.dom.getParent( node, 'p' ),
 				child;
 
@@ -69,7 +72,11 @@
 			}
 
 			if ( ! child.data ) {
-				child = child.nextSibling;
+				if ( child.nextSibling && child.nextSibling.nodeType === 3 ) {
+					child = child.nextSibling;
+				} else {
+					child = null;
+				}
 			}
 
 			return child;
@@ -81,7 +88,7 @@
 				parent,
 				text;
 
-			if ( ! node || firstNode( node ) !== node ) {
+			if ( ! node || firstTextNode( node ) !== node ) {
 				return;
 			}
 
@@ -110,19 +117,17 @@
 
 				// We need to wait for native events to be triggered.
 				setTimeout( function() {
-					canUndo = true;
+					canUndo = 'space';
 				} );
 
 				return false;
 			} );
 		}
 
-		function enter() {
-			var selection = editor.selection,
-				rng = selection.getRng(),
-				offset = rng.startOffset,
+		function watchEnter() {
+			var rng = editor.selection.getRng(),
 				start = rng.startContainer,
-				node = firstNode( start ),
+				node = firstTextNode( start ),
 				i = enterPatterns.length,
 				text, pattern;
 
@@ -143,25 +148,31 @@
 				return;
 			}
 
-			if ( node === start ) {
-				if ( tinymce.trim( text ) === pattern.start ) {
-					return;
-				}
-
-				offset = Math.max( 0, offset - pattern.start.length );
+			if ( node === start && tinymce.trim( text ) === pattern.start ) {
+				return;
 			}
 
-			editor.undoManager.add();
+			refNode = node;
+			refPattern = pattern;
+		}
 
-			editor.undoManager.transact( function() {
-				node.deleteData( 0, pattern.start.length );
+		function enter() {
+			if ( refNode ) {
+				editor.undoManager.add();
 
-				editor.formatter.apply( pattern.format, {}, start );
+				editor.undoManager.transact( function() {
+					editor.formatter.apply( refPattern.format, {}, refNode );
+					refNode.replaceData( 0, refNode.data.length, tinymce.trim( refNode.data.slice( refPattern.start.length ) ) );
+				} );
 
-				rng.setStart( start, offset );
-				rng.collapse( true );
-				selection.setRng( rng );
-			} );
+				// We need to wait for native events to be triggered.
+				setTimeout( function() {
+					canUndo = 'enter';
+				} );
+			}
+
+			refNode = null;
+			refPattern = null;
 		}
 	} );
 } )( window.tinymce, window.setTimeout );

@@ -15,8 +15,6 @@ class Tests_Multisite_Bootstrap extends WP_UnitTestCase {
 		global $wpdb;
 		parent::setUp();
 		$this->suppress = $wpdb->suppress_errors();
-
-		$_SERVER[ 'REMOTE_ADDR' ] = '';
 	}
 
 	function tearDown() {
@@ -42,7 +40,7 @@ class Tests_Multisite_Bootstrap extends WP_UnitTestCase {
 		);
 
 		foreach ( $ids as &$id ) {
-			$id = $this->factory->network->create( $id );
+			$id = self::factory()->network->create( $id );
 		}
 		unset( $id );
 
@@ -90,7 +88,7 @@ class Tests_Multisite_Bootstrap extends WP_UnitTestCase {
 		);
 
 		foreach ( $ids as &$id ) {
-			$id = $this->factory->blog->create( $id );
+			$id = self::factory()->blog->create( $id );
 		}
 		unset( $id );
 
@@ -171,7 +169,7 @@ class Tests_Multisite_Bootstrap extends WP_UnitTestCase {
 		);
 
 		foreach ( $network_ids as &$id ) {
-			$id = $this->factory->network->create( $id );
+			$id = self::factory()->network->create( $id );
 		}
 		unset( $id );
 
@@ -184,7 +182,7 @@ class Tests_Multisite_Bootstrap extends WP_UnitTestCase {
 		);
 
 		foreach ( $ids as &$id ) {
-			$id = $this->factory->blog->create( $id );
+			$id = self::factory()->blog->create( $id );
 		}
 		unset( $id );
 

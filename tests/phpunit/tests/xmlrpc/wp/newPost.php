@@ -128,17 +128,7 @@ class Tests_XMLRPC_wp_newPost extends WP_XMLRPC_UnitTestCase {
 
 		// create attachment
 		$filename = ( DIR_TESTDATA.'/images/a2-small.jpg' );
-		$contents = file_get_contents( $filename );
-		$upload = wp_upload_bits( $filename, null, $contents );
-		$this->assertTrue( empty( $upload['error'] ) );
-
-		$attachment = array(
-			'post_title' => 'Post Thumbnail',
-			'post_type' => 'attachment',
-			'post_mime_type' => 'image/jpeg',
-			'guid' => $upload['url']
-		);
-		$attachment_id = wp_insert_attachment( $attachment, $upload['file'] );
+		$attachment_id = self::factory()->attachment->create_upload_object( $filename );
 
 		$post = array( 'post_title' => 'Post Thumbnail Test', 'post_thumbnail' => $attachment_id );
 		$result = $this->myxmlrpcserver->wp_newPost( array( 1, 'author', 'author', $post ) );
@@ -383,4 +373,22 @@ class Tests_XMLRPC_wp_newPost extends WP_XMLRPC_UnitTestCase {
 		$this->assertEquals( $date_string , $fetched_post->post_date_gmt );
 	}
 
+	/**
+	 * @ticket 30429
+	 */
+	function test_post_date_timezone_conversion() {
+		$tz = get_option( 'timezone_string' );
+		update_option( 'timezone_string', 'America/New_York' );
+
+		$this->make_user_by_role( 'author' );
+		$date_string = '1984-01-11 05:00:00';
+		$post = array( 'post_title' => 'test', 'post_content' => 'test', 'post_date' => $date_string );
+		$result = $this->myxmlrpcserver->wp_newPost( array( 1, 'author', 'author', $post ) );
+		$fetched_post = get_post( $result );
+
+		update_option( 'timezone_string', $tz );
+
+		$this->assertStringMatchesFormat( '%d', $result );
+		$this->assertEquals( $date_string , $fetched_post->post_date );
+	}
 }

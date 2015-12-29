@@ -374,7 +374,7 @@ EOF;
 		$this->assertEquals( '&frac34;', wp_kses_normalize_entities( '&frac34;' ) );
 		$this->assertEquals( '&there4;', wp_kses_normalize_entities( '&there4;' ) );
 	}
-	
+
 	/**
 	 * Test removal of invalid binary data for HTML.
 	 *
@@ -411,7 +411,7 @@ EOF;
 			),
 		);
 	}
-	
+
 	/**
 	 * Test removal of '\0' strings.
 	 *
@@ -423,7 +423,7 @@ EOF;
 
 		return $this->assertEquals( $output, wp_kses( $input, $allowedposttags ) );
 	}
-	
+
 	function data_slash_zero_removal() {
 		return array(
 			array(
@@ -641,5 +641,27 @@ EOF;
 				'title="&amp;garbage&quot;;"',
 			),
 		);
+	}
+
+	/**
+	 * @ticket 34063
+	 */
+	function test_bdo() {
+		global $allowedposttags;
+
+		$input = '<p>This is <bdo dir="rtl">a BDO tag</bdo>. Weird, <bdo dir="ltr">right?</bdo></p>';
+
+		$this->assertEquals( $input, wp_kses( $input, $allowedposttags ) );
+	}
+
+	/**
+	 * @ticket 35079
+	 */
+	function test_ol_reversed() {
+		global $allowedposttags;
+
+		$input = '<ol reversed="reversed"><li>Item 1</li><li>Item 2</li><li>Item 3</li></ol>';
+
+		$this->assertEquals( $input, wp_kses( $input, $allowedposttags ) );
 	}
 }

@@ -6,6 +6,8 @@
  * @group widgets
  */
 class Tests_Widgets extends WP_UnitTestCase {
+	public $sidebar_index;
+	public $valid_sidebar;
 
 	function clean_up_global_scope() {
 		global $wp_widget_factory, $wp_registered_sidebars, $wp_registered_widgets, $wp_registered_widget_controls, $wp_registered_widget_updates;
@@ -22,6 +24,7 @@ class Tests_Widgets extends WP_UnitTestCase {
 	function tearDown() {
 		global $wp_customize;
 		$wp_customize = null;
+
 		parent::tearDown();
 	}
 
@@ -41,7 +44,7 @@ class Tests_Widgets extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @see register_sidebars()
+	 * @group sidebar
 	 */
 	function test_register_sidebars_single() {
 
@@ -54,7 +57,7 @@ class Tests_Widgets extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @see register_sidebars()
+	 * @group sidebar
 	 */
 	function test_register_sidebars_multiple() {
 
@@ -77,19 +80,164 @@ class Tests_Widgets extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @see register_sidebar
-	 * @see unregister_sidebar
+	 * @group sidebar
 	 */
-	function test_register_and_unregister_sidebar() {
+	function test_register_sidebar_with_no_id() {
+		global $wp_registered_sidebars;
+
+		$this->setExpectedIncorrectUsage( 'register_sidebar' );
+
+		// Incorrectly register a couple of sidebars for fun.
+		register_sidebar();
+		register_sidebar();
+
+		$derived_sidebar_id = "sidebar-2"; // Number of sidebars in the global + 1.
+
+		$this->assertArrayHasKey( $derived_sidebar_id, $wp_registered_sidebars );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_unregister_sidebar_registered_with_no_id() {
+		global $wp_registered_sidebars;
+
+		$this->setExpectedIncorrectUsage( 'register_sidebar' );
+
+		// Incorrectly register a couple of sidebars for fun.
+		register_sidebar();
+		register_sidebar();
+
+		$derived_sidebar_id = "sidebar-2"; // Number of sidebars in the global + 1.
+
+		unregister_sidebar( $derived_sidebar_id );
+
+		$this->assertArrayNotHasKey( $derived_sidebar_id, $wp_registered_sidebars );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_register_sidebar_with_string_id() {
 
 		global $wp_registered_sidebars;
 
 		$sidebar_id = 'wp-unit-test';
 		register_sidebar( array( 'id' => $sidebar_id ) );
+
 		$this->assertArrayHasKey( $sidebar_id, $wp_registered_sidebars );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_unregister_sidebar_with_string_id() {
+		global $wp_registered_sidebars;
+
+		$sidebar_id = 'wp-unit-tests';
+		register_sidebar( array( 'id' => $sidebar_id ) );
 
 		unregister_sidebar( $sidebar_id );
-		$this->assertArrayNotHasKey( 'wp-unit-test', $wp_registered_sidebars );
+		$this->assertArrayNotHasKey( $sidebar_id, $wp_registered_sidebars );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_register_sidebar_with_numeric_id() {
+		global $wp_registered_sidebars;
+
+		$sidebar_id = 2;
+		register_sidebar( array( 'id' => $sidebar_id ) );
+
+		$this->assertArrayHasKey( $sidebar_id, $wp_registered_sidebars );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_unregister_sidebar_with_numeric_id() {
+		global $wp_registered_sidebars;
+
+		$sidebar_id = 2;
+		register_sidebar( array( 'id' => $sidebar_id ) );
+
+		unregister_sidebar( $sidebar_id );
+		$this->assertArrayNotHasKey( $sidebar_id, $wp_registered_sidebars );
+	}
+
+	/**
+	 * Utility hook callback used to store a sidebar ID mid-function.
+	 */
+	function retrieve_sidebar_id( $index, $valid_sidebar ) {
+		$this->sidebar_index = $index;
+		$this->valid_sidebar = $valid_sidebar;
+	}
+
+	/**
+	 * @group sidebar
+	 * @group drew
+	 */
+	function test_dynamic_sidebar_using_sidebar_registered_with_no_id() {
+		$this->setExpectedIncorrectUsage( 'register_sidebar' );
+
+		// Incorrectly register a couple of sidebars for fun.
+		register_sidebar();
+		register_sidebar();
+
+		$derived_sidebar_id = "sidebar-2"; // Number of sidebars in the global + 1.
+
+		add_action( 'dynamic_sidebar_before', array( $this, 'retrieve_sidebar_id' ), 10, 2 );
+
+		dynamic_sidebar( 2 );
+
+		$this->assertSame( $derived_sidebar_id, $this->sidebar_index );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_dynamic_sidebar_using_invalid_sidebar_id() {
+		register_sidebar( array( 'id' => 'wp-unit-text' ) );
+
+		add_action( 'dynamic_sidebar_before', array( $this, 'retrieve_sidebar_id' ), 10, 2 );
+
+		// 5 is a fake sidebar ID.
+		dynamic_sidebar( 5 );
+
+		/*
+		 * If the sidebar ID is invalid, the second argument passed to
+		 * the 'dynamic_sidebar_before' hook will be false.
+		 */
+		$this->assertSame( false, $this->valid_sidebar );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_dynamic_sidebar_numeric_id() {
+		$sidebar_id = 2;
+		register_sidebar( array( 'id' => $sidebar_id ) );
+
+		add_action( 'dynamic_sidebar_before', array( $this, 'retrieve_sidebar_id' ), 10, 2 );
+
+		dynamic_sidebar( $sidebar_id );
+
+		$this->assertSame( "sidebar-{$sidebar_id}", $this->sidebar_index );
+	}
+
+	/**
+	 * @group sidebar
+	 */
+	function test_dynamic_sidebar_string_id() {
+		$sidebar_id = 'wp-unit-tests';
+		register_sidebar( array( 'id' => $sidebar_id ) );
+
+		add_action( 'dynamic_sidebar_before', array( $this, 'retrieve_sidebar_id' ), 10, 2 );
+
+		dynamic_sidebar( $sidebar_id );
+
+		$this->assertSame( $sidebar_id, $this->sidebar_index );
 	}
 
 	/**
@@ -157,20 +305,104 @@ class Tests_Widgets extends WP_UnitTestCase {
 
 	/**
 	 * @see WP_Widget::get_field_name()
+	 * @dataProvider data_wp_widget_get_field_name
+	 *
 	 */
-	function test_wp_widget_get_field_name() {
+	function test_wp_widget_get_field_name( $expected, $value_to_test ) {
 		$widget = new WP_Widget( 'foo', 'Foo' );
 		$widget->_set( 2 );
-		$this->assertEquals( 'widget-foo[2][title]', $widget->get_field_name( 'title' ) );
+		$this->assertEquals( $expected, $widget->get_field_name( $value_to_test ) );
+	}
+
+	/**
+	 * Data provider.
+	 *
+	 * Passes the expected field name and the value to test.
+	 *
+	 * @since 4.4.0
+	 *
+	 * @return array {
+	 *     @type array {
+	 *         @type string $expected      The expected field id to be returned.
+	 *         @type string $value_to_test The value being passed to the get_field_name method.
+	 *     }
+	 * }
+	 */
+	function data_wp_widget_get_field_name( ) {
+
+		return array(
+			array(
+				'widget-foo[2][title]',
+				'title',
+			),
+			array(
+				'widget-foo[2][posttypes][]',
+				'posttypes[]',
+			),
+			array(
+				'widget-foo[2][posttypes][4]',
+				'posttypes[4]',
+			),
+			array(
+				'widget-foo[2][posttypes][4][]',
+				'posttypes[4][]',
+			),
+			array(
+				'widget-foo[2][posttypes][4][][6]',
+				'posttypes[4][][6]',
+			),
+		);
 	}
 
 	/**
 	 * @see WP_Widget::get_field_id()
+	 * @dataProvider data_wp_widget_get_field_id
+	 *
 	 */
-	function test_wp_widget_get_field_id() {
+	function test_wp_widget_get_field_id( $expected, $value_to_test ) {
 		$widget = new WP_Widget( 'foo', 'Foo' );
 		$widget->_set( 2 );
-		$this->assertEquals( 'widget-foo-2-title', $widget->get_field_id( 'title' ) );
+		$this->assertEquals( $expected, $widget->get_field_id( $value_to_test ) );
+	}
+
+
+	/**
+	 * Data provider.
+	 *
+	 * Passes the expected field id and the value to be used in the tests.
+	 *
+	 * @since 4.4.0
+	 *
+	 * @return array {
+	 *     @type array {
+	 *         @type string $expected      The expected field id to be returned.
+	 *         @type string $value_to_test The value being passed to the get_field_id method.
+	 *     }
+	 * }
+	 */
+	function data_wp_widget_get_field_id() {
+		return array(
+			array(
+				'widget-foo-2-title',
+				'title',
+			),
+			array(
+				'widget-foo-2-posttypes',
+				'posttypes[]',
+			),
+			array(
+				'widget-foo-2-posttypes-4',
+				'posttypes[4]',
+			),
+			array(
+				'widget-foo-2-posttypes-4',
+				'posttypes[4][]',
+			),
+			array(
+				'widget-foo-2-posttypes-4-6',
+				'posttypes[4][][6]',
+			),
+		);
 	}
 
 	/**
@@ -206,7 +438,7 @@ class Tests_Widgets extends WP_UnitTestCase {
 		$this->assertEmpty( $wp_customize );
 		$this->assertFalse( $widget->is_preview() );
 
-		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
 		$wp_customize = new WP_Customize_Manager();
 		$wp_customize->start_previewing_theme();
@@ -233,6 +465,11 @@ class Tests_Widgets extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'title', $instance );
 		unset( $option_value['_multiwidget'] );
 
+		// Pretend this widget is new.
+		delete_option( 'widget_nav_menu' );
+		$never_used = get_option( 'widget_nav_menu', array() );
+		$this->assertEquals( array(), (array) $never_used );
+
 		wp_widgets_init();
 		$wp_widget_search = $wp_registered_widgets['search-2']['callback'][0];
 
@@ -243,6 +480,11 @@ class Tests_Widgets extends WP_UnitTestCase {
 		foreach ( $option_value as $widget_number => $instance ) {
 			$this->assertEquals( $settings[ $widget_number ], $option_value[ $widget_number ] );
 		}
+
+		// After widgets_init(), get_settings() should create the widget option.
+		$never_used = get_option( 'widget_nav_menu' );
+		$this->assertEquals( 1, $never_used['_multiwidget'] );
+		$this->assertArrayNotHasKey( 0, $never_used );
 	}
 
 	/**
@@ -291,6 +533,96 @@ class Tests_Widgets extends WP_UnitTestCase {
 		$wp_widget_search->save_settings( $settings );
 		$option_value = get_option( $wp_widget_search->option_name );
 		$this->assertArrayNotHasKey( 2, $option_value );
+	}
+
+	/**
+	 * @ticket 23423
+	 */
+	function test_dynamic_sidebar_id_special_characters() {
+		wp_widgets_init();
+		register_sidebar( array(
+			'name' => 'Sidebar 2',
+			'id' => 'sidebar-2',
+		) );
+
+		ob_start();
+		$result = dynamic_sidebar( 'Sidebar 1' );
+		ob_end_clean();
+
+		$this->assertFalse( $result );
+	}
+
+	/**
+	 * @see wp_widget_control()
+	 */
+	function test_wp_widget_control() {
+		global $wp_registered_widgets;
+
+		wp_widgets_init();
+		require_once ABSPATH . '/wp-admin/includes/widgets.php';
+		$widget_id = 'search-2';
+		$widget = $wp_registered_widgets[ $widget_id ];
+		$params = array(
+			'widget_id' => $widget['id'],
+			'widget_name' => $widget['name'],
+		);
+		$args = wp_list_widget_controls_dynamic_sidebar( array( 0 => $params, 1 => $widget['params'][0] ) );
+
+		ob_start();
+		call_user_func_array( 'wp_widget_control', $args );
+		$control = ob_get_clean();
+		$this->assertNotEmpty( $control );
+
+		$this->assertContains( '<div class="widget-top">', $control );
+		$this->assertContains( '<div class="widget-title-action">', $control );
+		$this->assertContains( '<div class="widget-title">', $control );
+		$this->assertContains( '<form method="post">', $control );
+		$this->assertContains( '<div class="widget-content">', $control );
+		$this->assertContains( '<input class="widefat"', $control );
+		$this->assertContains( '<input type="hidden" name="id_base" class="id_base" value="search"', $control );
+		$this->assertContains( '<div class="widget-control-actions">', $control );
+		$this->assertContains( '<div class="alignleft">', $control );
+		$this->assertContains( 'widget-control-remove', $control );
+		$this->assertContains( 'widget-control-close', $control );
+		$this->assertContains( '<div class="alignright">', $control );
+		$this->assertContains( '<input type="submit" name="savewidget"', $control );
+
+		$param_overrides = array(
+			'before_form' => '<!-- before_form -->',
+			'after_form' => '<!-- after_form -->',
+			'before_widget_content' => '<!-- before_widget_content -->',
+			'after_widget_content' => '<!-- after_widget_content -->',
+		);
+		$params = array_merge( $params, $param_overrides );
+		$args = wp_list_widget_controls_dynamic_sidebar( array( 0 => $params, 1 => $widget['params'][0] ) );
+
+		ob_start();
+		call_user_func_array( 'wp_widget_control', $args );
+		$control = ob_get_clean();
+		$this->assertNotEmpty( $control );
+		$this->assertNotContains( '<form method="post">', $control );
+		$this->assertNotContains( '<div class="widget-content">', $control );
+
+		foreach ( $param_overrides as $contained ) {
+			$this->assertContains( $contained, $control );
+		}
+	}
+
+	function test_the_widget_custom_before_title_arg() {
+		register_widget( 'WP_Widget_Text' );
+
+		ob_start();
+		the_widget(
+			'WP_Widget_Text',
+			array( 'title' => 'Notes', 'text' => 'Sample text' ),
+			array( 'before_widget' => '<span class="special %s">', 'after_widget' => '</span>' )
+		);
+		$actual = ob_get_clean();
+
+		unregister_widget( 'WP_Widget_Text' );
+
+		$this->assertRegExp( '/<span class="special widget_text">/', $actual );
+
 	}
 
 }

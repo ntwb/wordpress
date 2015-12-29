@@ -8,9 +8,7 @@ class Tests_User_CountUserPosts extends WP_UnitTestCase {
 	static $user_id;
 	static $post_ids = array();
 
-	public static function setUpBeforeClass() {
-		$factory = new WP_UnitTest_Factory();
-
+	public static function wpSetUpBeforeClass( $factory ) {
 		self::$user_id = $factory->user->create( array(
 			'role' => 'author',
 			'user_login' => 'count_user_posts_user',
@@ -29,26 +27,19 @@ class Tests_User_CountUserPosts extends WP_UnitTestCase {
 			'post_author' => 12345,
 			'post_type'   => 'wptests_pt',
 		) ) );
-		self::$post_ids = array_merge( self::$post_ids, $factory->post->create_many( 1, array(
+		
+		self::$post_ids[] = $factory->post->create( array(
 			'post_author' => 12345,
 			'post_type'   => 'wptests_pt',
-		) ) );
-
-		self::commit_transaction();
+		) );
 	}
 
-	public static function tearDownAfterClass() {
-		if ( is_multisite() ) {
-			wpmu_delete_user( self::$user_id );
-		} else {
-			wp_delete_user( self::$user_id );
-		}
+	public static function wpTearDownAfterClass() {
+		self::delete_user( self::$user_id );
 
 		foreach ( self::$post_ids as $post_id ) {
 			wp_delete_post( $post_id, true );
 		}
-
-		self::commit_transaction();
 	}
 
 	public function setUp() {

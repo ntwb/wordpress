@@ -126,17 +126,7 @@ class Tests_XMLRPC_mw_editPost extends WP_XMLRPC_UnitTestCase {
 
 		// create attachment
 		$filename = ( DIR_TESTDATA.'/images/a2-small.jpg' );
-		$contents = file_get_contents( $filename );
-		$upload = wp_upload_bits( $filename, null, $contents );
-		$this->assertTrue( empty( $upload['error'] ) );
-
-		$attachment = array(
-			'post_title' => 'Post Thumbnail',
-			'post_type' => 'attachment',
-			'post_mime_type' => 'image/jpeg',
-			'guid' => $upload['url']
-		);
-		$attachment_id = wp_insert_attachment( $attachment, $upload['file'], $post_id );
+		$attachment_id = self::factory()->attachment->create_upload_object( $filename, $post_id );
 
 		// add post thumbnail to post that does not have one
 		$post2 = array( 'wp_post_thumbnail' => $attachment_id );
@@ -151,8 +141,7 @@ class Tests_XMLRPC_mw_editPost extends WP_XMLRPC_UnitTestCase {
 		$this->assertEquals( $attachment_id, get_post_meta( $post_id, '_thumbnail_id', true ) );
 
 		// create another attachment
-		$attachment2 = array_merge( $attachment, array( 'title' => 'Post Thumbnail 2' ) );
-		$attachment2_id = wp_insert_attachment( $attachment2, $upload['file'], $post_id );
+		$attachment2_id = self::factory()->attachment->create_upload_object( $filename, $post_id );
 
 		// change the post's post_thumbnail
 		$post4 = array( 'wp_post_thumbnail' => $attachment2_id );
@@ -228,5 +217,54 @@ class Tests_XMLRPC_mw_editPost extends WP_XMLRPC_UnitTestCase {
 		$result = $this->myxmlrpcserver->mw_editPost( array( $post_id, 'contributor', 'contributor', $post2 ) );
 		$this->assertInstanceOf( 'IXR_Error', $result );
 		$this->assertEquals( $result->code, 401 );
+	}
+
+	/**
+	 * @ticket 30429
+	 */
+	function test_post_date_timezone_conversion() {
+		$tz = get_option( 'timezone_string' );
+		update_option( 'timezone_string', 'America/New_York' );
+
+		$editor_id = $this->make_user_by_role( 'editor' );
+
+		$post_id = self::factory()->post->create( array(
+			'post_author' => $editor_id
+		) );
+
+		$date_string = '1984-01-11 05:00:00';
+		$result = $this->myxmlrpcserver->mw_editPost( array( $post_id, 'editor', 'editor', array(
+			'dateCreated' => new IXR_Date( mysql2date( 'Ymd\TH:i:s', $date_string, false ) ),
+		) ) );
+
+		$fetched_post = get_post( $post_id );
+
+		update_option( 'timezone_string', $tz );
+
+		$this->assertTrue( $result );
+		$this->assertEquals( $date_string, $fetched_post->post_date );
+	}
+
+	/**
+	 * @ticket 16980
+	 */
+	function test_empty_not_null() {
+		$editor_id = $this->make_user_by_role( 'editor' );
+
+		$post_id = self::factory()->post->create( array(
+			'post_title' => 'Title',
+			'post_author' => $editor_id,
+			'tags_input' => 'taco'
+		) );
+
+		$tags1 = get_the_tags( $post_id );
+		$this->assertNotEmpty( $tags1 );
+
+		$this->myxmlrpcserver->mw_editPost( array( $post_id, 'editor', 'editor', array(
+			'mt_keywords' => ''
+		) ) );
+
+		$tags2 = get_the_tags( $post_id );
+		$this->assertEmpty( $tags2 );
 	}
 }

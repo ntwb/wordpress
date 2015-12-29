@@ -17,8 +17,17 @@ $tax = get_taxonomy( $taxnow );
 if ( ! $tax )
 	wp_die( __( 'Invalid taxonomy' ) );
 
-if ( ! current_user_can( $tax->cap->manage_terms ) )
-	wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+if ( ! in_array( $tax->name, get_taxonomies( array( 'show_ui' => true ) ) ) ) {
+   wp_die( __( 'You are not allowed to manage these items.' ) );
+}
+
+if ( ! current_user_can( $tax->cap->manage_terms ) ) {
+	wp_die(
+		'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+		'<p>' . __( 'You are not allowed to manage these items.' ) . '</p>',
+		403
+	);
+}
 
 /**
  * $post_type is set when the WP_Terms_List_Table instance is created
@@ -45,7 +54,13 @@ if ( 'post' != $post_type ) {
 
 add_screen_option( 'per_page', array( 'default' => 20, 'option' => 'edit_' . $tax->name . '_per_page' ) );
 
+get_current_screen()->set_screen_reader_content( array(
+	'heading_pagination' => $tax->labels->items_list_navigation,
+	'heading_list'       => $tax->labels->items_list,
+) );
+
 $location = false;
+$referer = wp_get_referer();
 
 switch ( $wp_list_table->current_action() ) {
 
@@ -53,17 +68,21 @@ case 'add-tag':
 
 	check_admin_referer( 'add-tag', '_wpnonce_add-tag' );
 
-	if ( !current_user_can( $tax->cap->edit_terms ) )
-		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+	if ( ! current_user_can( $tax->cap->edit_terms ) ) {
+		wp_die(
+			'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+			'<p>' . __( 'You are not allowed to add this item.' ) . '</p>',
+			403
+		);
+	}
 
 	$ret = wp_insert_term( $_POST['tag-name'], $taxonomy, $_POST );
 	$location = 'edit-tags.php?taxonomy=' . $taxonomy;
 	if ( 'post' != $post_type )
 		$location .= '&post_type=' . $post_type;
 
-	if ( $referer = wp_get_original_referer() ) {
-		if ( false !== strpos( $referer, 'edit-tags.php' ) )
-			$location = $referer;
+	if ( $referer && false !== strpos( $referer, 'edit-tags.php' ) ) {
+		$location = $referer;
 	}
 
 	if ( $ret && !is_wp_error( $ret ) )
@@ -77,9 +96,9 @@ case 'delete':
 	$location = 'edit-tags.php?taxonomy=' . $taxonomy;
 	if ( 'post' != $post_type )
 		$location .= '&post_type=' . $post_type;
-	if ( $referer = wp_get_referer() ) {
-		if ( false !== strpos( $referer, 'edit-tags.php' ) )
-			$location = $referer;
+
+	if ( $referer && false !== strpos( $referer, 'edit-tags.php' ) ) {
+		$location = $referer;
 	}
 
 	if ( ! isset( $_REQUEST['tag_ID'] ) ) {
@@ -89,8 +108,13 @@ case 'delete':
 	$tag_ID = (int) $_REQUEST['tag_ID'];
 	check_admin_referer( 'delete-tag_' . $tag_ID );
 
-	if ( !current_user_can( $tax->cap->delete_terms ) )
-		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+	if ( ! current_user_can( $tax->cap->delete_terms ) ) {
+		wp_die(
+			'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+			'<p>' . __( 'You are not allowed to delete this item.' ) . '</p>',
+			403
+		);
+	}
 
 	wp_delete_term( $tag_ID, $taxonomy );
 
@@ -101,8 +125,13 @@ case 'delete':
 case 'bulk-delete':
 	check_admin_referer( 'bulk-tags' );
 
-	if ( !current_user_can( $tax->cap->delete_terms ) )
-		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+	if ( ! current_user_can( $tax->cap->delete_terms ) ) {
+		wp_die(
+			'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+			'<p>' . __( 'You are not allowed to delete these items.' ) . '</p>',
+			403
+		);
+	}
 
 	$tags = (array) $_REQUEST['delete_tags'];
 	foreach ( $tags as $tag_ID ) {
@@ -112,9 +141,8 @@ case 'bulk-delete':
 	$location = 'edit-tags.php?taxonomy=' . $taxonomy;
 	if ( 'post' != $post_type )
 		$location .= '&post_type=' . $post_type;
-	if ( $referer = wp_get_referer() ) {
-		if ( false !== strpos( $referer, 'edit-tags.php' ) )
-			$location = $referer;
+	if ( $referer && false !== strpos( $referer, 'edit-tags.php' ) ) {
+		$location = $referer;
 	}
 
 	$location = add_query_arg( 'message', 6, $location );
@@ -123,6 +151,10 @@ case 'bulk-delete':
 
 case 'edit':
 	$title = $tax->labels->edit_item;
+
+	if ( ! isset( $_REQUEST['tag_ID'] ) ) {
+		break;
+	}
 
 	$tag_ID = (int) $_REQUEST['tag_ID'];
 
@@ -139,8 +171,13 @@ case 'editedtag':
 	$tag_ID = (int) $_POST['tag_ID'];
 	check_admin_referer( 'update-tag_' . $tag_ID );
 
-	if ( !current_user_can( $tax->cap->edit_terms ) )
-		wp_die( __( 'Cheatin&#8217; uh?' ), 403 );
+	if ( ! current_user_can( $tax->cap->edit_terms ) ) {
+		wp_die(
+			'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+			'<p>' . __( 'You are not allowed to edit this item.' ) . '</p>',
+			403
+		);
+	}
 
 	$tag = get_term( $tag_ID, $taxonomy );
 	if ( ! $tag )
@@ -152,9 +189,8 @@ case 'editedtag':
 	if ( 'post' != $post_type )
 		$location .= '&post_type=' . $post_type;
 
-	if ( $referer = wp_get_original_referer() ) {
-		if ( false !== strpos( $referer, 'edit-tags.php' ) )
-			$location = $referer;
+	if ( $referer && false !== strpos( $referer, 'edit-tags.php' ) ) {
+		$location = $referer;
 	}
 
 	if ( $ret && !is_wp_error( $ret ) )
@@ -252,54 +288,16 @@ if ( 'category' == $taxonomy || 'link_category' == $taxonomy || 'post_tag' == $t
 
 require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
-if ( !current_user_can($tax->cap->edit_terms) )
-	wp_die( __('You are not allowed to edit this item.') );
-
-$messages = array();
-$messages['_item'] = array(
-	0 => '', // Unused. Messages start at index 1.
-	1 => __( 'Item added.' ),
-	2 => __( 'Item deleted.' ),
-	3 => __( 'Item updated.' ),
-	4 => __( 'Item not added.' ),
-	5 => __( 'Item not updated.' ),
-	6 => __( 'Items deleted.' )
-);
-$messages['category'] = array(
-	0 => '', // Unused. Messages start at index 1.
-	1 => __( 'Category added.' ),
-	2 => __( 'Category deleted.' ),
-	3 => __( 'Category updated.' ),
-	4 => __( 'Category not added.' ),
-	5 => __( 'Category not updated.' ),
-	6 => __( 'Categories deleted.' )
-);
-$messages['post_tag'] = array(
-	0 => '', // Unused. Messages start at index 1.
-	1 => __( 'Tag added.' ),
-	2 => __( 'Tag deleted.' ),
-	3 => __( 'Tag updated.' ),
-	4 => __( 'Tag not added.' ),
-	5 => __( 'Tag not updated.' ),
-	6 => __( 'Tags deleted.' )
-);
-
-/**
- * Filter the messages displayed when a tag is updated.
- *
- * @since 3.7.0
- *
- * @param array $messages The messages to be displayed.
- */
-$messages = apply_filters( 'term_updated_messages', $messages );
-
-$message = false;
-if ( isset( $_REQUEST['message'] ) && ( $msg = (int) $_REQUEST['message'] ) ) {
-	if ( isset( $messages[ $taxonomy ][ $msg ] ) )
-		$message = $messages[ $taxonomy ][ $msg ];
-	elseif ( ! isset( $messages[ $taxonomy ] ) && isset( $messages['_item'][ $msg ] ) )
-		$message = $messages['_item'][ $msg ];
+if ( ! current_user_can( $tax->cap->edit_terms ) ) {
+	wp_die(
+		'<h1>' . __( 'Cheatin&#8217; uh?' ) . '</h1>' .
+		'<p>' . __( 'You are not allowed to edit this item.' ) . '</p>',
+		403
+	);
 }
+
+/** Also used by the Edit Tag  form */
+require_once( ABSPATH . 'wp-admin/includes/edit-tag-messages.php' );
 
 $class = ( isset( $_REQUEST['error'] ) ) ? 'error' : 'updated';
 
@@ -349,8 +347,13 @@ endif; ?>
 <div class="form-wrap">
 <p>
 	<?php
-	/** This filter is documented in wp-includes/category-template.php */
-	printf( __( '<strong>Note:</strong><br />Deleting a category does not delete the posts in that category. Instead, posts that were only assigned to the deleted category are set to the category <strong>%s</strong>.' ), apply_filters( 'the_category', get_cat_name( get_option( 'default_category') ) ) );
+	echo '<strong>' . __( 'Note:' ) . '</strong><br />';
+	printf(
+		/* translators: %s: default category */
+		__( 'Deleting a category does not delete the posts in that category. Instead, posts that were only assigned to the deleted category are set to the category %s.' ),
+		/** This filter is documented in wp-includes/category-template.php */
+		'<strong>' . apply_filters( 'the_category', get_cat_name( get_option( 'default_category') ) ) . '</strong>'
+	);
 	?>
 </p>
 <?php if ( current_user_can( 'import' ) ) : ?>
@@ -392,7 +395,7 @@ if ( !is_null( $tax->labels->popular_items ) ) {
 	if ( $tag_cloud ) :
 	?>
 <div class="tagcloud">
-<h3><?php echo $tax->labels->popular_items; ?></h3>
+<h2><?php echo $tax->labels->popular_items; ?></h2>
 <?php echo $tag_cloud; unset( $tag_cloud ); ?>
 </div>
 <?php
@@ -445,7 +448,7 @@ if ( current_user_can($tax->cap->edit_terms) ) {
 ?>
 
 <div class="form-wrap">
-<h3><?php echo $tax->labels->add_new_item; ?></h3>
+<h2><?php echo $tax->labels->add_new_item; ?></h2>
 <form id="addtag" method="post" action="edit-tags.php" class="validate"
 <?php
 /**

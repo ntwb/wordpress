@@ -90,7 +90,8 @@ function wp_print_scripts( $handles = false ) {
  *
  * Registers a script to be linked later using the wp_enqueue_script() function.
  *
- * @see WP_Dependencies::add(), WP_Dependencies::add_data()
+ * @see WP_Dependencies::add()
+ * @see WP_Dependencies::add_data()
  *
  * @since 2.6.0
  * @since 4.3.0 A return value was added.
@@ -205,7 +206,9 @@ function wp_deregister_script( $handle ) {
  *
  * Registers the script if $src provided (does NOT overwrite), and enqueues it.
  *
- * @see WP_Dependencies::add(), WP_Dependencies::add_data(), WP_Dependencies::enqueue()
+ * @see WP_Dependencies::add()
+ * @see WP_Dependencies::add_data()
+ * @see WP_Dependencies::enqueue()
  *
  * @since 2.6.0
  *
@@ -263,7 +266,7 @@ function wp_dequeue_script( $handle ) {
  * @param string $handle Name of the script.
  * @param string $list   Optional. Status of the script to check. Default 'enqueued'.
  *                       Accepts 'enqueued', 'registered', 'queue', 'to_do', and 'done'.
- * @return bool Whether the script script is queued.
+ * @return bool Whether the script is queued.
  */
 function wp_script_is( $handle, $list = 'enqueued' ) {
 	_wp_scripts_maybe_doing_it_wrong( __FUNCTION__ );

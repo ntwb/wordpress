@@ -22,7 +22,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 	function setUp() {
 		parent::setUp();
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
-		wp_set_current_user( $this->factory->user->create( array( 'role' => 'administrator' ) ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		global $wp_customize;
 		$this->wp_customize = new WP_Customize_Manager();
 		$wp_customize = $this->wp_customize;
@@ -124,7 +124,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		);
 
 		// Create pages.
-		$this->factory->post->create_many( 15, array( 'post_type' => 'page' ) );
+		self::factory()->post->create_many( 12, array( 'post_type' => 'page' ) );
 
 		// Home is included in menu items when page is zero.
 		$items = $menus->load_available_items_query( 'post_type', 'page', 0 );
@@ -145,10 +145,10 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		$menus = new WP_Customize_Nav_Menus( $this->wp_customize );
 
 		// Create page.
-		$post_id = $this->factory->post->create( array( 'post_title' => 'Post Title' ) );
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Post Title' ) );
 
 		// Create pages.
-		$this->factory->post->create_many( 10 );
+		self::factory()->post->create_many( 10 );
 
 		// Expected menu item array.
 		$expected = array(
@@ -175,7 +175,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		$menus = new WP_Customize_Nav_Menus( $this->wp_customize );
 
 		// Create page.
-		$page_id = $this->factory->post->create( array( 'post_title' => 'Page Title', 'post_type' => 'page' ) );
+		$page_id = self::factory()->post->create( array( 'post_title' => 'Page Title', 'post_type' => 'page' ) );
 
 		// Expected menu item array.
 		$expected = array(
@@ -201,7 +201,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		$menus = new WP_Customize_Nav_Menus( $this->wp_customize );
 
 		// Create post.
-		$post_id = $this->factory->post->create( array( 'post_title' => 'Post Title' ) );
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Post Title' ) );
 
 		// Expected menu item array.
 		$expected = array(
@@ -227,7 +227,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		$menus = new WP_Customize_Nav_Menus( $this->wp_customize );
 
 		// Create term.
-		$term_id = $this->factory->category->create( array( 'name' => 'Term Title' ) );
+		$term_id = self::factory()->category->create( array( 'name' => 'Term Title' ) );
 
 		// Expected menu item array.
 		$expected = array(
@@ -279,13 +279,13 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 
 		// Create posts
 		$post_ids = array();
-		$post_ids[] = $this->factory->post->create( array( 'post_title' => 'Search & Test' ) );
-		$post_ids[] = $this->factory->post->create( array( 'post_title' => 'Some Other Title' ) );
+		$post_ids[] = self::factory()->post->create( array( 'post_title' => 'Search & Test' ) );
+		$post_ids[] = self::factory()->post->create( array( 'post_title' => 'Some Other Title' ) );
 
 		// Create terms
 		$term_ids = array();
-		$term_ids[] = $this->factory->category->create( array( 'name' => 'Dogs Are Cool' ) );
-		$term_ids[] = $this->factory->category->create( array( 'name' => 'Cats Drool' ) );
+		$term_ids[] = self::factory()->category->create( array( 'name' => 'Dogs Are Cool' ) );
+		$term_ids[] = self::factory()->category->create( array( 'name' => 'Cats Drool' ) );
 
 		// Test empty results
 		$expected = array();
@@ -338,6 +338,9 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		$menus = new WP_Customize_Nav_Menus( $this->wp_customize );
 		$menus->enqueue_scripts();
 		$this->assertTrue( wp_script_is( 'customize-nav-menus' ) );
+
+		wp_dequeue_style( 'customize-nav-menus' );
+		wp_dequeue_script( 'customize-nav-menus' );
 	}
 
 	/**
@@ -383,7 +386,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 	function test_customize_register() {
 		do_action( 'customize_register', $this->wp_customize );
 		$menu_id = wp_create_nav_menu( 'Primary' );
-		$post_id = $this->factory->post->create( array( 'post_title' => 'Hello World' ) );
+		$post_id = self::factory()->post->create( array( 'post_title' => 'Hello World' ) );
 		$item_id = wp_update_nav_menu_item( $menu_id, 0, array(
 			'menu-item-type'      => 'post_type',
 			'menu-item-object'    => 'post',
@@ -426,10 +429,10 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		$menus = new WP_Customize_Nav_Menus( $this->wp_customize );
 
 		$expected = array(
-			array( 'title' => 'Post', 'type' => 'post_type', 'object' => 'post' ),
-			array( 'title' => 'Page', 'type' => 'post_type', 'object' => 'page' ),
-			array( 'title' => 'Category', 'type' => 'taxonomy', 'object' => 'category' ),
-			array( 'title' => 'Tag', 'type' => 'taxonomy', 'object' => 'post_tag' ),
+			array( 'title' => 'Posts', 'type' => 'post_type', 'object' => 'post' ),
+			array( 'title' => 'Pages', 'type' => 'post_type', 'object' => 'page' ),
+			array( 'title' => 'Categories', 'type' => 'taxonomy', 'object' => 'category' ),
+			array( 'title' => 'Tags', 'type' => 'taxonomy', 'object' => 'post_tag' ),
 		);
 
 		if ( current_theme_supports( 'post-formats' ) ) {
@@ -497,7 +500,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		if ( $post_types ) {
 			foreach ( $post_types as $type ) {
 				$this->assertContains( 'available-menu-items-post_type-' . esc_attr( $type->name ), $template );
-				$this->assertRegExp( '#<h4 class="accordion-section-title".*>\s*' . esc_html( $type->labels->singular_name ) . '#', $template );
+				$this->assertRegExp( '#<h4 class="accordion-section-title".*>\s*' . esc_html( $type->labels->name ) . '#', $template );
 				$this->assertContains( 'data-type="post_type"', $template );
 				$this->assertContains( 'data-object="' . esc_attr( $type->name ) . '"', $template );
 			}
@@ -507,7 +510,7 @@ class Test_WP_Customize_Nav_Menus extends WP_UnitTestCase {
 		if ( $taxonomies ) {
 			foreach ( $taxonomies as $tax ) {
 				$this->assertContains( 'available-menu-items-taxonomy-' . esc_attr( $tax->name ), $template );
-				$this->assertRegExp( '#<h4 class="accordion-section-title".*>\s*' . esc_html( $tax->labels->singular_name ) . '#', $template );
+				$this->assertRegExp( '#<h4 class="accordion-section-title".*>\s*' . esc_html( $tax->labels->name ) . '#', $template );
 				$this->assertContains( 'data-type="taxonomy"', $template );
 				$this->assertContains( 'data-object="' . esc_attr( $tax->name ) . '"', $template );
 			}

@@ -4,7 +4,7 @@
  */
 class Tests_Shortcode extends WP_UnitTestCase {
 
-	protected $shortcodes = array( 'test-shortcode-tag', 'footag', 'bartag', 'baztag', 'dumptag', 'hyphen', 'hyphen-foo', 'hyphen-foo-bar' );
+	protected $shortcodes = array( 'test-shortcode-tag', 'footag', 'bartag', 'baztag', 'dumptag', 'hyphen', 'hyphen-foo', 'hyphen-foo-bar', 'url' );
 
 	function setUp() {
 		parent::setUp();
@@ -20,8 +20,9 @@ class Tests_Shortcode extends WP_UnitTestCase {
 
 	function tearDown() {
 		global $shortcode_tags;
-		foreach ( $this->shortcodes as $shortcode )
+		foreach ( $this->shortcodes as $shortcode ) {
 			unset( $shortcode_tags[ $shortcode ] );
+		}
 		parent::tearDown();
 	}
 
@@ -71,6 +72,10 @@ class Tests_Shortcode extends WP_UnitTestCase {
 
 	function _shortcode_hyphen_foo_bar() {
 		return __FUNCTION__;
+	}
+
+	function _shortcode_url() {
+		return 'http://www.wordpress.org/';
 	}
 
 	function test_noatts() {
@@ -193,16 +198,16 @@ class Tests_Shortcode extends WP_UnitTestCase {
 	}
 
 	function test_positional_atts_mixed() {
-		$out = do_shortcode('[test-shortcode-tag 123 http://wordpress.com/ 0 "foo" bar]');
+		$out = do_shortcode('[test-shortcode-tag 123 https://wordpress.org/ 0 "foo" bar]');
 		$this->assertEquals( '', $out );
-		$this->assertEquals( array(0=>'123', 1=>'http://wordpress.com/', 2=>'0', 3=>'foo', 4=>'bar'), $this->atts );
+		$this->assertEquals( array(0=>'123', 1=>'https://wordpress.org/', 2=>'0', 3=>'foo', 4=>'bar'), $this->atts );
 		$this->assertEquals( 'test-shortcode-tag', $this->tagname );
 	}
 
 	function test_positional_and_named_atts() {
-		$out = do_shortcode('[test-shortcode-tag 123 url=http://wordpress.com/ foo bar="baz"]');
+		$out = do_shortcode('[test-shortcode-tag 123 url=https://wordpress.org/ foo bar="baz"]');
 		$this->assertEquals( '', $out );
-		$this->assertEquals( array(0=>'123', 'url' => 'http://wordpress.com/', 1=>'foo', 'bar' => 'baz'), $this->atts );
+		$this->assertEquals( array(0=>'123', 'url' => 'https://wordpress.org/', 1=>'foo', 'bar' => 'baz'), $this->atts );
 		$this->assertEquals( 'test-shortcode-tag', $this->tagname );
 	}
 
@@ -218,8 +223,8 @@ class Tests_Shortcode extends WP_UnitTestCase {
 	}
 
 	function test_nested_tags() {
-		$out = do_shortcode('[baztag][dumptag abc="foo" def=123 http://wordpress.com/][/baztag]');
-		$expected = "content = abc = foo\ndef = 123\n0 = http://wordpress.com\n";
+		$out = do_shortcode('[baztag][dumptag abc="foo" def=123 https://wordpress.org/][/baztag]');
+		$expected = "content = abc = foo\ndef = 123\n0 = https://wordpress.org\n";
 		$this->assertEquals($expected, $out);
 	}
 
@@ -454,6 +459,30 @@ EOF;
 				'[gallery]<div>Hello</div>[/gallery]',
 				'',
 			),
+			array(
+				'[url]',
+				'http://www.wordpress.org/',
+			),
+			array(
+				'<a href="[url]">',
+				'<a href="http://www.wordpress.org/">',
+			),
+			array(
+				'<a href=[url] >',
+				'<a href=http://www.wordpress.org/ >',
+			),
+			array(
+				'<a href="[url]plugins/">',
+				'<a href="http://www.wordpress.org/plugins/">',
+			),
+			array(
+				'<a href="bad[url]">',
+				'<a href="//www.wordpress.org/">',
+			),
+			array(
+				'<a onclick="bad[url]">',
+				'<a onclick="bad[url]">',
+			),
 		);
 	}
 
@@ -510,5 +539,122 @@ EOF;
 		$content_nested = 'This is a blob with [foo] [gallery] [/foo] in it';
 		$this->assertTrue( has_shortcode( $content_nested, 'gallery' ) );
 		remove_shortcode( 'foo' );
+	}
+
+	/**
+	 * Make sure invalid shortcode names are not allowed.
+	 *
+	 * @dataProvider data_registration_bad
+	 * @expectedIncorrectUsage add_shortcode
+	 */
+	function test_registration_bad( $input, $expected ) {
+		return $this->sub_registration( $input, $expected );
+	}
+
+	/**
+	 * Make sure valid shortcode names are allowed.
+	 *
+	 * @dataProvider data_registration_good
+	 */
+	function test_registration_good( $input, $expected ) {
+		return $this->sub_registration( $input, $expected );
+	}
+
+	function sub_registration( $input, $expected ) {
+		add_shortcode( $input, '' );
+		$actual = shortcode_exists( $input );
+		$test = $this->assertEquals( $expected, $actual );
+		if ( $actual ) remove_shortcode( $input );
+		return $test;
+	}
+
+	function data_registration_bad() {
+		return array(
+			array(
+				'<html>',
+				false,
+			),
+			array(
+				'[shortcode]',
+				false,
+			),
+			array(
+				'bad/',
+				false,
+			),
+			array(
+				'/bad',
+				false,
+			),
+			array(
+				'bad space',
+				false,
+			),
+			array(
+				'&amp;',
+				false,
+			),
+			array(
+				'',
+				false,
+			),
+		);
+	}
+
+	function data_registration_good() {
+		return array(
+			array(
+				'good!',
+				true,
+			),
+			array(
+				'plain',
+				true,
+			),
+			array(
+				'unreserved!#$%()*+,-.;?@^_{|}~chars',
+				true,
+			),
+		);
+	}
+
+	/**
+	 * Automated performance testing of the main regex.
+	 *
+	 * @dataProvider data_whole_posts
+	 */
+	function test_pcre_performance( $input ) {
+		$regex = '/' . get_shortcode_regex() . '/';
+		$result = benchmark_pcre_backtracking( $regex, $input, 'match_all' );
+		return $this->assertLessThan( 200, $result );
+	}
+
+	function data_whole_posts() {
+		require_once( DIR_TESTDATA . '/formatting/whole-posts.php' );
+		return data_whole_posts();
+	}
+
+	function test_php_and_js_shortcode_attribute_regexes_match() {
+
+		$file = file_get_contents( ABSPATH . WPINC . '/js/shortcode.js' );
+		$matched = preg_match( '|\s+pattern = (\/.+\/)g;|', $file, $matches );
+		$php = get_shortcode_atts_regex();
+
+		$this->assertSame( 1, $matched );
+
+		$js = str_replace( "\'", "'", $matches[1] );
+		$this->assertSame( $php, $js );
+
+	}
+
+	/**
+	 * @ticket 34939
+	 *
+	 * Test the (not recommended) [shortcode=XXX] format
+	 */
+	function test_unnamed_attribute() {
+		$out = do_shortcode('[dumptag=https://wordpress.org/]');
+		$expected = "0 = =https://wordpress.org\n";
+		$this->assertEquals($expected, $out);
 	}
 }

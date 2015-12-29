@@ -117,17 +117,7 @@ class Tests_XMLRPC_mw_newPost extends WP_XMLRPC_UnitTestCase {
 
 		// create attachment
 		$filename = ( DIR_TESTDATA.'/images/a2-small.jpg' );
-		$contents = file_get_contents( $filename );
-		$upload = wp_upload_bits( $filename, null, $contents );
-		$this->assertTrue( empty( $upload['error'] ) );
-
-		$attachment = array(
-			'post_title' => 'Post Thumbnail',
-			'post_type' => 'attachment',
-			'post_mime_type' => 'image/jpeg',
-			'guid' => $upload['url']
-		);
-		$attachment_id = wp_insert_attachment( $attachment, $upload['file'] );
+		$attachment_id = self::factory()->attachment->create_upload_object( $filename );
 
 		$post = array( 'title' => 'Post Thumbnail Test', 'wp_post_thumbnail' => $attachment_id );
 		$result = $this->myxmlrpcserver->mw_newPost( array( 1, 'author', 'author', $post ) );
@@ -159,4 +149,48 @@ class Tests_XMLRPC_mw_newPost extends WP_XMLRPC_UnitTestCase {
 		$this->assertEquals( 'page', $out->post_type );
 	}
 
+
+	/**
+	 * @ticket 16985
+	 */
+	function test_draft_post_date() {
+		$this->make_user_by_role( 'editor' );
+
+		$post = array(
+			'title' => 'Test',
+			'post_type' => 'post',
+			'post_status' => 'draft'
+		);
+		$result = $this->myxmlrpcserver->mw_newPost( array( 1, 'editor', 'editor', $post ) );
+		$this->assertNotInstanceOf( 'IXR_Error', $result );
+		$this->assertStringMatchesFormat( '%d', $result );
+
+		$out = get_post( $result );
+		$this->assertEquals( 'post', $out->post_type );
+		$this->assertEquals( 'draft', $out->post_status );
+		$this->assertEquals( '0000-00-00 00:00:00', $out->post_date_gmt );
+	}
+
+	/**
+	 * @ticket 30429
+	 */
+	function test_post_date_timezone_conversion() {
+		$tz = get_option( 'timezone_string' );
+		update_option( 'timezone_string', 'America/New_York' );
+
+		$this->make_user_by_role( 'editor' );
+		$date_string = '1984-01-11 05:00:00';
+		$post = array(
+			'title' => 'test',
+			'post_content' => 'test',
+			'dateCreated' => new IXR_Date( mysql2date( 'Ymd\TH:i:s', $date_string, false ) )
+		);
+		$result = $this->myxmlrpcserver->mw_newPost( array( 1, 'editor', 'editor', $post ) );
+		$fetched_post = get_post( $result );
+
+		update_option( 'timezone_string', $tz );
+
+		$this->assertStringMatchesFormat( '%d', $result );
+		$this->assertEquals( $date_string , $fetched_post->post_date );
+	}
 }

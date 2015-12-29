@@ -509,7 +509,7 @@ class Tests_DB extends WP_UnitTestCase {
 			$this->markTestSkipped( 'procedure could not be created (missing privileges?)' );
 		}
 
-		$post_id = $this->factory->post->create();
+		$post_id = self::factory()->post->create();
 
 		$this->assertNotEmpty( $wpdb->get_results( 'CALL `test_mysqli_flush_sync_procedure`' ) );
 		$this->assertNotEmpty( $wpdb->get_results( "SELECT ID FROM `{$wpdb->posts}` LIMIT 1" ) );
@@ -526,7 +526,11 @@ class Tests_DB extends WP_UnitTestCase {
 	 */
 	function data_get_table_from_query() {
 		$table = 'a_test_table_name';
-		$db_table = '`a_test_db`.`another_test_table`';
+		$more_tables = array(
+			// table_name => expected_value
+			'`a_test_db`.`another_test_table`' => 'a_test_db.another_test_table',
+			'a-test-with-dashes'               => 'a-test-with-dashes',
+		);
 
 		$queries = array(
 			// Basic
@@ -636,11 +640,12 @@ class Tests_DB extends WP_UnitTestCase {
 
 		$querycount = count( $queries );
 		for ( $ii = 0; $ii < $querycount; $ii++ ) {
-			$db_query = str_replace( $table, $db_table, $queries[ $ii ] );
-			$expected_db_table = str_replace( '`', '', $db_table );
+			foreach ( $more_tables as $name => $expected_name ) {
+				$new_query = str_replace( $table, $name, $queries[ $ii ] );
+				$queries[] = array( $new_query, $expected_name );
+			}
 
 			$queries[ $ii ] = array( $queries[ $ii ], $table );
-			$queries[] = array( $db_query, $expected_db_table );
 		}
 		return $queries;
 	}
@@ -802,5 +807,138 @@ class Tests_DB extends WP_UnitTestCase {
 	function filter_pre_get_col_charset( $charset, $table, $column ) {
 		return 'fake_col_charset';
 	}
-}
 
+	/**
+	 * @ticket 15158
+	 */
+	function test_null_insert() {
+		global $wpdb;
+
+		$key = 'null_insert_key';
+
+		$wpdb->insert(
+			$wpdb->postmeta,
+			array(
+				'meta_key' => $key,
+				'meta_value' => NULL
+			),
+			array( '%s', '%s' )
+		);
+
+		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
+
+		$this->assertNull( $row->meta_value );
+	}
+
+	/**
+	 * @ticket 15158
+	 */
+	function test_null_update_value() {
+		global $wpdb;
+
+		$key = 'null_update_value_key';
+		$value = 'null_update_value_key';
+
+		$wpdb->insert(
+			$wpdb->postmeta,
+			array(
+				'meta_key' => $key,
+				'meta_value' => $value
+			),
+			array( '%s', '%s' )
+		);
+
+		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
+
+		$this->assertSame( $value, $row->meta_value );
+
+		$wpdb->update(
+			$wpdb->postmeta,
+			array( 'meta_value' => NULL ),
+			array(
+				'meta_key' => $key,
+				'meta_value' => $value
+			),
+			array( '%s' ),
+			array( '%s', '%s' )
+		);
+
+		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
+
+		$this->assertNull( $row->meta_value );
+	}
+
+	/**
+	 * @ticket 15158
+	 */
+	function test_null_update_where() {
+		global $wpdb;
+
+		$key = 'null_update_where_key';
+		$value = 'null_update_where_key';
+
+		$wpdb->insert(
+			$wpdb->postmeta,
+			array(
+				'meta_key' => $key,
+				'meta_value' => NULL
+			),
+			array( '%s', '%s' )
+		);
+
+		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
+
+		$this->assertNull( $row->meta_value );
+
+		$wpdb->update(
+			$wpdb->postmeta,
+			array( 'meta_value' => $value ),
+			array(
+				'meta_key' => $key,
+				'meta_value' => NULL
+			),
+			array( '%s' ),
+			array( '%s', '%s' )
+		);
+
+		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
+
+		$this->assertSame( $value, $row->meta_value );
+	}
+
+	/**
+	 * @ticket 15158
+	 */
+	function test_null_delete() {
+		global $wpdb;
+
+		$key = 'null_update_where_key';
+		$value = 'null_update_where_key';
+
+		$wpdb->insert(
+			$wpdb->postmeta,
+			array(
+				'meta_key' => $key,
+				'meta_value' => NULL
+			),
+			array( '%s', '%s' )
+		);
+
+		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
+
+		$this->assertNull( $row->meta_value );
+
+		$wpdb->delete(
+			$wpdb->postmeta,
+			array(
+				'meta_key' => $key,
+				'meta_value' => NULL
+			),
+			array( '%s', '%s' )
+		);
+
+		$row = $wpdb->get_row( "SELECT * FROM $wpdb->postmeta WHERE meta_key='$key'" );
+
+		$this->assertNull( $row );
+	}
+}

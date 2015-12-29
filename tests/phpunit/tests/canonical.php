@@ -9,22 +9,17 @@
  * @group query
  */
 class Tests_Canonical extends WP_Canonical_UnitTestCase {
-	public static function setUpBeforeClass() {
-		self::generate_shared_fixtures();
+	public static function wpSetUpBeforeClass( $factory ) {
+		self::generate_shared_fixtures( $factory );
 	}
 
-	public static function tearDownAfterClass() {
+	public static function wpTearDownAfterClass() {
 		self::delete_shared_fixtures();
 	}
 
 	public function setUp() {
 		parent::setUp();
 		wp_set_current_user( self::$author_id );
-	}
-
-	public function tearDown() {
-		wp_set_current_user( self::$old_current_user );
-		parent::tearDown();
 	}
 
 	/**
@@ -52,7 +47,7 @@ class Tests_Canonical extends WP_Canonical_UnitTestCase {
 		 * [2]: (optional) The ticket the test refers to, Can be skipped if unknown.
 		 */
 
-		// Please Note: A few test cases are commented out below, Look at the test case following it, in most cases it's simple showing 2 options for the "proper" redirect.
+		// Please Note: A few test cases are commented out below, Look at the test case following it, in most cases it's simply showing 2 options for the "proper" redirect.
 		return array(
 			// Categories
 
@@ -96,7 +91,7 @@ class Tests_Canonical extends WP_Canonical_UnitTestCase {
 			array( '/2010/post-format-test-au/', '/2008/06/02/post-format-test-audio/'), // A Year the post is not in
 			array( '/post-format-test-au/', '/2008/06/02/post-format-test-audio/'),
 
-			array( '/2008/09/03/images-test/3/', array( 'url' => '/2008/09/03/images-test/3/', 'qv' => array( 'name' => 'images-test', 'year' => '2008', 'monthnum' => '09', 'day' => '03', 'page' => '/3' ) ) ), // page = /3 ?!
+			array( '/2008/09/03/images-test/3/', array( 'url' => '/2008/09/03/images-test/3/', 'qv' => array( 'name' => 'images-test', 'year' => '2008', 'monthnum' => '09', 'day' => '03', 'page' => '3' ) ) ),
 			array( '/2008/09/03/images-test/?page=3', '/2008/09/03/images-test/3/' ),
 			array( '/2008/09/03/images-te?page=3', '/2008/09/03/images-test/3/' ),
 

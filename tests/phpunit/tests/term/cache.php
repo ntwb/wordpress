@@ -15,15 +15,15 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 	 */
 	function test_category_children_cache() {
 		// Test with only one Parent => Child
-		$term_id1 = $this->factory->category->create();
-		$term_id1_child = $this->factory->category->create( array( 'parent' => $term_id1 ) );
+		$term_id1 = self::factory()->category->create();
+		$term_id1_child = self::factory()->category->create( array( 'parent' => $term_id1 ) );
 		$hierarchy = _get_term_hierarchy( 'category' );
 
 		$this->assertEquals( array( $term_id1 => array( $term_id1_child ) ), $hierarchy );
 
 		// Add another Parent => Child
-		$term_id2 = $this->factory->category->create();
-		$term_id2_child = $this->factory->category->create( array( 'parent' => $term_id2 ) );
+		$term_id2 = self::factory()->category->create();
+		$term_id2_child = self::factory()->category->create( array( 'parent' => $term_id2 ) );
 		$hierarchy = _get_term_hierarchy( 'category' );
 
 		$this->assertEquals( array( $term_id1 => array( $term_id1_child ), $term_id2 => array( $term_id2_child ) ), $hierarchy );
@@ -33,8 +33,8 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 	 * @ticket 22526
 	 */
 	function test_category_name_change() {
-		$term = $this->factory->category->create_and_get( array( 'name' => 'Foo' ) );
-		$post_id = $this->factory->post->create();
+		$term = self::factory()->category->create_and_get( array( 'name' => 'Foo' ) );
+		$post_id = self::factory()->post->create();
 		wp_set_post_categories( $post_id, $term->term_id );
 
 		$post = get_post( $post_id );
@@ -58,7 +58,7 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 		$parent_id = 0;
 		$children = 0;
 
-		foreach ( range( 1, 99 ) as $i ) {
+		foreach ( range( 1, 9 ) as $i ) {
 			switch ( $step ) {
 			case 1:
 				$parent = wp_insert_term( 'Parent' . $i, $tax );
@@ -98,15 +98,15 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 		global $wpdb;
 
 		register_taxonomy( 'wptests_tax', 'post' );
-		$term = $this->factory->term->create( array(
+		$term = self::factory()->term->create( array(
 			'taxonomy' => 'wptests_tax',
 		) );
 
 		$term_object = get_term( $term, 'wptests_tax' );
-		wp_cache_delete( $term, 'wptests_tax' );
+		wp_cache_delete( $term, 'terms' );
 
 		// Affirm that the cache is empty.
-		$this->assertEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+		$this->assertEmpty( wp_cache_get( $term, 'terms' ) );
 
 		$num_queries = $wpdb->num_queries;
 
@@ -124,20 +124,20 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 		global $wpdb;
 
 		register_taxonomy( 'wptests_tax', 'post' );
-		$term = $this->factory->term->create( array(
+		$term = self::factory()->term->create( array(
 			'taxonomy' => 'wptests_tax',
 		) );
 
-		wp_cache_delete( $term, 'wptests_tax' );
+		wp_cache_delete( $term, 'terms' );
 
 		// Affirm that the cache is empty.
-		$this->assertEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+		$this->assertEmpty( wp_cache_get( $term, 'terms' ) );
 
 		$num_queries = $wpdb->num_queries;
 
 		// Prime cache.
 		$term_object = get_term( $term, 'wptests_tax' );
-		$this->assertNotEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+		$this->assertNotEmpty( wp_cache_get( $term, 'terms' ) );
 		$this->assertSame( $num_queries + 1, $wpdb->num_queries );
 
 		$term_object_2 = get_term( $term, 'wptests_tax' );
@@ -151,20 +151,20 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 		global $wpdb;
 
 		register_taxonomy( 'wptests_tax', 'post' );
-		$term = $this->factory->term->create( array(
+		$term = self::factory()->term->create( array(
 			'taxonomy' => 'wptests_tax',
 		) );
 
-		wp_cache_delete( $term, 'wptests_tax' );
+		wp_cache_delete( $term, 'terms' );
 
 		// Affirm that the cache is empty.
-		$this->assertEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+		$this->assertEmpty( wp_cache_get( $term, 'terms' ) );
 
 		$num_queries = $wpdb->num_queries;
 
 		// Prime cache.
 		$term_object = get_term_by( 'id', $term, 'wptests_tax' );
-		$this->assertNotEmpty( wp_cache_get( $term, 'wptests_tax' ) );
+		$this->assertNotEmpty( wp_cache_get( $term, 'terms' ) );
 		$this->assertSame( $num_queries + 1, $wpdb->num_queries );
 
 		$term_object_2 = get_term( $term, 'wptests_tax' );
@@ -182,7 +182,7 @@ class Tests_Term_Cache extends WP_UnitTestCase {
 
 		register_taxonomy( 'wptests_tax', 'post' );
 
-		$terms = $this->factory->term->create_many( 5, array(
+		$terms = self::factory()->term->create_many( 5, array(
 			'taxonomy' => 'wptests_tax',
 		) );
 

@@ -5,28 +5,6 @@
  * @group testsuite
  */
 class Tests_Basic extends WP_UnitTestCase {
-	var $val;
-
-	function setUp() {
-		parent::setUp();
-		$this->val = true;
-	}
-
-	function tearDown() {
-		$this->val = false;
-		parent::tearDown();
-	}
-
-	function test_true() {
-		$this->assertTrue($this->val);
-	}
-
-	function test_readme() {
-		$readme = file_get_contents( ABSPATH . 'readme.html' );
-		preg_match( '#<br /> Version (.*)#', $readme, $matches );
-		list( $version ) = explode( '-', $GLOBALS['wp_version'] );
-		$this->assertEquals( $version, trim( $matches[1] ), "readme.html's version needs to be updated to $version." );
-	}
 
 	function test_license() {
 		$license = file_get_contents( ABSPATH . 'license.txt' );

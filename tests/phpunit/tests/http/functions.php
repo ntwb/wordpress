@@ -42,45 +42,65 @@ class Tests_HTTP_Functions extends WP_UnitTestCase {
 
 	function test_get_request() {
 		$url = 'https://asdftestblog1.files.wordpress.com/2007/09/2007-06-30-dsc_4700-1.jpg';
-		$file = tempnam('/tmp', 'testfile');
 
-		$headers = wp_get_http($url, $file);
+		$response = wp_remote_get( $url );
+		$headers = wp_remote_retrieve_headers( $response );
 
 		// should return the same headers as a head request
 		$this->assertInternalType( 'array', $headers, "Reply wasn't array." );
 		$this->assertEquals( 'image/jpeg', $headers['content-type'] );
 		$this->assertEquals( '40148', $headers['content-length'] );
-		$this->assertEquals( '200', $headers['response'] );
-
-		// make sure the file is ok
-		$this->assertEquals( 40148, filesize($file) );
-		$this->assertEquals( 'b0371a0fc575fcf77f62cd298571f53b', md5_file($file) );
+		$this->assertEquals( '200', wp_remote_retrieve_response_code( $response ) );
 	}
 
 	function test_get_redirect() {
 		// this will redirect to asdftestblog1.files.wordpress.com
 		$url = 'https://asdftestblog1.wordpress.com/files/2007/09/2007-06-30-dsc_4700-1.jpg';
-		$file = tempnam('/tmp', 'testfile');
 
-		$headers = wp_get_http($url, $file);
+		$response = wp_remote_get( $url );
+		$headers = wp_remote_retrieve_headers( $response );
 
 		// should return the same headers as a head request
 		$this->assertInternalType( 'array', $headers, "Reply wasn't array." );
 		$this->assertEquals( 'image/jpeg', $headers['content-type'] );
 		$this->assertEquals( '40148', $headers['content-length'] );
-		$this->assertEquals( '200', $headers['response'] );
-
-		// make sure the file is ok
-		$this->assertEquals( 40148, filesize($file) );
-		$this->assertEquals( 'b0371a0fc575fcf77f62cd298571f53b', md5_file($file) );
+		$this->assertEquals( '200', wp_remote_retrieve_response_code( $response ) );
 	}
 
 	function test_get_redirect_limit_exceeded() {
 		// this will redirect to asdftestblog1.files.wordpress.com
 		$url = 'https://asdftestblog1.wordpress.com/files/2007/09/2007-06-30-dsc_4700-1.jpg';
-		$file = tempnam('/tmp', 'testfile');
+
 		// pretend we've already redirected 5 times
-		$headers = wp_get_http( $url, $file, 6 );
-		$this->assertFalse( $headers );
+		$response = wp_remote_get( $url, array( 'redirection' => -1 ) );
+		$this->assertWPError( $response );
 	}
+
+	/**
+	 * @ticket 33711
+	 */
+	function test_get_response_cookies() {
+		$url = 'https://login.wordpress.org/wp-login.php';
+
+		$response = wp_remote_head( $url );
+		$cookies  = wp_remote_retrieve_cookies( $response );
+
+		$this->assertInternalType( 'array', $cookies );
+		$this->assertNotEmpty( $cookies );
+
+		$cookie = wp_remote_retrieve_cookie( $response, 'wordpress_test_cookie' );
+		$this->assertInstanceOf( 'WP_Http_Cookie', $cookie );
+		$this->assertSame( 'wordpress_test_cookie', $cookie->name );
+		$this->assertSame( 'WP Cookie check', $cookie->value );
+
+		$value = wp_remote_retrieve_cookie_value( $response, 'wordpress_test_cookie' );
+		$this->assertSame( 'WP Cookie check', $value );
+
+		$no_value = wp_remote_retrieve_cookie_value( $response, 'not_a_cookie' );
+		$this->assertSame( '', $no_value );
+
+		$no_cookie = wp_remote_retrieve_cookie( $response, 'not_a_cookie' );
+		$this->assertSame( '', $no_cookie );
+	}
+
 }

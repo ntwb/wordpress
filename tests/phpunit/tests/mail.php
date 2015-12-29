@@ -12,7 +12,7 @@ class Tests_Mail extends WP_UnitTestCase {
 	/**
 	 * Send a mail with a 1000 char long line.
 	 *
-	 * `PHPMailer::createBody()` will set `$this->Encoding = 'quoted-printable'` (away from it's default of 8bit)
+	 * `PHPMailer::createBody()` will set `$this->Encoding = 'quoted-printable'` (away from its default of 8bit)
 	 * when it encounters a line longer than 999 characters. But PHPMailer doesn't clean up after itself / presets
 	 * all variables, which means that following tests would fail. To solve this issue we set `$this->Encoding`
 	 * back to 8bit in `MockPHPMailer::preSend`.
@@ -20,7 +20,7 @@ class Tests_Mail extends WP_UnitTestCase {
 	 */
 	function test_wp_mail_break_it() {
 		$content = str_repeat( 'A', 1000 );
-		wp_mail( "admin@example.org", 'Looong line testing', $content);
+		wp_mail( WP_TESTS_EMAIL, 'Looong line testing', $content);
 	}
 
 	function test_wp_mail_custom_boundaries() {
@@ -188,7 +188,7 @@ class Tests_Mail extends WP_UnitTestCase {
 		$subject  = "Testing";
 		$message  = "Test Message";
 		$headers  = "From: ";
-		$expected = "From: WordPress <wordpress@example.com>";
+		$expected = "From: WordPress <wordpress@" . WP_TESTS_DOMAIN . ">";
 
 		wp_mail( $to, $subject, $message, $headers );
 
@@ -253,5 +253,39 @@ class Tests_Mail extends WP_UnitTestCase {
 		wp_mail( $to, $subject, $message, $headers );
 
 		$this->assertTrue( strpos( $GLOBALS['phpmailer']->mock_sent[0]['header'], $expected ) > 0 );
+	}
+
+	function wp_mail_quoted_printable( $mailer ) {
+		$mailer->Encoding = 'quoted-printable';
+	}
+
+	function wp_mail_set_text_message( $mailer ) {
+		$mailer->AltBody = 'Wörld';
+	}
+
+	/**
+	 * > If an entity is of type "multipart" the Content-Transfer-Encoding is
+	 * > not permitted to have any value other than "7bit", "8bit" or
+	 * > "binary".
+	 * http://tools.ietf.org/html/rfc2045#section-6.4
+	 *
+	 * > "Content-Transfer-Encoding: 7BIT" is assumed if the
+	 * > Content-Transfer-Encoding header field is not present.
+	 * http://tools.ietf.org/html/rfc2045#section-6.1
+	 *
+	 * @ticket 28039
+	 */
+	function test_wp_mail_content_transfer_encoding_in_quoted_printable_multipart() {
+		add_action( 'phpmailer_init', array( $this, 'wp_mail_quoted_printable' ) );
+		add_action( 'phpmailer_init', array( $this, 'wp_mail_set_text_message' ) );
+
+		wp_mail(
+			'user@example.com',
+			'Hello',
+			'<p><strong>Wörld</strong></p>',
+			'Content-Type: text/html'
+		);
+
+		$this->assertNotContains( 'quoted-printable', $GLOBALS['phpmailer']->mock_sent[0]['header'] );
 	}
 }

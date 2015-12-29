@@ -101,4 +101,62 @@ class Tests_Post_Types extends WP_UnitTestCase {
 		update_option( 'permalink_structure', $old_permastruct );
 		_unregister_post_type( 'foo' );
 	}
+
+	/**
+	 * @ticket 33543
+	 */
+	function test_get_post_type_labels_should_fall_back_on_defaults_when_filtered_labels_do_not_contain_the_keys() {
+		add_filter( 'post_type_labels_foo', array( $this, 'filter_post_type_labels' ) );
+		register_post_type( 'foo' );
+
+		$this->assertObjectHasAttribute( 'featured_image', get_post_type_object( 'foo' )->labels );
+		$this->assertObjectHasAttribute( 'set_featured_image', get_post_type_object( 'foo' )->labels );
+
+		_unregister_post_type( 'foo' );
+		remove_filter( 'post_type_labels_foo', array( $this, 'filter_post_type_labels' ) );
+	}
+
+	public function filter_post_type_labels( $labels ) {
+		unset( $labels->featured_image );
+		unset( $labels->set_featured_image );
+		return $labels;
+	}
+
+
+	/**
+	 * @ticket 30013
+	 */
+	public function test_get_post_type_object_with_non_scalar_values() {
+		$this->assertFalse( post_type_exists( 'foo' ) );
+
+		register_post_type( 'foo' );
+
+		$this->assertTrue( post_type_exists( 'foo' ) );
+
+		$this->assertNotNull( get_post_type_object( 'foo' ) );
+		$this->assertNull( get_post_type_object( array() ) );
+		$this->assertNull( get_post_type_object( array( 'foo' ) ) );
+		$this->assertNull( get_post_type_object( new stdClass ) );
+
+		_unregister_post_type( 'foo' );
+
+		$this->assertFalse( post_type_exists( 'foo' ) );
+	}
+
+	/**
+	 * @ticket 33023
+	 */
+	public function test_get_post_type_object_casting() {
+		register_post_type( 'foo' );
+
+		$before = get_post_type_object( 'foo' )->labels;
+
+		get_post_type_labels( get_post_type_object( 'foo' ) );
+
+		$after = get_post_type_object( 'foo' )->labels;
+
+		$this->assertEquals( $before, $after );
+
+		_unregister_post_type( 'foo' );
+	}
 }

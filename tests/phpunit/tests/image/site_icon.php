@@ -127,6 +127,22 @@ class Tests_WP_Site_Icon extends WP_UnitTestCase {
 		$this->assertFalse( get_option( 'site_icon', false ) );
 	}
 
+	/**
+	 * @ticket 34368
+	 */
+	function test_get_post_metadata() {
+		$attachment_id = $this->_insert_attachment();
+		update_option( 'site_icon', $attachment_id );
+
+		$this->wp_site_icon->get_post_metadata( '', $attachment_id, '_some_post_meta', true );
+		$this->assertFalse( has_filter( 'intermediate_image_sizes', array( $this->wp_site_icon, 'intermediate_image_sizes' ) ) );
+
+		$this->wp_site_icon->get_post_metadata( '', $attachment_id, '_wp_attachment_backup_sizes', true );
+		$this->assertSame( 10,  has_filter( 'intermediate_image_sizes', array( $this->wp_site_icon, 'intermediate_image_sizes' ) ) );
+
+		wp_delete_attachment( $attachment_id, true );
+	}
+
 	function _custom_test_sizes( $sizes ) {
 		$sizes[] = 321;
 
@@ -142,28 +158,8 @@ class Tests_WP_Site_Icon extends WP_UnitTestCase {
 		$contents = file_get_contents( $filename );
 
 		$upload = wp_upload_bits( basename( $filename ), null, $contents );
-		$type   = '';
-		if ( ! empty( $upload['type'] ) ) {
-			$type = $upload['type'];
-		} else {
-			$mime = wp_check_filetype( $upload['file'] );
-			if ( $mime ) {
-				$type = $mime['type'];
-			}
-		}
 
-		$attachment = array(
-			'post_title'     => basename( $upload['file'] ),
-			'post_content'   => $upload['url'],
-			'post_type'      => 'attachment',
-			'post_mime_type' => $type,
-			'guid'           => $upload['url'],
-		);
-
-		// Save the data
-		$this->attachment_id  = wp_insert_attachment( $attachment, $upload['file'] );
-		wp_update_attachment_metadata( $this->attachment_id, wp_generate_attachment_metadata( $this->attachment_id, $upload['file'] ) );
-
+		$this->attachment_id = $this->_make_attachment( $upload );
 		return $this->attachment_id;
 	}
 }

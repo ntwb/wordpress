@@ -5,11 +5,50 @@
  * @group user
  */
 class Tests_User_Query extends WP_UnitTestCase {
+	protected static $author_ids;
+	protected static $sub_ids;
+	protected static $editor_ids;
+	protected static $contrib_id;
+	protected static $admin_ids;
 
 	protected $user_id;
 
-	function setUp() {
-		parent::setUp();
+	public static function wpSetUpBeforeClass( $factory ) {
+		self::$author_ids = $factory->user->create_many( 4, array(
+			'role' => 'author'
+		) );
+
+		self::$sub_ids = $factory->user->create_many( 2, array(
+			'role' => 'subscriber',
+		) );
+
+		self::$editor_ids = $factory->user->create_many( 3, array(
+			'role' => 'editor',
+		) );
+
+		self::$contrib_id = $factory->user->create( array(
+			'role' => 'contributor',
+		) );
+
+		self::$admin_ids = $factory->user->create_many( 2, array(
+			'role' => 'administrator',
+		) );
+	}
+
+	public static function wpTearDownAfterClass() {
+		$sets = array(
+			self::$author_ids,
+			self::$sub_ids,
+			self::$editor_ids,
+			array( self::$contrib_id ),
+			self::$admin_ids
+		);
+
+		foreach ( $sets as $set ) {
+			foreach ( $set as $id ) {
+				self::delete_user( $id );
+			}
+		}
 	}
 
 	function test_get_and_set() {
@@ -31,83 +70,71 @@ class Tests_User_Query extends WP_UnitTestCase {
 	}
 
 	public function test_include_single() {
-		$users = $this->factory->user->create_many( 2 );
 		$q = new WP_User_Query( array(
 			'fields' => '',
-			'include' => $users[0],
+			'include' => self::$author_ids[0],
 		) );
 		$ids = $q->get_results();
 
-		$this->assertEquals( array( $users[0] ), $ids );
+		$this->assertEquals( array( self::$author_ids[0] ), $ids );
 	}
 
 	public function test_include_comma_separated() {
-		$users = $this->factory->user->create_many( 3 );
 		$q = new WP_User_Query( array(
 			'fields' => '',
-			'include' => $users[0] . ', ' . $users[2],
+			'include' => self::$author_ids[0] . ', ' . self::$author_ids[2],
 		) );
 		$ids = $q->get_results();
 
-		$this->assertEqualSets( array( $users[0], $users[2] ), $ids );
+		$this->assertEqualSets( array( self::$author_ids[0], self::$author_ids[2] ), $ids );
 	}
 
 	public function test_include_array() {
-		$users = $this->factory->user->create_many( 3 );
 		$q = new WP_User_Query( array(
 			'fields' => '',
-			'include' => array( $users[0], $users[2] ),
+			'include' => array( self::$author_ids[0], self::$author_ids[2] ),
 		) );
 		$ids = $q->get_results();
 
-		$this->assertEqualSets( array( $users[0], $users[2] ), $ids );
+		$this->assertEqualSets( array( self::$author_ids[0], self::$author_ids[2] ), $ids );
 	}
 
 	public function test_include_array_bad_values() {
-		$users = $this->factory->user->create_many( 3 );
 		$q = new WP_User_Query( array(
 			'fields' => '',
-			'include' => array( $users[0], 'foo', $users[2] ),
+			'include' => array( self::$author_ids[0], 'foo', self::$author_ids[2] ),
 		) );
 		$ids = $q->get_results();
 
-		$this->assertEqualSets( array( $users[0], $users[2] ), $ids );
+		$this->assertEqualSets( array( self::$author_ids[0], self::$author_ids[2] ), $ids );
 	}
 
 	public function test_exclude() {
-		$users = $this->factory->user->create_many( 3, array(
-			'role' => 'author',
-		) );
-
 		$q = new WP_User_Query( array(
 			'fields' => '',
-			'exclude' => $users[1],
+			'exclude' => self::$author_ids[1],
 		) );
 
 		$ids = $q->get_results();
 
 		// Indirect test in order to ignore default user created during installation.
 		$this->assertNotEmpty( $ids );
-		$this->assertNotContains( $users[1], $ids );
+		$this->assertNotContains( self::$author_ids[1], $ids );
 	}
 
 	public function test_get_all() {
-		$this->factory->user->create_many( 3, array(
-			'role' => 'author'
-		) );
-
 		$users = new WP_User_Query( array( 'blog_id' => get_current_blog_id() ) );
 		$users = $users->get_results();
 
 		// +1 for the default user created during installation.
-		$this->assertEquals( 4, count( $users ) );
+		$this->assertEquals( 13, count( $users ) );
 		foreach ( $users as $user ) {
 			$this->assertInstanceOf( 'WP_User', $user );
 		}
 
 		$users = new WP_User_Query( array( 'blog_id' => get_current_blog_id(), 'fields' => 'all_with_meta' ) );
 		$users = $users->get_results();
-		$this->assertEquals( 4, count( $users ) );
+		$this->assertEquals( 13, count( $users ) );
 		foreach ( $users as $user ) {
 			$this->assertInstanceOf( 'WP_User', $user );
 		}
@@ -135,22 +162,18 @@ class Tests_User_Query extends WP_UnitTestCase {
 	}
 
 	public function test_orderby_meta_value() {
-		$users = $this->factory->user->create_many( 3, array(
-			'role' => 'author'
-		) );
-
-		update_user_meta( $users[0], 'last_name', 'Jones' );
-		update_user_meta( $users[1], 'last_name', 'Albert' );
-		update_user_meta( $users[2], 'last_name', 'Zorro' );
+		update_user_meta( self::$author_ids[0], 'last_name', 'Jones' );
+		update_user_meta( self::$author_ids[1], 'last_name', 'Albert' );
+		update_user_meta( self::$author_ids[2], 'last_name', 'Zorro' );
 
 		$q = new WP_User_Query( array(
-			'include' => $users,
+			'include' => self::$author_ids,
 			'meta_key' => 'last_name',
 			'orderby' => 'meta_value',
 			'fields' => 'ids'
 		) );
 
-		$expected = array( $users[1], $users[0], $users[2] );
+		$expected = array( self::$author_ids[3], self::$author_ids[1], self::$author_ids[0], self::$author_ids[2] );
 
 		$this->assertEquals( $expected, $q->get_results() );
 	}
@@ -159,22 +182,18 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 27887
 	 */
 	public function test_orderby_meta_value_num() {
-		$users = $this->factory->user->create_many( 3, array(
-			'role' => 'author'
-		) );
-
-		update_user_meta( $users[0], 'user_age', '101' );
-		update_user_meta( $users[1], 'user_age', '20' );
-		update_user_meta( $users[2], 'user_age', '25' );
+		update_user_meta( self::$author_ids[0], 'user_age', '101' );
+		update_user_meta( self::$author_ids[1], 'user_age', '20' );
+		update_user_meta( self::$author_ids[2], 'user_age', '25' );
 
 		$q = new WP_User_Query( array(
-			'include' => $users,
+			'include' => self::$author_ids,
 			'meta_key' => 'user_age',
 			'orderby' => 'meta_value_num',
 			'fields' => 'ids'
 		) );
 
-		$expected = array( $users[1], $users[2], $users[0] );
+		$expected = array( self::$author_ids[1], self::$author_ids[2], self::$author_ids[0] );
 
 		$this->assertEquals( $expected, $q->get_results() );
 	}
@@ -183,22 +202,18 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_somekey_where_meta_key_is_somekey() {
-		$users = $this->factory->user->create_many( 3, array(
-			'role' => 'author'
-		) );
-
-		update_user_meta( $users[0], 'foo', 'zzz' );
-		update_user_meta( $users[1], 'foo', 'aaa' );
-		update_user_meta( $users[2], 'foo', 'jjj' );
+		update_user_meta( self::$author_ids[0], 'foo', 'zzz' );
+		update_user_meta( self::$author_ids[1], 'foo', 'aaa' );
+		update_user_meta( self::$author_ids[2], 'foo', 'jjj' );
 
 		$q = new WP_User_Query( array(
-			'include' => $users,
+			'include' => self::$author_ids,
 			'meta_key' => 'foo',
 			'orderby' => 'foo',
 			'fields' => 'ids'
 		) );
 
-		$expected = array( $users[1], $users[2], $users[0] );
+		$expected = array( self::$author_ids[1], self::$author_ids[2], self::$author_ids[0] );
 
 		$this->assertEquals( $expected, $q->get_results() );
 	}
@@ -207,10 +222,9 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_clause_key() {
-		$users = $this->factory->user->create_many( 3 );
-		add_user_meta( $users[0], 'foo', 'aaa' );
-		add_user_meta( $users[1], 'foo', 'zzz' );
-		add_user_meta( $users[2], 'foo', 'jjj' );
+		add_user_meta( self::$author_ids[0], 'foo', 'aaa' );
+		add_user_meta( self::$author_ids[1], 'foo', 'zzz' );
+		add_user_meta( self::$author_ids[2], 'foo', 'jjj' );
 
 		$q = new WP_User_Query( array(
 			'fields' => 'ids',
@@ -224,20 +238,20 @@ class Tests_User_Query extends WP_UnitTestCase {
 			'order' => 'DESC',
 		) );
 
-		$this->assertEquals( array( $users[1], $users[2], $users[0] ), $q->results );
+		$this->assertEquals( array( self::$author_ids[1], self::$author_ids[2], self::$author_ids[0] ), $q->results );
 	}
 
 	/**
 	 * @ticket 31265
 	 */
 	public function test_orderby_clause_key_as_secondary_sort() {
-		$u1 = $this->factory->user->create( array(
+		$u1 = self::factory()->user->create( array(
 			'user_registered' => '2015-01-28 03:00:00',
 		) );
-		$u2 = $this->factory->user->create( array(
+		$u2 = self::factory()->user->create( array(
 			'user_registered' => '2015-01-28 05:00:00',
 		) );
-		$u3 = $this->factory->user->create( array(
+		$u3 = self::factory()->user->create( array(
 			'user_registered' => '2015-01-28 03:00:00',
 		) );
 
@@ -266,14 +280,12 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_more_than_one_clause_key() {
-		$users = $this->factory->user->create_many( 3 );
-
-		add_user_meta( $users[0], 'foo', 'jjj' );
-		add_user_meta( $users[1], 'foo', 'zzz' );
-		add_user_meta( $users[2], 'foo', 'jjj' );
-		add_user_meta( $users[0], 'bar', 'aaa' );
-		add_user_meta( $users[1], 'bar', 'ccc' );
-		add_user_meta( $users[2], 'bar', 'bbb' );
+		add_user_meta( self::$author_ids[0], 'foo', 'jjj' );
+		add_user_meta( self::$author_ids[1], 'foo', 'zzz' );
+		add_user_meta( self::$author_ids[2], 'foo', 'jjj' );
+		add_user_meta( self::$author_ids[0], 'bar', 'aaa' );
+		add_user_meta( self::$author_ids[1], 'bar', 'ccc' );
+		add_user_meta( self::$author_ids[2], 'bar', 'bbb' );
 
 		$q = new WP_User_Query( array(
 			'fields' => 'ids',
@@ -293,7 +305,7 @@ class Tests_User_Query extends WP_UnitTestCase {
 			),
 		) );
 
-		$this->assertEquals( array( $users[2], $users[0], $users[1] ), $q->results );
+		$this->assertEquals( array( self::$author_ids[2], self::$author_ids[0], self::$author_ids[1] ), $q->results );
 	}
 
 	/**
@@ -313,18 +325,17 @@ class Tests_User_Query extends WP_UnitTestCase {
 	public function test_orderby_include() {
 		global $wpdb;
 
-		$users = $this->factory->user->create_many( 4 );
 		$q = new WP_User_Query( array(
 			'orderby' => 'include',
-			'include' => array( $users[1], $users[0], $users[3] ),
+			'include' => array( self::$author_ids[1], self::$author_ids[0], self::$author_ids[3] ),
 			'fields' => '',
 		) );
 
-		$expected_orderby = 'ORDER BY FIELD( ' . $wpdb->users . '.ID, ' . $users[1] . ',' . $users[0] . ',' . $users[3] . ' )';
+		$expected_orderby = 'ORDER BY FIELD( ' . $wpdb->users . '.ID, ' . self::$author_ids[1] . ',' . self::$author_ids[0] . ',' . self::$author_ids[3] . ' )';
 		$this->assertContains( $expected_orderby, $q->query_orderby );
 
 		// assertEquals() respects order but ignores type (get_results() returns numeric strings).
-		$this->assertEquals( array( $users[1], $users[0], $users[3] ), $q->get_results() );
+		$this->assertEquals( array( self::$author_ids[1], self::$author_ids[0], self::$author_ids[3] ), $q->get_results() );
 	}
 
 	/**
@@ -333,26 +344,23 @@ class Tests_User_Query extends WP_UnitTestCase {
 	public function test_orderby_include_duplicate_values() {
 		global $wpdb;
 
-		$users = $this->factory->user->create_many( 4 );
 		$q = new WP_User_Query( array(
 			'orderby' => 'include',
-			'include' => array( $users[1], $users[0], $users[1], $users[3] ),
+			'include' => array( self::$author_ids[1], self::$author_ids[0], self::$author_ids[1], self::$author_ids[3] ),
 			'fields' => '',
 		) );
 
-		$expected_orderby = 'ORDER BY FIELD( ' . $wpdb->users . '.ID, ' . $users[1] . ',' . $users[0] . ',' . $users[3] . ' )';
+		$expected_orderby = 'ORDER BY FIELD( ' . $wpdb->users . '.ID, ' . self::$author_ids[1] . ',' . self::$author_ids[0] . ',' . self::$author_ids[3] . ' )';
 		$this->assertContains( $expected_orderby, $q->query_orderby );
 
 		// assertEquals() respects order but ignores type (get_results() returns numeric strings).
-		$this->assertEquals( array( $users[1], $users[0], $users[3] ), $q->get_results() );
+		$this->assertEquals( array( self::$author_ids[1], self::$author_ids[0], self::$author_ids[3] ), $q->get_results() );
 	}
 
 	/**
 	 * @ticket 31265
 	 */
 	public function test_orderby_space_separated() {
-		global $wpdb;
-
 		$q = new WP_User_Query( array(
 			'orderby' => 'login nicename',
 			'order' => 'ASC',
@@ -365,8 +373,6 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_flat_array() {
-		global $wpdb;
-
 		$q = new WP_User_Query( array(
 			'orderby' => array( 'login', 'nicename' ),
 		) );
@@ -378,8 +384,6 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_array_contains_invalid_item() {
-		global $wpdb;
-
 		$q = new WP_User_Query( array(
 			'orderby' => array( 'login', 'foo', 'nicename' ),
 		) );
@@ -391,8 +395,6 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_array_contains_all_invalid_items() {
-		global $wpdb;
-
 		$q = new WP_User_Query( array(
 			'orderby' => array( 'foo', 'bar', 'baz' ),
 		) );
@@ -404,8 +406,6 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_array() {
-		global $wpdb;
-
 		$q = new WP_User_Query( array(
 			'orderby' => array(
 				'login' => 'DESC',
@@ -421,8 +421,6 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 31265
 	 */
 	public function test_orderby_array_should_discard_invalid_columns() {
-		global $wpdb;
-
 		$q = new WP_User_Query( array(
 			'orderby' => array(
 				'login' => 'DESC',
@@ -432,6 +430,28 @@ class Tests_User_Query extends WP_UnitTestCase {
 		) );
 
 		$this->assertContains( "ORDER BY user_login DESC, user_email ASC", $q->query_orderby );
+	}
+
+	/**
+	 * @ticket 28631
+	 */
+	function test_number() {
+		// +1 for the default user created by the test suite.
+		$users = new WP_User_Query( array( 'blog_id' => get_current_blog_id() ) );
+		$users = $users->get_results();
+		$this->assertEquals( 13, count( $users ) );
+
+		$users = new WP_User_Query( array( 'blog_id' => get_current_blog_id(), 'number' => 10 ) );
+		$users = $users->get_results();
+		$this->assertEquals( 10, count( $users ) );
+
+		$users = new WP_User_Query( array( 'blog_id' => get_current_blog_id(), 'number' => 2 ) );
+		$users = $users->get_results();
+		$this->assertEquals( 2, count( $users ) );
+
+		$users = new WP_User_Query( array( 'blog_id' => get_current_blog_id(), 'number' => -1 ) );
+		$users = $users->get_results();
+		$this->assertEquals( 13, count( $users ) );
 	}
 
 	/**
@@ -459,7 +479,7 @@ class Tests_User_Query extends WP_UnitTestCase {
 		// All values get reset
 		$query->prepare_query( array( 'number' => 8 ) );
 		$this->assertNotEmpty( $query->query_limit );
-		$this->assertEquals( 'LIMIT 8', $query->query_limit );
+		$this->assertEquals( 'LIMIT 0, 8', $query->query_limit );
 
 		// All values get reset
 		$query->prepare_query( array( 'fields' => 'all' ) );
@@ -469,6 +489,10 @@ class Tests_User_Query extends WP_UnitTestCase {
 
 		$query->prepare_query();
 		$this->assertEquals( $_query_vars, $query->query_vars );
+
+		$query->prepare_query( array( 'number' => -1 ) );
+		$this->assertNotEquals( 'LIMIT -1', $query->query_limit );
+		$this->assertEmpty( $query->query_limit );
 	}
 
 	public function test_meta_vars_should_be_converted_to_meta_query() {
@@ -497,10 +521,8 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 23849
 	 */
 	function test_meta_query_with_role() {
-		$author_ids = $this->factory->user->create_many( 4, array( 'role' => 'author' ) );
-
-		add_user_meta( $author_ids[0], 'foo', 'bar' );
-		add_user_meta( $author_ids[1], 'foo', 'baz' );
+		add_user_meta( self::$author_ids[0], 'foo', 'bar' );
+		add_user_meta( self::$author_ids[1], 'foo', 'baz' );
 
 		// Users with foo = bar or baz restricted to the author role.
 		$query = new WP_User_Query( array(
@@ -519,14 +541,12 @@ class Tests_User_Query extends WP_UnitTestCase {
 			),
 		) );
 
-		$this->assertEquals( array( $author_ids[0], $author_ids[1] ), $query->get_results() );
+		$this->assertEquals( array( self::$author_ids[0], self::$author_ids[1] ), $query->get_results() );
 	}
 
 	public function test_roles_and_caps_should_be_populated_for_default_value_of_blog_id() {
-		$u = $this->factory->user->create( array( 'role' => 'author' ) );
-
 		$query = new WP_User_Query( array(
-			'include' => $u,
+			'include' => self::$author_ids[0],
 		) );
 
 		$found = $query->get_results();
@@ -542,10 +562,8 @@ class Tests_User_Query extends WP_UnitTestCase {
 			$this->markTestSkipped( __METHOD__ . ' is a non-multisite-only test.' );
 		}
 
-		$u = $this->factory->user->create( array( 'role' => 'author' ) );
-
 		$query = new WP_User_Query( array(
-			'include' => $u,
+			'include' => self::$author_ids[0],
 			'blog_id' => get_current_blog_id(),
 		) );
 
@@ -562,10 +580,8 @@ class Tests_User_Query extends WP_UnitTestCase {
 			$this->markTestSkipped( __METHOD__ . ' is a multisite-only test.' );
 		}
 
-		$u = $this->factory->user->create( array( 'role' => 'author' ) );
-
 		$query = new WP_User_Query( array(
-			'include' => $u,
+			'include' => self::$author_ids[0],
 			'blog_id' => get_current_blog_id(),
 		) );
 
@@ -582,12 +598,12 @@ class Tests_User_Query extends WP_UnitTestCase {
 			$this->markTestSkipped( __METHOD__ . ' is a multisite-only test.' );
 		}
 
-		$b = $this->factory->blog->create();
-		$u = $this->factory->user->create();
-		add_user_to_blog( $b, $u, 'author' );
+		$b = self::factory()->blog->create();
+
+		add_user_to_blog( $b, self::$author_ids[0], 'author' );
 
 		$query = new WP_User_Query( array(
-			'include' => $u,
+			'include' => self::$author_ids[0],
 			'blog_id' => $b,
 			'fields' => 'all_with_meta',
 		) );
@@ -608,13 +624,12 @@ class Tests_User_Query extends WP_UnitTestCase {
 			$this->markTestSkipped( __METHOD__ . ' is a multisite-only test.' );
 		}
 
-		$b = $this->factory->blog->create();
-		$u = $this->factory->user->create();
-		add_user_to_blog( $b, $u, 'author' );
+		$b = self::factory()->blog->create();
+		add_user_to_blog( $b, self::$author_ids[0], 'author' );
 
 		$query = new WP_User_Query( array(
 			'fields' => 'all',
-			'include' => $u,
+			'include' => self::$author_ids[0],
 			'blog_id' => $b,
 		) );
 
@@ -634,12 +649,11 @@ class Tests_User_Query extends WP_UnitTestCase {
 			$this->markTestSkipped( __METHOD__ . ' requires multisite.' );
 		}
 
-		$b = $this->factory->blog->create();
-		$users = $this->factory->user->create_many( 3 );
+		$b = self::factory()->blog->create();
 
-		add_user_to_blog( $b, $users[0], 'subscriber' );
-		add_user_to_blog( $b, $users[1], 'author' );
-		add_user_to_blog( $b, $users[2], 'editor' );
+		add_user_to_blog( $b, self::$author_ids[0], 'subscriber' );
+		add_user_to_blog( $b, self::$author_ids[1], 'author' );
+		add_user_to_blog( $b, self::$author_ids[2], 'editor' );
 
 		$q = new WP_User_Query( array(
 			'who' => 'authors',
@@ -648,9 +662,9 @@ class Tests_User_Query extends WP_UnitTestCase {
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
 
-		$this->assertNotContains( $users[0], $found );
-		$this->assertContains( $users[1], $found );
-		$this->assertContains( $users[2], $found );
+		$this->assertNotContains( self::$author_ids[0], $found );
+		$this->assertContains( self::$author_ids[1], $found );
+		$this->assertContains( self::$author_ids[2], $found );
 	}
 
 	/**
@@ -661,15 +675,14 @@ class Tests_User_Query extends WP_UnitTestCase {
 			$this->markTestSkipped( __METHOD__ . ' requires multisite.' );
 		}
 
-		$b = $this->factory->blog->create();
-		$users = $this->factory->user->create_many( 3 );
+		$b = self::factory()->blog->create();
 
-		add_user_to_blog( $b, $users[0], 'subscriber' );
-		add_user_to_blog( $b, $users[1], 'author' );
-		add_user_to_blog( $b, $users[2], 'editor' );
+		add_user_to_blog( $b, self::$author_ids[0], 'subscriber' );
+		add_user_to_blog( $b, self::$author_ids[1], 'author' );
+		add_user_to_blog( $b, self::$author_ids[2], 'editor' );
 
-		add_user_meta( $users[1], 'foo', 'bar' );
-		add_user_meta( $users[2], 'foo', 'baz' );
+		add_user_meta( self::$author_ids[1], 'foo', 'bar' );
+		add_user_meta( self::$author_ids[2], 'foo', 'baz' );
 
 		$q = new WP_User_Query( array(
 			'who' => 'authors',
@@ -682,9 +695,9 @@ class Tests_User_Query extends WP_UnitTestCase {
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
 
-		$this->assertNotContains( $users[0], $found );
-		$this->assertContains( $users[1], $found );
-		$this->assertNotContains( $users[2], $found );
+		$this->assertNotContains( self::$author_ids[0], $found );
+		$this->assertContains( self::$author_ids[1], $found );
+		$this->assertNotContains( self::$author_ids[2], $found );
 	}
 
 	/**
@@ -694,17 +707,15 @@ class Tests_User_Query extends WP_UnitTestCase {
 		register_post_type( 'wptests_pt_public', array( 'public' => true ) );
 		register_post_type( 'wptests_pt_private', array( 'public' => false ) );
 
-		$users = $this->factory->user->create_many( 3 );
-
-		$this->factory->post->create( array( 'post_author' => $users[0], 'post_status' => 'publish', 'post_type' => 'wptests_pt_public' ) );
-		$this->factory->post->create( array( 'post_author' => $users[1], 'post_status' => 'publish', 'post_type' => 'wptests_pt_private' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[0], 'post_status' => 'publish', 'post_type' => 'wptests_pt_public' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[1], 'post_status' => 'publish', 'post_type' => 'wptests_pt_private' ) );
 
 		$q = new WP_User_Query( array(
 			'has_published_posts' => true,
 		) );
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
-		$expected = array( $users[0] );
+		$expected = array( self::$author_ids[0] );
 
 		$this->assertEqualSets( $expected, $found );
 	}
@@ -716,18 +727,16 @@ class Tests_User_Query extends WP_UnitTestCase {
 		register_post_type( 'wptests_pt_public', array( 'public' => true ) );
 		register_post_type( 'wptests_pt_private', array( 'public' => false ) );
 
-		$users = $this->factory->user->create_many( 3 );
-
-		$this->factory->post->create( array( 'post_author' => $users[0], 'post_status' => 'publish', 'post_type' => 'wptests_pt_public' ) );
-		$this->factory->post->create( array( 'post_author' => $users[1], 'post_status' => 'publish', 'post_type' => 'wptests_pt_private' ) );
-		$this->factory->post->create( array( 'post_author' => $users[2], 'post_status' => 'publish', 'post_type' => 'post' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[0], 'post_status' => 'publish', 'post_type' => 'wptests_pt_public' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[1], 'post_status' => 'publish', 'post_type' => 'wptests_pt_private' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[2], 'post_status' => 'publish', 'post_type' => 'post' ) );
 
 		$q = new WP_User_Query( array(
 			'has_published_posts' => array( 'wptests_pt_private', 'post' ),
 		) );
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
-		$expected = array( $users[1], $users[2] );
+		$expected = array( self::$author_ids[1], self::$author_ids[2] );
 
 		$this->assertEqualSets( $expected, $found );
 	}
@@ -739,18 +748,16 @@ class Tests_User_Query extends WP_UnitTestCase {
 		register_post_type( 'wptests_pt_public', array( 'public' => true ) );
 		register_post_type( 'wptests_pt_private', array( 'public' => false ) );
 
-		$users = $this->factory->user->create_many( 3 );
-
-		$this->factory->post->create( array( 'post_author' => $users[0], 'post_status' => 'draft', 'post_type' => 'wptests_pt_public' ) );
-		$this->factory->post->create( array( 'post_author' => $users[1], 'post_status' => 'inherit', 'post_type' => 'wptests_pt_private' ) );
-		$this->factory->post->create( array( 'post_author' => $users[2], 'post_status' => 'publish', 'post_type' => 'post' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[0], 'post_status' => 'draft', 'post_type' => 'wptests_pt_public' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[1], 'post_status' => 'inherit', 'post_type' => 'wptests_pt_private' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[2], 'post_status' => 'publish', 'post_type' => 'post' ) );
 
 		$q = new WP_User_Query( array(
 			'has_published_posts' => array( 'wptests_pt_public', 'wptests_pt_private', 'post' ),
 		) );
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
-		$expected = array( $users[2] );
+		$expected = array( self::$author_ids[2] );
 
 		$this->assertEqualSets( $expected, $found );
 	}
@@ -763,20 +770,19 @@ class Tests_User_Query extends WP_UnitTestCase {
 			$this->markTestSkipped( __METHOD__ . ' requires multisite.' );
 		}
 
-		$users = $this->factory->user->create_many( 3 );
-		$blogs = $this->factory->blog->create_many( 2 );
+		$blogs = self::factory()->blog->create_many( 2 );
 
-		add_user_to_blog( $blogs[0], $users[0], 'author' );
-		add_user_to_blog( $blogs[0], $users[1], 'author' );
-		add_user_to_blog( $blogs[1], $users[0], 'author' );
-		add_user_to_blog( $blogs[1], $users[1], 'author' );
+		add_user_to_blog( $blogs[0], self::$author_ids[0], 'author' );
+		add_user_to_blog( $blogs[0], self::$author_ids[1], 'author' );
+		add_user_to_blog( $blogs[1], self::$author_ids[0], 'author' );
+		add_user_to_blog( $blogs[1], self::$author_ids[1], 'author' );
 
 		switch_to_blog( $blogs[0] );
-		$this->factory->post->create( array( 'post_author' => $users[0], 'post_status' => 'publish', 'post_type' => 'post' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[0], 'post_status' => 'publish', 'post_type' => 'post' ) );
 		restore_current_blog();
 
 		switch_to_blog( $blogs[1] );
-		$this->factory->post->create( array( 'post_author' => $users[1], 'post_status' => 'publish', 'post_type' => 'post' ) );
+		self::factory()->post->create( array( 'post_author' => self::$author_ids[1], 'post_status' => 'publish', 'post_type' => 'post' ) );
 		restore_current_blog();
 
 		$q = new WP_User_Query( array(
@@ -785,7 +791,7 @@ class Tests_User_Query extends WP_UnitTestCase {
 		) );
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
-		$expected = array( $users[1] );
+		$expected = array( self::$author_ids[1] );
 
 		$this->assertEqualSets( $expected, $found );
 	}
@@ -794,11 +800,9 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 32592
 	 */
 	public function test_top_level_or_meta_query_should_eliminate_duplicate_matches() {
-		$users = $this->factory->user->create_many( 3 );
-
-		add_user_meta( $users[0], 'foo', 'bar' );
-		add_user_meta( $users[1], 'foo', 'bar' );
-		add_user_meta( $users[0], 'foo2', 'bar2' );
+		add_user_meta( self::$author_ids[0], 'foo', 'bar' );
+		add_user_meta( self::$author_ids[1], 'foo', 'bar' );
+		add_user_meta( self::$author_ids[0], 'foo2', 'bar2' );
 
 		$q = new WP_User_Query( array(
 			'meta_query' => array(
@@ -815,7 +819,7 @@ class Tests_User_Query extends WP_UnitTestCase {
 		) );
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
-		$expected = array( $users[0], $users[1] );
+		$expected = array( self::$author_ids[0], self::$author_ids[1] );
 
 		$this->assertEqualSets( $expected, $found );
 	}
@@ -824,12 +828,10 @@ class Tests_User_Query extends WP_UnitTestCase {
 	 * @ticket 32592
 	 */
 	public function test_nested_or_meta_query_should_eliminate_duplicate_matches() {
-		$users = $this->factory->user->create_many( 3 );
-
-		add_user_meta( $users[0], 'foo', 'bar' );
-		add_user_meta( $users[1], 'foo', 'bar' );
-		add_user_meta( $users[0], 'foo2', 'bar2' );
-		add_user_meta( $users[1], 'foo3', 'bar3' );
+		add_user_meta( self::$author_ids[0], 'foo', 'bar' );
+		add_user_meta( self::$author_ids[1], 'foo', 'bar' );
+		add_user_meta( self::$author_ids[0], 'foo2', 'bar2' );
+		add_user_meta( self::$author_ids[1], 'foo3', 'bar3' );
 
 		$q = new WP_User_Query( array(
 			'meta_query' => array(
@@ -853,8 +855,345 @@ class Tests_User_Query extends WP_UnitTestCase {
 		) );
 
 		$found = wp_list_pluck( $q->get_results(), 'ID' );
-		$expected = array( $users[0], $users[1] );
+		$expected = array( self::$author_ids[0], self::$author_ids[1] );
 
 		$this->assertEqualSets( $expected, $found );
+	}
+
+	/**
+	 * @ticket 25145
+	 */
+	public function test_paged() {
+		$q = new WP_User_Query( array(
+			'number' => 2,
+			'paged' => 2,
+			'orderby' => 'ID',
+			'order' => 'DESC', // Avoid funkiness with user 1.
+			'fields' => 'ids',
+		) );
+
+		$this->assertEquals( array( self::$contrib_id, self::$editor_ids[2] ), $q->results );
+	}
+
+	/**
+	 * @ticket 33449
+	 */
+	public function test_query_vars_should_be_filled_in_after_pre_get_users() {
+		$query_vars = array( 'blog_id', 'role', 'meta_key', 'meta_value', 'meta_compare', 'include', 'exclude', 'search', 'search_columns', 'orderby', 'order', 'offset', 'number', 'paged', 'count_total', 'fields', 'who', 'has_published_posts' );
+
+		add_action( 'pre_get_users', array( $this, 'filter_pre_get_users_args' ) );
+		$q = new WP_User_Query( array_fill_keys( $query_vars, '1' ) );
+		remove_action( 'pre_get_users', array( $this, 'filter_pre_get_users_args' ) );
+
+		foreach ( $query_vars as $query_var ) {
+			$this->assertTrue( array_key_exists( $query_var, $q->query_vars ), "$query_var does not exist." );
+		}
+
+	}
+
+	public function filter_pre_get_users_args( $q ) {
+		foreach ( $q->query_vars as $k => $v ) {
+			unset( $q->query_vars[ $k ] );
+		}
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_single_role_by_user_query() {
+		$wp_user_search = new WP_User_Query( array( 'role' => 'subscriber' ) );
+		$users          = $wp_user_search->get_results();
+
+		$this->assertEquals( 2, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_multiple_roles_by_user_query() {
+		$wp_user_search = new WP_User_Query( array( 'role__in' => array( 'subscriber', 'editor' ) ) );
+		$users          = $wp_user_search->get_results();
+		$this->assertEquals( 5, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_single_role_by_string() {
+		$users = get_users( array(
+			'role' => 'subscriber',
+		) );
+
+		$this->assertEquals( 2, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_single_role_by_string_which_is_similar() {
+		$another_editor = self::factory()->user->create( array(
+			'user_email' => 'another_editor@another_editor.com',
+			'user_login' => 'another_editor',
+			'role' => 'another-editor',
+		) );
+
+		$users = get_users( array(
+			'role' => 'editor',
+			'fields' => 'ids',
+		) );
+
+		$this->assertEqualSets( self::$editor_ids, $users );
+	}
+
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_single_role_by_array() {
+		$users = get_users( array(
+			'role' => array( 'subscriber' ),
+		) );
+
+		$this->assertEquals( 2, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_multiple_roles_should_only_match_users_who_have_each_role() {
+		$users = new WP_User_Query( array( 'role' => array( 'subscriber', 'editor' ) ) );
+		$users = $users->get_results();
+
+		$this->assertEmpty( $users );
+
+		foreach ( self::$sub_ids as $subscriber ) {
+			$subscriber = get_user_by( 'ID', $subscriber );
+			$subscriber->add_role( 'editor' );
+		}
+
+		$users = new WP_User_Query( array( 'role' => array( 'subscriber', 'editor' ) ) );
+		$users = $users->get_results();
+
+		$this->assertEquals( 2, count( $users ) );
+
+		foreach ( $users as $user ) {
+			$this->assertInstanceOf( 'WP_User', $user );
+		}
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_multiple_roles_or() {
+		$users = new WP_User_Query( array( 'role__in' => array( 'subscriber', 'editor', 'administrator' ) ) );
+		$users = $users->get_results();
+
+		// +1 for the default user created during installation.
+		$this->assertEquals( 8, count( $users ) );
+		foreach ( $users as $user ) {
+			$this->assertInstanceOf( 'WP_User', $user );
+		}
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_multiple_roles_by_comma_separated_list() {
+		$users = get_users( array(
+			'role' => 'subscriber, editor',
+		) );
+
+		$this->assertEmpty( $users );
+
+		foreach ( self::$sub_ids as $subscriber ) {
+			$subscriber = get_user_by( 'ID', $subscriber );
+			$subscriber->add_role( 'editor' );
+		}
+
+		$users = get_users( array(
+			'role' => 'subscriber, editor',
+		) );
+
+		$this->assertEquals( 2, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_get_multiple_roles_with_meta() {
+		// Create administrator user + meta
+		update_user_meta( self::$admin_ids[0], 'mk1', 1 );
+		update_user_meta( self::$admin_ids[0], 'mk2', 1 );
+
+		// Create editor user + meta
+		update_user_meta( self::$editor_ids[0], 'mk1', 1 );
+		update_user_meta( self::$editor_ids[0], 'mk2', 2 );
+
+		// Create subscriber user + meta
+		update_user_meta( self::$sub_ids[0], 'mk1', 1 );
+		update_user_meta( self::$sub_ids[0], 'mk2', 1 );
+
+		// Create contributor user + meta
+		update_user_meta( self::$contrib_id, 'mk1', 1 );
+		update_user_meta( self::$contrib_id, 'mk2', 2 );
+
+		// Fetch users
+		$users = get_users( array(
+			'role__in'   => array( 'administrator', 'editor', 'subscriber' ),
+			'meta_query' => array(
+				'relation' => 'AND',
+				array(
+					'key'     => 'mk1',
+					'value'   => '1',
+					'compare' => "=",
+					'type'    => 'numeric',
+				),
+				array(
+					'key'     => 'mk2',
+					'value'   => '2',
+					'compare' => "=",
+					'type'    => 'numeric',
+				),
+			),
+		) );
+
+		// Check results
+		$this->assertEquals( 1, count( $users ) );
+		$this->assertSame( self::$editor_ids[0], (int) $users[0]->ID );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_role_exclusion() {
+		$users = get_users( array(
+			'role__not_in' => 'subscriber',
+		) );
+
+		// +1 for the default user created during installation.
+		$this->assertEquals( 11, count( $users ) );
+
+		$users = get_users( array(
+			'role__not_in' => 'editor',
+		) );
+
+		// +1 for the default user created during installation.
+		$this->assertEquals( 10, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_role__in_role__not_in_combined() {
+		foreach ( self::$sub_ids as $subscriber ) {
+			$subscriber = get_user_by( 'ID', $subscriber );
+			$subscriber->add_role( 'editor' );
+		}
+
+		$users = get_users( array(
+			'role__in'     => 'editor',
+		) );
+
+		$this->assertEquals( 5, count( $users ) );
+
+		$users = get_users( array(
+			'role__in'     => 'editor',
+			'role__not_in' => 'subscriber',
+		) );
+
+		$this->assertEquals( 3, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_role__not_in_role_combined() {
+		$subscriber = get_user_by( 'ID', self::$sub_ids[0] );
+		$subscriber->add_role( 'editor' );
+
+		$users = get_users( array(
+			'role'         => 'subscriber',
+			'role__not_in' => array( 'editor' ),
+		) );
+
+		$this->assertEquals( 1, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_role__not_in_user_without_role() {
+		$user_without_rule = get_user_by( 'ID', self::$sub_ids[0] );
+
+		$user_without_rule->remove_role( 'subscriber' );
+
+		$users = get_users( array(
+			'role__not_in' => 'subscriber',
+		) );
+
+		// +1 for the default user created during installation.
+		$this->assertEquals( 12, count( $users ) );
+
+		$users = get_users( array(
+			'role__not_in' => 'editor',
+		) );
+
+		// +1 for the default user created during installation.
+		$this->assertEquals( 10, count( $users ) );
+	}
+
+	/**
+	 * @ticket 22212
+	 */
+	public function test_blog_id_should_restrict_by_blog_without_requiring_a_named_role() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( __METHOD__ . ' requires multisite.' );
+		}
+
+		$sites = self::factory()->blog->create_many( 2 );
+
+		add_user_to_blog( $sites[0], self::$author_ids[0], 'author' );
+		add_user_to_blog( $sites[1], self::$author_ids[1], 'author' );
+
+		$found = get_users( array(
+			'blog_id' => $sites[1],
+			'fields' => 'ID',
+		) );
+
+		$this->assertEqualSets( array( self::$author_ids[1] ), $found );
+	}
+
+	/**
+	 * @ticket 22212
+	 * @ticket 21119
+	 */
+	public function test_calling_prepare_query_a_second_time_should_not_add_another_cap_query_on_multisite() {
+		if ( ! is_multisite() ) {
+			$this->markTestSkipped( __METHOD__ . ' requires Multisite.' );
+		}
+
+		$site_id = get_current_blog_id();
+		add_user_to_blog( $site_id, self::$author_ids[0], 'author' );
+
+		$q = new WP_User_Query( array(
+			'include' => self::$author_ids[0],
+		) );
+
+		$r1 = $q->request;
+
+		$q->prepare_query( array(
+			'include' => self::$author_ids[0],
+		) );
+
+		$r2 = $q->request;
+
+		$q->prepare_query( array(
+			'include' => self::$author_ids[0],
+		) );
+
+		$r3 = $q->request;
+
+		$this->assertSame( $r1, $r2 );
+		$this->assertSame( $r1, $r3 );
 	}
 }

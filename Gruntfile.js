@@ -3,7 +3,7 @@ module.exports = function(grunt) {
 	var path = require('path'),
 		SOURCE_DIR = 'src/',
 		BUILD_DIR = 'build/',
-		autoprefixer = require('autoprefixer-core'),
+		autoprefixer = require('autoprefixer'),
 		mediaConfig = {},
 		mediaBuilds = ['audiovideo', 'grid', 'models', 'views'];
 
@@ -24,7 +24,15 @@ module.exports = function(grunt) {
 			options: {
 				processors: [
 					autoprefixer({
-						browsers: ['Android >= 2.1', 'Chrome >= 21', 'Explorer >= 7', 'Firefox >= 17', 'Opera >= 12.1', 'Safari >= 6.0'],
+						browsers: [
+							'Android >= 2.1',
+							'Chrome >= 21',
+							'Edge >= 12',
+							'Explorer >= 7',
+							'Firefox >= 17',
+							'Opera >= 12.1',
+							'Safari >= 6.0'
+						],
 						cascade: false
 					})
 				]
@@ -146,7 +154,8 @@ module.exports = function(grunt) {
 		},
 		cssmin: {
 			options: {
-				'wp-admin': ['wp-admin', 'color-picker', 'customize-controls', 'customize-widgets', 'customize-nav-menus', 'ie', 'install', 'login', 'press-this', 'deprecated-*']
+				'wp-admin': ['wp-admin', 'color-picker', 'customize-controls', 'customize-widgets', 'customize-nav-menus', 'ie', 'install', 'login', 'press-this', 'deprecated-*'],
+				compatibility: 'ie7'
 			},
 			core: {
 				expand: true,
@@ -232,7 +241,9 @@ module.exports = function(grunt) {
 					'wp-includes/css/*.css',
 
 					// Exceptions
-					'!wp-includes/css/dashicons.css'
+					'!wp-includes/css/dashicons.css',
+					'!wp-includes/css/wp-embed-template.css',
+					'!wp-includes/css/wp-embed-template-ie.css'
 				]
 			},
 			colors: {
@@ -272,7 +283,7 @@ module.exports = function(grunt) {
 					'twenty*/**/*.js',
 					'!twenty{eleven,twelve,thirteen}/**',
 					// Third party scripts
-					'!twenty{fourteen,fifteen}/js/html5.js'
+					'!twenty{fourteen,fifteen,sixteen}/js/html5.js'
 				]
 			},
 			media: {
@@ -396,10 +407,6 @@ module.exports = function(grunt) {
 			'external-http': {
 				cmd: 'phpunit',
 				args: ['-c', 'phpunit.xml.dist', '--group', 'external-http']
-			},
-			codecoverage: {
-				cmd: 'phpunit',
-				args: ['-c', 'tests/phpunit/codecoverage.xml']
 			}
 		},
 		uglify: {
@@ -428,8 +435,21 @@ module.exports = function(grunt) {
 					'!wp-includes/js/masonry.min.js',
 					'!wp-includes/js/swfobject.js',
 					'!wp-includes/js/underscore.*',
-					'!wp-includes/js/zxcvbn.min.js'
+					'!wp-includes/js/zxcvbn.min.js',
+					'!wp-includes/js/wp-embed.js' // We have extra options for this, see uglify:embed
 				]
+			},
+			embed: {
+				options: {
+					compress: {
+						conditionals: false
+					}
+				},
+				expand: true,
+				cwd: SOURCE_DIR,
+				dest: BUILD_DIR,
+				ext: '.min.js',
+				src: ['wp-includes/js/wp-embed.js']
 			},
 			media: {
 				expand: true,
@@ -437,15 +457,16 @@ module.exports = function(grunt) {
 				dest: BUILD_DIR,
 				ext: '.min.js',
 				src: [
-					'wp-includes/js/media/audio-video.js',
-					'wp-includes/js/media/grid.js',
-					'wp-includes/js/media/models.js',
-					'wp-includes/js/media/views.js'
+					'wp-includes/js/media-audiovideo.js',
+					'wp-includes/js/media-grid.js',
+					'wp-includes/js/media-models.js',
+					'wp-includes/js/media-views.js'
 				]
 			},
 			jqueryui: {
 				options: {
-					preserveComments: 'some'
+					// Preserve comments that start with a bang.
+					preserveComments: /^!/
 				},
 				expand: true,
 				cwd: SOURCE_DIR,
@@ -532,12 +553,17 @@ module.exports = function(grunt) {
 			emoji: {
 				src: BUILD_DIR + 'wp-includes/formatting.php',
 				dest: '.'
+			},
+			embed: {
+				src: BUILD_DIR + 'wp-includes/embed.php',
+				dest: '.'
 			}
 		},
 		_watch: {
 			all: {
 				files: [
 					SOURCE_DIR + '**',
+					'!' + SOURCE_DIR + 'wp-includes/js/media/**',
 					// Ignore version control directories.
 					'!' + SOURCE_DIR + '**/.{svn,git}/**'
 				],
@@ -547,13 +573,6 @@ module.exports = function(grunt) {
 					spawn: false,
 					interval: 2000
 				}
-			},
-			browserify: {
-				files: [
-					SOURCE_DIR + 'wp-includes/js/media/*.js',
-					'!' + SOURCE_DIR + 'wp-includes/js/media/*.manifest.js'
-				],
-				tasks: ['uglify:media']
 			},
 			config: {
 				files: 'Gruntfile.js'
@@ -641,12 +660,14 @@ module.exports = function(grunt) {
 		'cssmin:rtl',
 		'cssmin:colors',
 		'uglify:core',
+		'uglify:embed',
 		'uglify:jqueryui',
 		'concat:tinymce',
 		'compress:tinymce',
 		'clean:tinymce',
 		'concat:emoji',
 		'includes:emoji',
+		'includes:embed',
 		'jsvalidate:build'
 	] );
 
@@ -665,19 +686,8 @@ module.exports = function(grunt) {
 	grunt.registerTask('test', 'Runs all QUnit and PHPUnit tasks.', ['qunit:compiled', 'phpunit']);
 
 	// Travis CI tasks.
-	grunt.registerTask('travis:js', 'Runs Javascript Travis CI tasks.', [
-		'jshint:corejs',
-		'qunit:compiled'
-	]);
-	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.', [
-		'phpunit:default',
-		'phpunit:ajax',
-		'phpunit:multisite',
-		'phpunit:external-http'
-	] );
-	grunt.registerTask('travis:codecoverage', 'Runs PHPUnit Travis CI Code Coverage task.', [
-		'phpunit:codecoverage'
-	] );
+	grunt.registerTask('travis:js', 'Runs Javascript Travis CI tasks.', [ 'jshint:corejs', 'qunit:compiled' ]);
+	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.', 'phpunit');
 
 	// Patch task.
 	grunt.renameTask('patch_wordpress', 'patch');
@@ -685,22 +695,27 @@ module.exports = function(grunt) {
 	// Default task.
 	grunt.registerTask('default', ['build']);
 
-	// Add a listener to the watch task.
-	//
-	// On `watch:all`, automatically updates the `copy:dynamic` and `clean:dynamic`
-	// configurations so that only the changed files are updated.
-	// On `watch:rtl`, automatically updates the `rtlcss:dynamic` configuration.
+	/*
+	 * Automatically updates the `:dynamic` configurations
+	 * so that only the changed files are updated.
+	 */
 	grunt.event.on('watch', function( action, filepath, target ) {
-		if ( target !== 'all' && target !== 'rtl' ) {
+		var src;
+
+		if ( [ 'all', 'rtl', 'browserify' ].indexOf( target ) === -1 ) {
 			return;
 		}
 
-		var relativePath = path.relative( SOURCE_DIR, filepath ),
-			cleanSrc = ( action === 'deleted' ) ? [relativePath] : [],
-			copySrc = ( action === 'deleted' ) ? [] : [relativePath];
+		src = [ path.relative( SOURCE_DIR, filepath ) ];
 
-		grunt.config(['clean', 'dynamic', 'src'], cleanSrc);
-		grunt.config(['copy', 'dynamic', 'src'], copySrc);
-		grunt.config(['rtlcss', 'dynamic', 'src'], copySrc);
+		if ( action === 'deleted' ) {
+			grunt.config( [ 'clean', 'dynamic', 'src' ], src );
+		} else {
+			grunt.config( [ 'copy', 'dynamic', 'src' ], src );
+
+			if ( target === 'rtl' ) {
+				grunt.config( [ 'rtlcss', 'dynamic', 'src' ], src );
+			}
+		}
 	});
 };

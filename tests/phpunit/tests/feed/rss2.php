@@ -9,54 +9,31 @@
  * @group feed
  */
 class Tests_Feed_RSS2 extends WP_UnitTestCase {
-	private $permalink_structure = '';
-
-	static $user;
+	static $user_id;
 	static $posts;
 
-	public static function setUpBeforeClass() {
-		$factory = new WP_UnitTest_Factory();
-
-		self::$user = $factory->user->create();
-		self::$posts = $factory->post->create_many( 25, array(
-			'post_author' => self::$user,
+	public static function wpSetUpBeforeClass( $factory ) {
+		self::$user_id = $factory->user->create();
+		self::$posts = $factory->post->create_many( 5, array(
+			'post_author' => self::$user_id,
 		) );
-
-		self::commit_transaction();
 	}
 
-	public static function tearDownAfterClass() {
-		if ( is_multisite() ) {
-			wpmu_delete_user( self::$user );
-		} else {
-			wp_delete_user( self::$user );
-		}
+	public static function wpTearDownAfterClass() {
+		self::delete_user( self::$user_id );
 
 		foreach ( self::$posts as $post ) {
 			wp_delete_post( $post, true );
 		}
-
-		self::commit_transaction();
 	}
 
 	public function setUp() {
-		global $wp_rewrite;
-		$this->permalink_structure = get_option( 'permalink_structure' );
-		$wp_rewrite->set_permalink_structure( '' );
-		$wp_rewrite->flush_rules();
-
 		parent::setUp();
 
 		$this->post_count = get_option('posts_per_rss');
 		$this->excerpt_only = get_option('rss_use_excerpt');
 		// this seems to break something
 		update_option('use_smilies', false);
-	}
-
-	public function tearDown() {
-		global $wp_rewrite;
-		$wp_rewrite->set_permalink_structure( $this->permalink_structure );
-		$wp_rewrite->flush_rules();
 	}
 
 	function do_rss2() {
@@ -125,8 +102,7 @@ class Tests_Feed_RSS2 extends WP_UnitTestCase {
 		$xml = xml_to_array($feed);
 
 		// get all the rss -> channel -> item elements
-		$items = xml_find($xml, 'rss', 'channel', 'item');
-		$posts = get_posts('numberposts='.$this->post_count);
+		$items = xml_find( $xml, 'rss', 'channel', 'item' );
 
 		// check each of the items against the known post data
 		foreach ( $items as $key => $item ) {
@@ -146,7 +122,7 @@ class Tests_Feed_RSS2 extends WP_UnitTestCase {
 
 			// comment link
 			$comments_link = xml_find( $items[$key]['child'], 'comments' );
-			$this->assertEquals( get_permalink( $post) . '#comments', $comments_link[0]['content'] );
+			$this->assertEquals( get_permalink( $post) . '#respond', $comments_link[0]['content'] );
 
 			// pub date
 			$pubdate = xml_find( $items[$key]['child'], 'pubDate' );
@@ -200,5 +176,37 @@ class Tests_Feed_RSS2 extends WP_UnitTestCase {
 			$comment_rss = xml_find( $items[$key]['child'], 'wfw:commentRss' );
 			$this->assertEquals( html_entity_decode( get_post_comments_feed_link( $post->ID) ), $comment_rss[0]['content'] );
 		}
+	}
+
+	/**
+	 * @ticket 9134
+	 */
+	function test_items_comments_closed() {
+		add_filter( 'comments_open', '__return_false' );
+
+		$this->go_to( '/?feed=rss2' );
+		$feed = $this->do_rss2();
+		$xml = xml_to_array($feed);
+
+		// get all the rss -> channel -> item elements
+		$items = xml_find( $xml, 'rss', 'channel', 'item' );
+
+		// check each of the items against the known post data
+		foreach ( $items as $key => $item ) {
+			// Get post for comparison
+			$guid = xml_find( $items[$key]['child'], 'guid' );
+			preg_match( '/\?p=(\d+)/', $guid[0]['content'], $matches );
+			$post = get_post( $matches[1] );
+
+			// comment link
+			$comments_link = xml_find( $items[ $key ]['child'], 'comments' );
+			$this->assertEmpty( $comments_link );
+
+			// comment rss
+			$comment_rss = xml_find( $items[ $key ]['child'], 'wfw:commentRss' );
+			$this->assertEmpty( $comment_rss );
+		}
+
+		remove_filter( 'comments_open', '__return_false' );
 	}
 }

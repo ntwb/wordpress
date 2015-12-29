@@ -1,5 +1,8 @@
-(function() {
-	var testBlob, testBlobDataUri;
+ModuleLoader.require([
+	"tinymce/file/Conversions",
+	"tinymce/Env"
+], function(Conversions, Env) {
+	var testBlobDataUri;
 
 	if (!tinymce.Env.fileApi) {
 		return;
@@ -16,6 +19,7 @@
 				skin: false,
 				entities: 'raw',
 				indent: false,
+				automatic_uploads: false,
 				init_instance_callback: function(ed) {
 					var canvas, context;
 
@@ -37,8 +41,7 @@
 
 					testBlobDataUri = canvas.toDataURL();
 
-					tinymce.file.Conversions.uriToBlob(testBlobDataUri).then(function(blob) {
-						testBlob = blob;
+					Conversions.uriToBlob(testBlobDataUri).then(function() {
 						QUnit.start();
 					});
 				}
@@ -47,6 +50,7 @@
 
 		teardown: function() {
 			editor.editorUpload.destroy();
+			editor.settings.automatic_uploads = false;
 		}
 	});
 
@@ -61,7 +65,7 @@
 			var blobInfo = result[0].blobInfo;
 
 			QUnit.equal("data:" + blobInfo.blob().type + ";base64," + blobInfo.base64(), testBlobDataUri);
-			QUnit.equal('<p><img src="' + blobInfo.blobUri() + '" alt=""></p>', editor.getBody().innerHTML);
+			QUnit.equal(Utils.normalizeHtml(editor.getBody().innerHTML), '<p><img alt="" src="' + blobInfo.blobUri() + '" /></p>');
 			QUnit.equal('<p><img src="data:' + blobInfo.blob().type + ';base64,' + blobInfo.base64() + '" alt="" /></p>', editor.getContent());
 			QUnit.strictEqual(editor.editorUpload.blobCache.get(blobInfo.id()), blobInfo);
 		}).then(QUnit.start);
@@ -94,4 +98,68 @@
 			});
 		}).then(QUnit.start);
 	});
-})();
+
+	asyncTest('uploadConcurrentImages', function() {
+		var uploadCount = 0, callCount = 0;
+
+		function done() {
+			callCount++;
+
+			if (callCount == 2) {
+				QUnit.start();
+				equal(uploadCount, 1, 'Should only be one upload.');
+			}
+		}
+
+		editor.setContent(imageHtml(testBlobDataUri));
+
+		editor.settings.images_upload_handler = function(data, success) {
+			uploadCount++;
+			success(data.id() + '.png');
+		};
+
+		editor.uploadImages(done);
+		editor.uploadImages(done);
+	});
+
+	asyncTest('Don\'t upload transparent image', function() {
+		var uploadCount = 0;
+
+		function done() {
+			QUnit.start();
+			equal(uploadCount, 0, 'Should not upload.');
+		}
+
+		editor.setContent(imageHtml(Env.transparentSrc));
+
+		editor.settings.images_upload_handler = function(data, success) {
+			uploadCount++;
+			success();
+		};
+
+		editor.uploadImages(done);
+	});
+
+	asyncTest('Don\'t upload bogus image', function() {
+		var uploadCount = 0;
+
+		function done() {
+			QUnit.start();
+			equal(uploadCount, 0, 'Should not upload.');
+		}
+
+		editor.getBody().innerHTML = '<img src="' + testBlobDataUri + '" data-mce-bogus="1">';
+
+		editor.settings.images_upload_handler = function(data, success) {
+			uploadCount++;
+			success();
+		};
+
+		editor.uploadImages(done);
+	});
+
+	test('Retain blobs not in blob cache', function() {
+		editor.getBody().innerHTML = '<img src="blob:http%3A//host/f8d1e462-8646-485f-87c5-f9bcee5873c6">';
+		QUnit.equal('<p><img src="blob:http%3A//host/f8d1e462-8646-485f-87c5-f9bcee5873c6" alt="" /></p>', editor.getContent());
+	});
+});

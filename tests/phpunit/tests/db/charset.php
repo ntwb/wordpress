@@ -1,7 +1,5 @@
 <?php
 
-require_once dirname( dirname( __FILE__ ) ) . '/db.php';
-
 /**
  * Test WPDB methods
  *
@@ -17,6 +15,8 @@ class Tests_DB_Charset extends WP_UnitTestCase {
 	protected static $_wpdb;
 
 	public static function setUpBeforeClass() {
+		require_once( dirname( dirname( __FILE__ ) ) . '/db.php' );
+		
 		self::$_wpdb = new wpdb_exposed_methods_for_testing();
 	}
 
@@ -359,6 +359,10 @@ class Tests_DB_Charset extends WP_UnitTestCase {
 			$new_charset = $data[0]['charset'];
 		}
 
+		if ( 'utf8mb4' === $new_charset && ! self::$_wpdb->has_cap( 'utf8mb4' ) ) {
+			$this->markTestSkipped( "The current MySQL server doesn't support the utf8mb4 character set." );
+		}
+
 		self::$_wpdb->charset = $new_charset;
 		self::$_wpdb->set_charset( self::$_wpdb->dbh, $new_charset );
 
@@ -638,6 +642,32 @@ class Tests_DB_Charset extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @dataProvider data_test_get_column_charset
+	 * @ticket 33501
+	 */
+	function test_get_column_charset_is_mysql_undefined( $drop, $create, $table, $columns ) {
+		self::$_wpdb->query( $drop );
+
+		if ( ! self::$_wpdb->has_cap( 'utf8mb4' ) && preg_match( '/utf8mb[34]/i', $create ) ) {
+			$this->markTestSkipped( "This version of MySQL doesn't support utf8mb4." );
+			return;
+		}
+
+		unset( self::$_wpdb->is_mysql );
+
+		self::$_wpdb->query( $create );
+
+		$columns = array_keys( $columns );
+		foreach ( $columns as $column => $charset ) {
+			$this->assertEquals( false, self::$_wpdb->get_col_charset( $table, $column ) );
+		}
+
+		self::$_wpdb->query( $drop );
+
+		self::$_wpdb->is_mysql = true;
+	}
+
+	/**
 	 * @ticket 21212
 	 */
 	function data_strip_invalid_text_from_query() {
@@ -836,6 +866,28 @@ class Tests_DB_Charset extends WP_UnitTestCase {
 		$stripped_query = self::$_wpdb->strip_invalid_text_from_query( $safe_query );
 
 		self::$_wpdb->query( "DROP TABLE $tablename" );
+
+		$this->assertEquals( $safe_query, $stripped_query );
+	}
+
+	/**
+	 * @ticket 34708
+	 */
+	function test_no_db_charset_defined() {
+		$tablename = 'test_cp1251_query_' . rand_str( 5 );
+		if ( ! self::$_wpdb->query( "CREATE TABLE $tablename ( a VARCHAR(50) ) DEFAULT CHARSET 'cp1251'" ) ) {
+			$this->markTestSkipped( "Test requires the 'cp1251' charset" );
+		}
+
+		$charset = self::$_wpdb->charset;
+		self::$_wpdb->charset = '';
+
+		$safe_query = "INSERT INTO $tablename( `a` ) VALUES( 'safe data' )";
+		$stripped_query = self::$_wpdb->strip_invalid_text_from_query( $safe_query );
+
+		self::$_wpdb->query( "DROP TABLE $tablename" );
+
+		self::$_wpdb->charset = $charset;
 
 		$this->assertEquals( $safe_query, $stripped_query );
 	}

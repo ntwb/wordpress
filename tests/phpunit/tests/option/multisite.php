@@ -16,8 +16,6 @@ class Tests_Multisite_Option extends WP_UnitTestCase {
 		global $wpdb;
 		parent::setUp();
 		$this->suppress = $wpdb->suppress_errors();
-
-		$_SERVER['REMOTE_ADDR'] = null;
 	}
 
 	function tearDown() {
@@ -100,10 +98,10 @@ class Tests_Multisite_Option extends WP_UnitTestCase {
 	}
 
 	function test_with_another_site() {
-		$user_id = $this->factory->user->create();
+		$user_id = self::factory()->user->create();
 		$this->assertInternalType( 'integer', $user_id );
 
-		$blog_id = $this->factory->blog->create( array(
+		$blog_id = self::factory()->blog->create( array(
 			'user_id' => $user_id,
 			'meta'    => array(
 				'public' => 1,

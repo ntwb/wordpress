@@ -508,6 +508,17 @@ class Tests_WP_Date_Query extends WP_UnitTestCase {
 		$this->assertFalse( $q->build_time_query( 'post_date', '=' ) );
 	}
 
+	/**
+	 * @ticket 34228
+	 */
+	public function test_build_time_query_should_not_discard_hour_0() {
+		$q = new WP_Date_Query( array() );
+
+		$found = $q->build_time_query( 'post_date', '=', 0, 10 );
+
+		$this->assertContains( '%H', $found );
+	}
+
 	public function test_build_time_query_compare_in() {
 		$q = new WP_Date_Query( array() );
 
@@ -964,8 +975,8 @@ class Tests_WP_Date_Query extends WP_UnitTestCase {
 	 * @ticket 31001
 	 */
 	public function test_validate_date_values_should_process_array_value_for_year() {
-		$p1 = $this->factory->post->create( array( 'post_date' => '2015-01-12' ) );
-		$p2 = $this->factory->post->create( array( 'post_date' => '2013-01-12' ) );
+		$p1 = self::factory()->post->create( array( 'post_date' => '2015-01-12 00:00:00' ) );
+		$p2 = self::factory()->post->create( array( 'post_date' => '2013-01-12 00:00:00' ) );
 
 		$q = new WP_Query( array(
 			'date_query' => array(
@@ -984,8 +995,8 @@ class Tests_WP_Date_Query extends WP_UnitTestCase {
 	 * @ticket 31001
 	 */
 	public function test_validate_date_values_should_process_array_value_for_day() {
-		$p1 = $this->factory->post->create( array( 'post_date' => '2015-01-12' ) );
-		$p2 = $this->factory->post->create( array( 'post_date' => '2015-01-10' ) );
+		$p1 = self::factory()->post->create( array( 'post_date' => '2015-01-12 00:00:00' ) );
+		$p2 = self::factory()->post->create( array( 'post_date' => '2015-01-10 00:00:00' ) );
 
 		$q = new WP_Query( array(
 			'date_query' => array(
@@ -1005,8 +1016,8 @@ class Tests_WP_Date_Query extends WP_UnitTestCase {
 	 * @expectedIncorrectUsage WP_Date_Query
 	 */
 	public function test_validate_date_values_should_process_array_value_for_day_when_values_are_invalid() {
-		$p1 = $this->factory->post->create( array( 'post_date' => '2015-01-12' ) );
-		$p2 = $this->factory->post->create( array( 'post_date' => '2015-01-10' ) );
+		$p1 = self::factory()->post->create( array( 'post_date' => '2015-01-12 00:00:00' ) );
+		$p2 = self::factory()->post->create( array( 'post_date' => '2015-01-10 00:00:00' ) );
 
 		$q = new WP_Query( array(
 			'date_query' => array(

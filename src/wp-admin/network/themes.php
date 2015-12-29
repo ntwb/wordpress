@@ -53,7 +53,7 @@ if ( $action ) {
 				wp_safe_redirect( add_query_arg( 'error', 'none', $referer ) );
 				exit;
 			}
-			foreach( (array) $themes as $theme )
+			foreach ( (array) $themes as $theme )
 				$allowed_themes[ $theme ] = true;
 			update_site_option( 'allowedthemes', $allowed_themes );
 			wp_safe_redirect( add_query_arg( 'enabled', count( $themes ), $referer ) );
@@ -65,7 +65,7 @@ if ( $action ) {
 				wp_safe_redirect( add_query_arg( 'error', 'none', $referer ) );
 				exit;
 			}
-			foreach( (array) $themes as $theme )
+			foreach ( (array) $themes as $theme )
 				unset( $allowed_themes[ $theme ] );
 			update_site_option( 'allowedthemes', $allowed_themes );
 			wp_safe_redirect( add_query_arg( 'disabled', count( $themes ), $referer ) );
@@ -116,27 +116,9 @@ if ( $action ) {
 				exit;
 			}
 
-			$files_to_delete = $theme_info = array();
-			$theme_translations = wp_get_installed_translations( 'themes' );
+			$theme_info = array();
 			foreach ( $themes as $key => $theme ) {
 				$theme_info[ $theme ] = wp_get_theme( $theme );
-
-				// Locate all the files in that folder.
-				$files = list_files( $theme_info[ $theme ]->get_stylesheet_directory() );
-				if ( $files ) {
-					$files_to_delete = array_merge( $files_to_delete, $files );
-				}
-
-				// Add translation files.
-				$theme_slug = $theme_info[ $theme ]->get_stylesheet();
-				if ( ! empty( $theme_translations[ $theme_slug ] ) ) {
-					$translations = $theme_translations[ $theme_slug ];
-
-					foreach ( $translations as $translation => $data ) {
-						$files_to_delete[] = $theme_slug . '-' . $translation . '.po';
-						$files_to_delete[] = $theme_slug . '-' . $translation . '.mo';
-					}
-				}
 			}
 
 			include(ABSPATH . 'wp-admin/update.php');
@@ -194,17 +176,6 @@ if ( $action ) {
 				<form method="post" action="<?php echo $referer ? esc_url( $referer ) : ''; ?>" style="display:inline;">
 					<?php submit_button( __( 'No, return me to the theme list' ), 'button', 'submit', false ); ?>
 				</form>
-
-				<p><a href="#" onclick="jQuery('#files-list').toggle(); return false;"><?php _e('Click to view entire list of files which will be deleted'); ?></a></p>
-				<div id="files-list" style="display:none;">
-					<ul class="code">
-					<?php
-						foreach ( (array) $files_to_delete as $file ) {
-							echo '<li>' . esc_html( str_replace( WP_CONTENT_DIR . '/themes', '', $file ) ) . '</li>';
-						}
-					?>
-					</ul>
-				</div>
 			</div>
 				<?php
 				require_once(ABSPATH . 'wp-admin/admin-footer.php');
@@ -250,6 +221,12 @@ get_current_screen()->set_help_sidebar(
 	'<p>' . __('<a href="https://codex.wordpress.org/Network_Admin_Themes_Screen" target="_blank">Documentation on Network Themes</a>') . '</p>' .
 	'<p>' . __('<a href="https://wordpress.org/support/" target="_blank">Support Forums</a>') . '</p>'
 );
+
+get_current_screen()->set_screen_reader_content( array(
+	'heading_views'      => __( 'Filter themes list' ),
+	'heading_pagination' => __( 'Themes list navigation' ),
+	'heading_list'       => __( 'Themes list' ),
+) );
 
 $title = __('Themes');
 $parent_file = 'themes.php';

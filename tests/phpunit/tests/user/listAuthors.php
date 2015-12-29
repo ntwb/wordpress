@@ -4,7 +4,7 @@
  * @group user
  */
 class Tests_User_ListAuthors extends WP_UnitTestCase {
-	static $users = array();
+	static $user_ids = array();
 	static $fred_id;
 	static $posts = array();
 	static $user_urls = array();
@@ -23,16 +23,14 @@ class Tests_User_ListAuthors extends WP_UnitTestCase {
 		'style'         => 'list',
 		'html'          => true );
 		*/
-	public static function setUpBeforeClass() {
-		$factory = new WP_UnitTest_Factory;
-
-		self::$users[] = $factory->user->create( array( 'user_login' => 'zack', 'display_name' => 'zack', 'role' => 'author', 'first_name' => 'zack', 'last_name' => 'moon' ) );
-		self::$users[] = $factory->user->create( array( 'user_login' => 'bob', 'display_name' => 'bob', 'role' => 'author', 'first_name' => 'bob', 'last_name' => 'reno' ) );
-		self::$users[] = $factory->user->create( array( 'user_login' => 'paul', 'display_name' => 'paul', 'role' => 'author', 'first_name' => 'paul', 'last_name' => 'norris' ) );
+	public static function wpSetUpBeforeClass( $factory ) {
+		self::$user_ids[] = $factory->user->create( array( 'user_login' => 'zack', 'display_name' => 'zack', 'role' => 'author', 'first_name' => 'zack', 'last_name' => 'moon' ) );
+		self::$user_ids[] = $factory->user->create( array( 'user_login' => 'bob', 'display_name' => 'bob', 'role' => 'author', 'first_name' => 'bob', 'last_name' => 'reno' ) );
+		self::$user_ids[] = $factory->user->create( array( 'user_login' => 'paul', 'display_name' => 'paul', 'role' => 'author', 'first_name' => 'paul', 'last_name' => 'norris' ) );
 		self::$fred_id = $factory->user->create( array( 'user_login' => 'fred', 'role' => 'author' ) );
 
 		$count = 0;
-		foreach ( self::$users as $userid ) {
+		foreach ( self::$user_ids as $userid ) {
 			$count = $count + 1;
 			for ( $i = 0; $i < $count; $i++ ) {
 				self::$posts[] = $factory->post->create( array( 'post_type' => 'post', 'post_author' => $userid ) );
@@ -40,24 +38,18 @@ class Tests_User_ListAuthors extends WP_UnitTestCase {
 
 			self::$user_urls[] = get_author_posts_url( $userid );
 		}
-
-		self::commit_transaction();
 	}
 
-	public static function tearDownAfterClass() {
-		foreach ( array_merge( self::$users, array( self::$fred_id ) ) as $user_id ) {
-			if ( is_multisite() ) {
-				wpmu_delete_user( $user_id );
-			} else {
-				wp_delete_user( $user_id );
-			}
+	public static function wpTearDownAfterClass() {
+		self::$user_ids[] = self::$fred_id;
+
+		foreach ( self::$user_ids as $user_id ) {
+			self::delete_user( $user_id );
 		}
 
 		foreach ( self::$posts as $post_id ) {
 			wp_delete_post( $post_id, true );
 		}
-
-		self::commit_transaction();
 	}
 
 	function test_wp_list_authors_default() {
@@ -81,7 +73,7 @@ class Tests_User_ListAuthors extends WP_UnitTestCase {
 	}
 
 	function test_wp_list_authors_exclude_admin() {
-		$this->factory->post->create( array( 'post_type' => 'post', 'post_author' => 1 ) );
+		self::factory()->post->create( array( 'post_type' => 'post', 'post_author' => 1 ) );
 		$expected['exclude_admin'] = '<li><a href="' . get_author_posts_url( 1 ) . '" title="Posts by admin">admin</a></li><li><a href="' . self::$user_urls[1] . '" title="Posts by bob">bob</a></li><li><a href="' . self::$user_urls[2] . '" title="Posts by paul">paul</a></li><li><a href="' . self::$user_urls[0] . '" title="Posts by zack">zack</a></li>';
 		$this->AssertEquals( $expected['exclude_admin'], wp_list_authors( array( 'echo' => false, 'exclude_admin' => 0 ) ) );
 	}
@@ -106,17 +98,17 @@ class Tests_User_ListAuthors extends WP_UnitTestCase {
 	}
 
 	function test_wp_list_authors_feed() {
-		$url0 = get_author_feed_link( self::$users[0] );
-		$url1 = get_author_feed_link( self::$users[1] );
-		$url2 = get_author_feed_link( self::$users[2] );
+		$url0 = get_author_feed_link( self::$user_ids[0] );
+		$url1 = get_author_feed_link( self::$user_ids[1] );
+		$url2 = get_author_feed_link( self::$user_ids[2] );
 		$expected['feed'] = '<li><a href="' . self::$user_urls[1] . '" title="Posts by bob">bob</a> (<a href="' . $url1 . '">link to feed</a>)</li><li><a href="' . self::$user_urls[2] . '" title="Posts by paul">paul</a> (<a href="' .  $url2 . '">link to feed</a>)</li><li><a href="' . self::$user_urls[0] . '" title="Posts by zack">zack</a> (<a href="' . $url0 . '">link to feed</a>)</li>';
 		$this->AssertEquals( $expected['feed'], wp_list_authors( array( 'echo' => false, 'feed' => 'link to feed' ) ) );
 	}
 
 	function test_wp_list_authors_feed_image() {
-		$url0 = get_author_feed_link( self::$users[0] );
-		$url1 = get_author_feed_link( self::$users[1] );
-		$url2 = get_author_feed_link( self::$users[2] );
+		$url0 = get_author_feed_link( self::$user_ids[0] );
+		$url1 = get_author_feed_link( self::$user_ids[1] );
+		$url2 = get_author_feed_link( self::$user_ids[2] );
 		$expected['feed_image'] = '<li><a href="' . self::$user_urls[1] . '" title="Posts by bob">bob</a> <a href="' . $url1 . '"><img src="http://' . WP_TESTS_DOMAIN . '/path/to/a/graphic.png" style="border: none;" /></a></li><li><a href="' . self::$user_urls[2] . '" title="Posts by paul">paul</a> <a href="' .  $url2 . '"><img src="http://' . WP_TESTS_DOMAIN . '/path/to/a/graphic.png" style="border: none;" /></a></li><li><a href="' . self::$user_urls[0] . '" title="Posts by zack">zack</a> <a href="' .  $url0 . '"><img src="http://' . WP_TESTS_DOMAIN . '/path/to/a/graphic.png" style="border: none;" /></a></li>';
 		$this->AssertEquals( $expected['feed_image'], wp_list_authors( array( 'echo' => false, 'feed_image' => WP_TESTS_DOMAIN . '/path/to/a/graphic.png' ) ) );
 	}
@@ -125,9 +117,9 @@ class Tests_User_ListAuthors extends WP_UnitTestCase {
 	 * @ticket 26538
 	 */
 	function test_wp_list_authors_feed_type() {
-		$url0 = get_author_feed_link( self::$users[0], 'atom' );
-		$url1 = get_author_feed_link( self::$users[1], 'atom' );
-		$url2 = get_author_feed_link( self::$users[2], 'atom' );
+		$url0 = get_author_feed_link( self::$user_ids[0], 'atom' );
+		$url1 = get_author_feed_link( self::$user_ids[1], 'atom' );
+		$url2 = get_author_feed_link( self::$user_ids[2], 'atom' );
 		$expected['feed_type'] = '<li><a href="' . self::$user_urls[1] . '" title="Posts by bob">bob</a> (<a href="' . $url1 . '">link to feed</a>)</li><li><a href="' . self::$user_urls[2] . '" title="Posts by paul">paul</a> (<a href="' . $url2 . '">link to feed</a>)</li><li><a href="' . self::$user_urls[0] . '" title="Posts by zack">zack</a> (<a href="' . $url0 . '">link to feed</a>)</li>';
 		$this->AssertEquals( $expected['feed_type'], wp_list_authors( array( 'echo' => false, 'feed' => 'link to feed', 'feed_type' => 'atom' ) ) );
 	}

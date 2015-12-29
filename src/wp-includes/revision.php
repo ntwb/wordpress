@@ -18,8 +18,8 @@
  *
  * @staticvar array $fields
  *
- * @param array $post     Optional. A post array to be processed for insertion as a post revision.
- * @param bool  $autosave Optional. Is the revision an autosave?
+ * @param array|null $post     Optional. A post array to be processed for insertion as a post revision. Default null.
+ * @param bool       $autosave Optional. Is the revision an autosave? Default false.
  * @return array Post array ready to be inserted as a post revision or array of fields that can be versioned.
  */
 function _wp_post_revision_fields( $post = null, $autosave = false ) {
@@ -120,7 +120,7 @@ function wp_save_post_revision( $post_id ) {
 		 *
 		 * @param bool    $check_for_changes Whether to check for changes before saving a new revision.
 		 *                                   Default true.
-		 * @param WP_Post $last_revision     The the last revision post object.
+		 * @param WP_Post $last_revision     The last revision post object.
 		 * @param WP_Post $post              The post object.
 		 *
 		 */
@@ -336,7 +336,7 @@ function wp_restore_post_revision( $revision_id, $fields = null ) {
 		$fields = array_keys( _wp_post_revision_fields() );
 
 	$update = array();
-	foreach( array_intersect( array_keys( $revision ), $fields ) as $field ) {
+	foreach ( array_intersect( array_keys( $revision ), $fields ) as $field ) {
 		$update[$field] = $revision[$field];
 	}
 
@@ -411,7 +411,10 @@ function wp_delete_post_revision( $revision_id ) {
  *
  * @since 2.6.0
  *
- * @param int|WP_Post $post_id Optional. Post ID or WP_Post object. Default is global $post.
+ * @see get_children()
+ *
+ * @param int|WP_Post $post_id Optional. Post ID or WP_Post object. Default is global `$post`.
+ * @param array|null  $args    Optional. Arguments for retrieving post revisions. Default null.
  * @return array An array of revisions, or an empty array if none.
  */
 function wp_get_post_revisions( $post_id = 0, $args = null ) {
@@ -582,7 +585,7 @@ function _wp_get_post_revision_version( $revision ) {
  * @since 3.6.0
  * @access private
  *
- * @global wpdb $wpdb
+ * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param WP_Post $post      Post object
  * @param array   $revisions Current revisions of the post

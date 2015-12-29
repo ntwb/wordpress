@@ -65,6 +65,7 @@ class Tests_Ajax_Response extends WP_UnitTestCase {
 	 * bootstrapper
 	 * @ticket 19448
 	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
 	 */
 	public function test_response_charset_in_header() {
 

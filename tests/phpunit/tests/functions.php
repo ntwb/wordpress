@@ -113,6 +113,30 @@ class Tests_Functions extends WP_UnitTestCase {
 			$this->assertFalse( path_is_absolute($path), "path_is_absolute('$path') should return false" );
 	}
 
+	/**
+	 * @ticket 33265
+	 */
+	function test_wp_normalize_path() {
+		$paths = array(
+			'/WINDOWS' => '/WINDOWS',
+			'C:/' => 'C:/',
+			'C:/WINDOWS' => 'C:/WINDOWS',
+			'C:/WINDOWS/system32' => 'C:/WINDOWS/system32',
+			'\\WINDOWS' => '/WINDOWS',
+			'C:\\' => 'C:/',
+			'C:\\WINDOWS' => 'C:/WINDOWS',
+			'C:\\\\WINDOWS' => 'C:/WINDOWS',
+			'C:\\WINDOWS\\system32' => 'C:/WINDOWS/system32',
+			'\\\\sambashare\\foo' => '/sambashare/foo',
+			'c:/windows' => 'C:/windows',
+			'c:\\windows' => 'C:/windows',
+		);
+
+		foreach ($paths as $original => $expected) {
+			$this->assertEquals( $expected, wp_normalize_path( $original ) );
+		}
+	}
+
 	function test_wp_unique_filename() {
 
 		$testdir = DIR_TESTDATA . '/images/';
@@ -122,8 +146,8 @@ class Tests_Functions extends WP_UnitTestCase {
 
 		// check number is appended for file already exists
 		$this->assertFileExists( $testdir . 'test-image.png', 'Test image does not exist' );
-		$this->assertEquals( 'test-image1.png', wp_unique_filename( $testdir, 'test-image.png' ), 'Number not appended correctly' );
-		$this->assertFileNotExists( $testdir . 'test-image1.png' );
+		$this->assertEquals( 'test-image-1.png', wp_unique_filename( $testdir, 'test-image.png' ), 'Number not appended correctly' );
+		$this->assertFileNotExists( $testdir . 'test-image-1.png' );
 
 		// check special chars
 		$this->assertEquals( 'testtést-imagé.png', wp_unique_filename( $testdir, 'testtést-imagé.png' ), 'Filename with special chars failed' );
@@ -138,7 +162,7 @@ class Tests_Functions extends WP_UnitTestCase {
 		$this->assertEquals( "abcdefgh.png", wp_unique_filename( $testdir, 'abcdefg"h.png' ), 'File with quote failed' );
 
 		// test crazy name (useful for regression tests)
-		$this->assertEquals( '12%af34567890@..%^_-qwerty-fghjkl-zx.png', wp_unique_filename( $testdir, '12%af34567890#~!@#$..%^&*()|_+qwerty  fgh`jkl zx<>?:"{}[]="\'/?.png' ), 'Failed crazy file name' );
+		$this->assertEquals( '12af34567890@..^_qwerty-fghjkl-zx.png', wp_unique_filename( $testdir, '12%af34567890#~!@#$..%^&*()|_+qwerty  fgh`jkl zx<>?:"{}[]="\'/?.png' ), 'Failed crazy file name' );
 
 		// test slashes in names
 		$this->assertEquals( 'abcdefg.png', wp_unique_filename( $testdir, 'abcde\fg.png' ), 'Slash not removed' );
@@ -579,6 +603,10 @@ class Tests_Functions extends WP_UnitTestCase {
 	 * @ticket 28786
 	 */
 	function test_wp_json_encode_non_utf8() {
+		if ( ! function_exists( 'mb_detect_order' ) ) {
+			$this->markTestSkipped( 'mbstring extension not available.' );
+		}
+
 		$old_charsets = $charsets = mb_detect_order();
 		if ( ! in_array( 'EUC-JP', $charsets ) ) {
 			$charsets[] = 'EUC-JP';
@@ -599,6 +627,10 @@ class Tests_Functions extends WP_UnitTestCase {
 	 * @ticket 28786
 	 */
 	function test_wp_json_encode_non_utf8_in_array() {
+		if ( ! function_exists( 'mb_detect_order' ) ) {
+			$this->markTestSkipped( 'mbstring extension not available.' );
+		}
+
 		$old_charsets = $charsets = mb_detect_order();
 		if ( ! in_array( 'EUC-JP', $charsets ) ) {
 			$charsets[] = 'EUC-JP';
@@ -646,5 +678,43 @@ class Tests_Functions extends WP_UnitTestCase {
 		$data = array( 'あ', array( array( 1, 2, 3 ) ) );
 		$json = wp_json_encode( $data, 0, 1 );
 		$this->assertFalse( $json );
+	}
+
+	/**
+	 * @ticket 33750
+	 */
+	function test_the_date() {
+		ob_start();
+		the_date();
+		$actual = ob_get_clean();
+		$this->assertEquals( '', $actual );
+
+		$GLOBALS['post']        = self::factory()->post->create_and_get( array(
+			'post_date' => '2015-09-16 08:00:00'
+		) );
+
+		ob_start();
+		$GLOBALS['currentday']  = '18.09.15';
+		$GLOBALS['previousday'] = '17.09.15';
+		the_date();
+		$this->assertEquals( 'September 16, 2015', ob_get_clean() );
+
+		ob_start();
+		$GLOBALS['currentday']  = '18.09.15';
+		$GLOBALS['previousday'] = '17.09.15';
+		the_date( 'Y' );
+		$this->assertEquals( '2015', ob_get_clean() );
+
+		ob_start();
+		$GLOBALS['currentday']  = '18.09.15';
+		$GLOBALS['previousday'] = '17.09.15';
+		the_date( 'Y', 'before ', ' after' );
+		$this->assertEquals( 'before 2015 after', ob_get_clean() );
+
+		ob_start();
+		$GLOBALS['currentday']  = '18.09.15';
+		$GLOBALS['previousday'] = '17.09.15';
+		the_date( 'Y', 'before ', ' after', false );
+		$this->assertEquals( '', ob_get_clean() );
 	}
 }

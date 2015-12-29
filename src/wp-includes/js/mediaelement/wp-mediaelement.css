@@ -47,7 +47,7 @@
 	border-radius: 3px;
 	box-shadow: 0 0 2px 2px rgba(0, 0, 0, 0.6);
 	clip: auto;
-	color: #21759b;
+	color: #0073aa;
 	display: block;
 	font-size: 14px;
 	font-weight: bold;
@@ -214,14 +214,6 @@ video.wp-video-shortcode,
 .wp-playlist-item-title {
 	font-size: 14px;
 	line-height: 1.5;
-}
-
-.wp-playlist-item-title:before {
-	content: '“';
-}
-
-.wp-playlist-item-title:after {
-	content: '”';
 }
 
 .wp-playlist-item-album {

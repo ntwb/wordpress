@@ -15,7 +15,10 @@ require_once dirname( __FILE__ ) . '/functions.php';
 
 $_SERVER['SERVER_PROTOCOL'] = 'HTTP/1.1';
 $_SERVER['HTTP_HOST'] = WP_TESTS_DOMAIN;
+$_SERVER['SERVER_NAME'] = WP_TESTS_DOMAIN;
 $_SERVER['REQUEST_METHOD'] = 'GET';
+$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+
 $PHP_SELF = $GLOBALS['PHP_SELF'] = $_SERVER['PHP_SELF'] = '/index.php';
 
 require_once ABSPATH . '/wp-settings.php';
@@ -28,7 +31,15 @@ global $phpmailer;
 require_once( dirname( __FILE__ ) . '/mock-mailer.php' );
 $phpmailer = new MockPHPMailer();
 
-$wpdb->query( 'SET storage_engine = INNODB' );
+/*
+ * default_storage_engine and storage_engine are the same option, but storage_engine
+ * was deprecated in MySQL (and MariaDB) 5.5.3, and removed in 5.7.
+ */
+if ( version_compare( $wpdb->db_version(), '5.5.3', '>=' ) ) {
+	$wpdb->query( 'SET default_storage_engine = InnoDB' );
+} else {
+	$wpdb->query( 'SET storage_engine = InnoDB' );
+}
 $wpdb->select( DB_NAME, $wpdb->dbh );
 
 echo "Installing..." . PHP_EOL;

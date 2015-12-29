@@ -1064,14 +1064,16 @@ function links_popup_script($text = 'Links', $width=400, $height=400, $file='lin
 }
 
 /**
+ * Legacy function that retrieved the value of a link's link_rating field.
+ *
  * @since 1.0.1
  * @deprecated 2.1.0 Use sanitize_bookmark_field()
  * @see sanitize_bookmark_field()
  *
- * @param object $link
- * @return mixed
+ * @param object $link Link object.
+ * @return mixed Value of the 'link_rating' field, false otherwise.
  */
-function get_linkrating($link) {
+function get_linkrating( $link ) {
 	_deprecated_function( __FUNCTION__, '2.1', 'sanitize_bookmark_field()' );
 	return sanitize_bookmark_field('link_rating', $link->link_rating, $link->link_id, 'display');
 }
@@ -1195,7 +1197,7 @@ function create_user($username, $password, $email) {
  * Unused function.
  *
  * @deprecated 2.5.0
-*/
+ */
 function gzip_compression() {
 	_deprecated_function( __FUNCTION__, '2.5' );
 	return false;
@@ -1613,7 +1615,7 @@ function get_the_author_ID() {
  * @since 0.71
  * @deprecated 2.8.0 Use the_author_meta()
  * @see the_author_meta()
-*/
+ */
 function the_author_ID() {
 	_deprecated_function( __FUNCTION__, '2.8', 'the_author_meta(\'ID\')' );
 	the_author_meta('ID');
@@ -1755,12 +1757,20 @@ function translate_with_context( $text, $domain = 'default' ) {
 }
 
 /**
- * A version of _n(), which supports contexts.
+ * Legacy version of _n(), which supports contexts.
+ *
  * Strips everything from the translation after the last bar.
  *
  * @since 2.7.0
  * @deprecated 3.0.0 Use _nx()
  * @see _nx()
+ *
+ * @param string $single The text to be used if the number is singular.
+ * @param string $plural The text to be used if the number is plural.
+ * @param int    $number The number to compare against to use either the singular or plural form.
+ * @param string $domain Optional. Text domain. Unique identifier for retrieving translated strings.
+ *                       Default 'default'.
+ * @return string The translated singular or plural form.
  */
 function _nc( $single, $plural, $number, $domain = 'default' ) {
 	_deprecated_function( __FUNCTION__, '2.9', '_nx()' );
@@ -1962,17 +1972,20 @@ function get_attachment_innerHTML($id = 0, $fullsize = false, $max_dims = false)
 }
 
 /**
- * Retrieve bookmark data based on ID.
+ * Retrieves bookmark data based on ID.
  *
  * @since 2.0.0
  * @deprecated 2.1.0 Use get_bookmark()
  * @see get_bookmark()
  *
- * @param int $bookmark_id ID of link
- * @param string $output OBJECT, ARRAY_N, or ARRAY_A
- * @return object|array
+ * @param int    $bookmark_id ID of link
+ * @param string $output      Optional. Type of output. Accepts OBJECT, ARRAY_N, or ARRAY_A.
+ *                            Default OBJECT.
+ * @param string $filter      Optional. How to filter the link for output. Accepts 'raw', 'edit',
+ *                            'attribute', 'js', 'db', or 'display'. Default 'raw'.
+ * @return object|array Bookmark object or array, depending on the type specified by `$output`.
  */
-function get_link($bookmark_id, $output = OBJECT, $filter = 'raw') {
+function get_link( $bookmark_id, $output = OBJECT, $filter = 'raw' ) {
 	_deprecated_function( __FUNCTION__, '2.1', 'get_bookmark()' );
 	return get_bookmark($bookmark_id, $output, $filter);
 }
@@ -2035,10 +2048,16 @@ function js_escape( $text ) {
 }
 
 /**
- * Escaping for HTML blocks.
+ * Legacy escaping for HTML blocks.
  *
  * @deprecated 2.8.0 Use esc_html()
  * @see esc_html()
+ *
+ * @param string       $string        String to escape.
+ * @param string       $quote_style   Unused.
+ * @param false|string $charset       Unused.
+ * @param false        $double_encode Whether to double encode. Unused.
+ * @return string Escaped `$string`.
  */
 function wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = false, $double_encode = false ) {
 	_deprecated_function( __FUNCTION__, '2.8', 'esc_html()' );
@@ -2079,10 +2098,10 @@ function attribute_escape( $text ) {
  * @deprecated 2.8.0 Use wp_register_sidebar_widget()
  * @see wp_register_sidebar_widget()
  *
- * @param string|int $name Widget ID.
- * @param callback $output_callback Run when widget is called.
- * @param string $classname Classname widget option.
- * @param mixed $params ,... Widget parameters.
+ * @param string|int $name            Widget ID.
+ * @param callable   $output_callback Run when widget is called.
+ * @param string     $classname       Optional. Classname widget option. Default empty.
+ * @param mixed      $params ,...     Widget parameters.
  */
 function register_sidebar_widget($name, $output_callback, $classname = '') {
 	_deprecated_function( __FUNCTION__, '2.8', 'wp_register_sidebar_widget()' );
@@ -2135,7 +2154,7 @@ function unregister_sidebar_widget($id) {
  * @see wp_register_widget_control()
  *
  * @param int|string $name Sidebar ID.
- * @param callback $control_callback Widget control callback to display and process form.
+ * @param callable $control_callback Widget control callback to display and process form.
  * @param int $width Widget width.
  * @param int $height Widget height.
  */
@@ -2337,8 +2356,8 @@ function update_usermeta( $user_id, $meta_key, $meta_value ) {
  * @deprecated 3.1.0 Use get_users()
  * @see get_users()
  *
- * @global wpdb $wpdb WordPress database abstraction object.
- * @uses $blog_id The Blog id of the blog for those that use more than one blog
+ * @global wpdb $wpdb    WordPress database abstraction object.
+ * @global int  $blog_id The Blog id of the blog for those that use more than one blog
  *
  * @param int $id Blog ID.
  * @return array List of users that are part of that Blog ID
@@ -2378,6 +2397,10 @@ function automatic_feed_links( $add = true ) {
  * @since 1.5.0
  * @deprecated 3.0.0 Use get_the_author_meta()
  * @see get_the_author_meta()
+ *
+ * @param string    $field User meta field.
+ * @param false|int $user Optional. User ID to retrieve the field for. Default false (current user).
+ * @return string The author's field from the current author's DB object.
  */
 function get_profile( $field, $user = false ) {
 	_deprecated_function( __FUNCTION__, '3.0', 'get_the_author_meta()' );
@@ -2389,11 +2412,14 @@ function get_profile( $field, $user = false ) {
 }
 
 /**
- * Number of posts user has written.
+ * Retrieves the number of posts a user has written.
  *
  * @since 0.71
  * @deprecated 3.0.0 Use count_user_posts()
  * @see count_user_posts()
+ *
+ * @param int $userid User to count posts for.
+ * @return int Number of posts the given user has written.
  */
 function get_usernumposts( $userid ) {
 	_deprecated_function( __FUNCTION__, '3.0', 'count_user_posts()' );
@@ -2422,8 +2448,8 @@ function funky_javascript_callback($matches) {
  * @since 1.5.0
  * @deprecated 3.0.0
  *
- * @uses $is_macIE
- * @uses $is_winIE
+ * @global $is_macIE
+ * @global $is_winIE
  *
  * @param string $text Text to be made safe.
  * @return string Fixed text.
@@ -2529,16 +2555,18 @@ function wp_timezone_supported() {
 }
 
 /**
- * Display editor: TinyMCE, HTML, or both.
+ * Displays an editor: TinyMCE, HTML, or both.
  *
  * @since 2.1.0
  * @deprecated 3.3.0 Use wp_editor()
  * @see wp_editor()
  *
- * @param string $content Textarea content.
- * @param string $id Optional, default is 'content'. HTML ID attribute value.
- * @param string $prev_id Optional, not used
- * @param bool $media_buttons Optional, default is true. Whether to display media buttons.
+ * @param string $content       Textarea content.
+ * @param string $id            Optional. HTML ID attribute value. Default 'content'.
+ * @param string $prev_id       Optional. Unused.
+ * @param bool   $media_buttons Optional. Whether to display media buttons. Default true.
+ * @param int    $tab_index     Optional. Unused.
+ * @param bool   $extended      Optional. Unused.
  * @param int $tab_index Optional, not used
  */
 function the_editor($content, $id = 'content', $prev_id = 'title', $media_buttons = true, $tab_index = 2, $extended = true) {
@@ -2928,9 +2956,9 @@ function clean_pre($matches) {
  * @deprecated 3.4.0 Use add_theme_support()
  * @see add_theme_support()
  *
- * @param callback $wp_head_callback Call on 'wp_head' action.
- * @param callback $admin_head_callback Call on custom header administration screen.
- * @param callback $admin_preview_callback Output a custom header image div on the custom header administration screen. Optional.
+ * @param callable $wp_head_callback Call on 'wp_head' action.
+ * @param callable $admin_head_callback Call on custom header administration screen.
+ * @param callable $admin_preview_callback Output a custom header image div on the custom header administration screen. Optional.
  */
 function add_custom_image_header( $wp_head_callback, $admin_head_callback, $admin_preview_callback = '' ) {
 	_deprecated_function( __FUNCTION__, '3.4', 'add_theme_support( \'custom-header\', $args )' );
@@ -2964,9 +2992,9 @@ function remove_custom_image_header() {
  * @deprecated 3.4.0 Use add_theme_support()
  * @see add_theme_support()
  *
- * @param callback $wp_head_callback Call on 'wp_head' action.
- * @param callback $admin_head_callback Call on custom background administration screen.
- * @param callback $admin_preview_callback Output a custom background image div on the custom background administration screen. Optional.
+ * @param callable $wp_head_callback Call on 'wp_head' action.
+ * @param callable $admin_head_callback Call on custom background administration screen.
+ * @param callable $admin_preview_callback Output a custom background image div on the custom background administration screen. Optional.
  */
 function add_custom_background( $wp_head_callback = '', $admin_head_callback = '', $admin_preview_callback = '' ) {
 	_deprecated_function( __FUNCTION__, '3.4', 'add_theme_support( \'custom-background\', $args )' );
@@ -3284,9 +3312,9 @@ function wp_convert_bytes_to_hr( $bytes ) {
 	_deprecated_function( __FUNCTION__, '3.6', 'size_format()' );
 
 	$units = array( 0 => 'B', 1 => 'kB', 2 => 'MB', 3 => 'GB', 4 => 'TB' );
-	$log   = log( $bytes, 1024 );
+	$log   = log( $bytes, KB_IN_BYTES );
 	$power = (int) $log;
-	$size  = pow( 1024, $log - $power );
+	$size  = pow( KB_IN_BYTES, $log - $power );
 
 	if ( ! is_nan( $size ) && array_key_exists( $power, $units ) ) {
 		$unit = $units[ $power ];
@@ -3561,3 +3589,130 @@ function post_permalink( $post_id = 0 ) {
 	return get_permalink( $post_id );
 }
 
+/**
+ * Perform a HTTP HEAD or GET request.
+ *
+ * If $file_path is a writable filename, this will do a GET request and write
+ * the file to that path.
+ *
+ * @since 2.5.0
+ * @deprecated 4.4.0 Use WP_Http
+ * @see WP_Http
+ *
+ * @param string      $url       URL to fetch.
+ * @param string|bool $file_path Optional. File path to write request to. Default false.
+ * @param int         $red       Optional. The number of Redirects followed, Upon 5 being hit,
+ *                               returns false. Default 1.
+ * @return bool|string False on failure and string of headers if HEAD request.
+ */
+function wp_get_http( $url, $file_path = false, $red = 1 ) {
+	_deprecated_function( __FUNCTION__, '4.4', 'WP_Http' );
+
+	@set_time_limit( 60 );
+
+	if ( $red > 5 )
+		return false;
+
+	$options = array();
+	$options['redirection'] = 5;
+
+	if ( false == $file_path )
+		$options['method'] = 'HEAD';
+	else
+		$options['method'] = 'GET';
+
+	$response = wp_safe_remote_request( $url, $options );
+
+	if ( is_wp_error( $response ) )
+		return false;
+
+	$headers = wp_remote_retrieve_headers( $response );
+	$headers['response'] = wp_remote_retrieve_response_code( $response );
+
+	// WP_HTTP no longer follows redirects for HEAD requests.
+	if ( 'HEAD' == $options['method'] && in_array($headers['response'], array(301, 302)) && isset( $headers['location'] ) ) {
+		return wp_get_http( $headers['location'], $file_path, ++$red );
+	}
+
+	if ( false == $file_path )
+		return $headers;
+
+	// GET request - write it to the supplied filename
+	$out_fp = fopen($file_path, 'w');
+	if ( !$out_fp )
+		return $headers;
+
+	fwrite( $out_fp,  wp_remote_retrieve_body( $response ) );
+	fclose($out_fp);
+	clearstatcache();
+
+	return $headers;
+}
+
+/**
+ * Whether SSL login should be forced.
+ *
+ * @since 2.6.0
+ * @deprecated 4.4.0 Use force_ssl_admin()
+ * @see force_ssl_admin()
+ *
+ * @param string|bool $force Optional Whether to force SSL login. Default null.
+ * @return bool True if forced, false if not forced.
+ */
+function force_ssl_login( $force = null ) {
+	_deprecated_function( __FUNCTION__, '4.4', 'force_ssl_admin()' );
+	return force_ssl_admin( $force );
+}
+
+/**
+ * Retrieve path of comment popup template in current or parent template.
+ *
+ * @since 1.5.0
+ * @deprecated 4.5.0
+ *
+ * @return string Full path to comments popup template file.
+ */
+function get_comments_popup_template() {
+	_deprecated_function( __FUNCTION__, '4.5' );
+
+	return '';
+}
+
+/**
+ * Whether the current URL is within the comments popup window.
+ *
+ * @since 1.5.0
+ * @deprecated 4.5.0
+ *
+ * @return bool
+ */
+function is_comments_popup() {
+	_deprecated_function( __FUNCTION__, '4.5' );
+
+	return false;
+}
+
+/**
+ * Display the JS popup script to show a comment.
+ *
+ * @since 0.71
+ * @deprecated 4.5.0
+ */
+function comments_popup_script() {
+	_deprecated_function( __FUNCTION__, '4.5' );
+}
+
+/**
+ * Adds element attributes to open links in new windows.
+ *
+ * @since 0.71
+ * @deprecated 4.5.0
+ *
+ * @param string $text Content to replace links to open in a new window.
+ * @return string Content that has filtered links.
+ */
+function popuplinks( $text ) {
+	_deprecated_function( __FUNCTION__, '4.5' );
+	$text = preg_replace('/<a (.+?)>/i', "<a $1 target='_blank' rel='external'>", $text);
+	return $text;
+}

@@ -23,6 +23,14 @@ matrix:
     env: WP_TRAVISCI=travis:phpunit
   - php: nightly
     env: WP_TRAVISCI=travis:phpunit
+  - php: 7
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mysql: 5.7
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mysql: 5.7
   allow_failures:
   - php: hhvm
   - php: nightly

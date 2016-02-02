@@ -31,6 +31,30 @@ matrix:
     env: WP_TRAVISCI=travis:phpunit
     addons:
       mysql: 5.7
+  - php: 7
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 5.5
+  - php: 7
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 10.0
+  - php: 7
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 10.1
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 5.5
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 10.0
+  - php: 5.6
+    env: WP_TRAVISCI=travis:phpunit
+    addons:
+      mariadb: 10.1
   allow_failures:
   - php: hhvm
   - php: nightly

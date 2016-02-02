@@ -357,20 +357,22 @@ function the_excerpt() {
  * Retrieve the post excerpt.
  *
  * @since 0.71
+ * @since 4.5.0 Introduced the `$post` parameter.
  *
- * @param mixed $deprecated Not used.
- * @return string
+ * @param int|WP_Post $post Optional. Post ID or WP_Post object. Default is global $post.
+ * @return string Post excerpt.
  */
-function get_the_excerpt( $deprecated = '' ) {
-	if ( !empty( $deprecated ) )
+function get_the_excerpt( $post = null ) {
+	if ( is_bool( $post ) ) {
 		_deprecated_argument( __FUNCTION__, '2.3' );
+	}
 
-	$post = get_post();
+	$post = get_post( $post );
 	if ( empty( $post ) ) {
 		return '';
 	}
 
-	if ( post_password_required() ) {
+	if ( post_password_required( $post ) ) {
 		return __( 'There is no excerpt because this is a protected post.' );
 	}
 
@@ -378,10 +380,12 @@ function get_the_excerpt( $deprecated = '' ) {
 	 * Filter the retrieved post excerpt.
 	 *
 	 * @since 1.2.0
+	 * @since 4.5.0 Introduced the `$post` parameter.
 	 *
 	 * @param string $post_excerpt The post excerpt.
+	 * @param WP_Post $post Post object.
 	 */
-	return apply_filters( 'get_the_excerpt', $post->post_excerpt );
+	return apply_filters( 'get_the_excerpt', $post->post_excerpt, $post );
 }
 
 /**

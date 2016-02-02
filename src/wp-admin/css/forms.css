@@ -430,10 +430,6 @@ input[type="number"].tiny-text {
 	margin-left: 1em;
 }
 
-#upload-form label {
-	color: #777;
-}
-
 button.wp-hide-pw > .dashicons {
 	position: relative;
 	top: 3px;
@@ -655,6 +651,14 @@ ul#add-to-blog-users {
 	margin-bottom: 0;
 }
 
+.form-table .date-time-doc {
+	margin-top: 1em;
+}
+
+.form-table p.timezone-info {
+	margin: 1em 0;
+}
+
 .form-table td fieldset label {
 	margin: 0.25em 0 0.5em !important;
 	display: inline-block;
@@ -855,7 +859,7 @@ table.form-table td .updated p {
 }
 
 .pressthis-bookmarklet span:before {
-	color: #777;
+	color: #72777c;
 	font: normal 20px/1 dashicons;
 	content: "\f157";
 	position: relative;
@@ -871,11 +875,6 @@ table.form-table td .updated p {
 	vertical-align: top;
 }
 
-.pressthis-js-toggle .dashicons {
-	margin: 5px 8px 6px 7px;
-	color: #777;
-}
-
 /* to override the button class being applied */
 .pressthis-js-toggle.button.button {
 	margin-left: 10px;
@@ -886,21 +885,25 @@ table.form-table td .updated p {
 
 .pressthis-js-toggle .dashicons {
 	margin: 5px 8px 6px 7px;
-	color: #777;
+	color: #555d66;
 }
 
 /*------------------------------------------------------------------------------
   20.0 - Settings
 ------------------------------------------------------------------------------*/
 
-#utc-time, #local-time {
-	padding-left: 25px;
-	font-style: italic;
+.timezone-info code {
+	white-space: nowrap;
 }
 
 .defaultavatarpicker .avatar {
 	margin: 2px 0;
 	vertical-align: middle;
+}
+
+.options-general-php .date-time-text {
+	display: inline-block;
+	min-width: 10em;
 }
 
 .options-general-php input.small-text {
@@ -1268,16 +1271,11 @@ table.form-table td .updated p {
 		display: block;
 	}
 
-	#utc-time {
-		margin-top: 10px;
-	}
-
 	#utc-time,
 	#local-time {
 		display: block;
 		float: none;
-		padding: 0;
-		line-height: 2;
+		margin-top: 0.5em;
 	}
 
 	.form-field #domain {
@@ -1315,6 +1313,11 @@ table.form-table td .updated p {
 
 	.wp-pwd .button .text {
 		display: none;
+	}
+
+	.options-general-php input[type="text"].small-text {
+		max-width: 60px;
+		margin: 0;
 	}
 }
 
@@ -1356,5 +1359,12 @@ table.form-table td .updated p {
 	/* Color Picker Options */
 	.color-option {
 		width: 49%;
+	}
+}
+
+@media only screen and (max-width: 320px) {
+	.options-general-php .date-time-text.date-time-custom-text {
+		min-width: 0;
+		margin-right: 0.5em;
 	}
 }

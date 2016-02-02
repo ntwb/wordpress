@@ -348,7 +348,7 @@ function category_description( $category = 0 ) {
  *                                           of the option elements. Accepts any valid term field: 'term_id', 'name',
  *                                           'slug', 'term_group', 'term_taxonomy_id', 'taxonomy', 'description',
  *                                           'parent', 'count'. Default 'term_id'.
- *     @type string       $taxonomy          Name of the category to retrieve. Default 'category'.
+ *     @type string|array $taxonomy          Name of the category or categories to retrieve. Default 'category'.
  *     @type bool         $hide_if_empty     True to skip generating markup if no categories are found.
  *                                           Default false (create select element even if no categories are found).
  * }
@@ -520,24 +520,34 @@ function wp_dropdown_categories( $args = '' ) {
  *                                               the list. Default false (title will always be shown).
  *     @type int          $depth                 Category depth. Used for tab indentation. Default 0.
  *     @type string       $taxonomy              Taxonomy name. Default 'category'.
+ *     @type string       $separator             Separator between links. Default '<br />'.
  * }
  * @return false|string HTML content only if 'echo' argument is 0.
  */
 function wp_list_categories( $args = '' ) {
 	$defaults = array(
-		'show_option_all' => '', 'show_option_none' => __('No categories'),
-		'orderby' => 'name', 'order' => 'ASC',
-		'style' => 'list',
-		'show_count' => 0, 'hide_empty' => 1,
-		'use_desc_for_title' => 1, 'child_of' => 0,
-		'feed' => '', 'feed_type' => '',
-		'feed_image' => '', 'exclude' => '',
-		'exclude_tree' => '', 'current_category' => 0,
-		'hierarchical' => true, 'title_li' => __( 'Categories' ),
+		'child_of'            => 0,
+		'current_category'    => 0,
+		'depth'               => 0,
+		'echo'                => 1,
+		'exclude'             => '',
+		'exclude_tree'        => '',
+		'feed'                => '',
+		'feed_image'          => '',
+		'feed_type'           => '',
+		'hide_empty'          => 1,
 		'hide_title_if_empty' => false,
-		'echo' => 1, 'depth' => 0,
-		'separator' => '<br />',
-		'taxonomy' => 'category'
+		'hierarchical'        => true,
+		'order'               => 'ASC',
+		'orderby'             => 'name',
+		'separator'           => '<br />',
+		'show_count'          => 0,
+		'show_option_all'     => '',
+		'show_option_none'    => __( 'No categories' ),
+		'style'               => 'list',
+		'taxonomy'            => 'category',
+		'title_li'            => __( 'Categories' ),
+		'use_desc_for_title'  => 1,
 	);
 
 	$r = wp_parse_args( $args, $defaults );

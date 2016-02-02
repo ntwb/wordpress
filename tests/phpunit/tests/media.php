@@ -418,6 +418,116 @@ VIDEO;
 	}
 
 	/**
+	 * @ticket 35367
+	 */
+	function test_wp_audio_shortcode_with_empty_params() {
+		$this->assertNull( wp_audio_shortcode( array() ) );
+	}
+
+	/**
+	 * @ticket 35367
+	 */
+	function test_wp_audio_shortcode_with_bad_attr() {
+		$this->assertSame(
+			'<a class="wp-embedded-audio" href="https://example.com/foo.php">https://example.com/foo.php</a>',
+			wp_audio_shortcode( array(
+				'src' => 'https://example.com/foo.php',
+			) )
+		);
+	}
+
+	/**
+	 * @ticket 35367
+	 */
+	function test_wp_audio_shortcode_attributes() {
+		$actual = wp_audio_shortcode( array(
+			'src' => 'https://example.com/foo.mp3',
+		) );
+
+		$this->assertContains( 'src="https://example.com/foo.mp3', $actual );
+		$this->assertNotContains( 'loop', $actual );
+		$this->assertNotContains( 'autoplay', $actual );
+		$this->assertContains( 'preload="none"', $actual );
+		$this->assertContains( 'class="wp-audio-shortcode"', $actual );
+		$this->assertContains( 'style="width: 100%; visibility: hidden;"', $actual );
+
+		$actual = wp_audio_shortcode( array(
+			'src'      => 'https://example.com/foo.mp3',
+			'loop'     => true,
+			'autoplay' => true,
+			'preload'  => true,
+			'class'    => 'foobar',
+			'style'    => 'padding:0;',
+		) );
+
+		$this->assertContains( 'src="https://example.com/foo.mp3', $actual );
+		$this->assertContains( 'loop="1"', $actual );
+		$this->assertContains( 'autoplay="1"', $actual );
+		$this->assertContains( 'preload="1"', $actual );
+		$this->assertContains( 'class="foobar"', $actual );
+		$this->assertContains( 'style="padding:0;"', $actual );
+	}
+
+	/**
+	 * @ticket  35367
+	 * @depends test_video_shortcode_body
+	 */
+	function test_wp_video_shortcode_with_empty_params() {
+		$this->assertNull( wp_video_shortcode( array() ) );
+	}
+
+	/**
+	 * @ticket  35367
+	 * @depends test_video_shortcode_body
+	 */
+	function test_wp_video_shortcode_with_bad_attr() {
+		$this->assertSame(
+			'<a class="wp-embedded-video" href="https://example.com/foo.php">https://example.com/foo.php</a>',
+			wp_video_shortcode( array(
+				'src' => 'https://example.com/foo.php',
+			) )
+		);
+	}
+
+	/**
+	 * @ticket  35367
+	 * @depends test_video_shortcode_body
+	 */
+	function test_wp_video_shortcode_attributes() {
+		$actual = wp_video_shortcode( array(
+			'src' => 'https://example.com/foo.mp4',
+		) );
+
+		$this->assertContains( 'src="https://example.com/foo.mp4', $actual );
+		$this->assertNotContains( 'loop', $actual );
+		$this->assertNotContains( 'autoplay', $actual );
+		$this->assertContains( 'preload="metadata"', $actual );
+		$this->assertContains( 'width="640"', $actual );
+		$this->assertContains( 'height="360"', $actual );
+		$this->assertContains( 'class="wp-video-shortcode"', $actual );
+
+		$actual = wp_video_shortcode( array(
+			'src'      => 'https://example.com/foo.mp4',
+			'poster'   => 'https://example.com/foo.png',
+			'loop'     => true,
+			'autoplay' => true,
+			'preload'  => true,
+			'width'    => 123,
+			'height'   => 456,
+			'class'    => 'foobar',
+		) );
+
+		$this->assertContains( 'src="https://example.com/foo.mp4', $actual );
+		$this->assertContains( 'poster="https://example.com/foo.png', $actual );
+		$this->assertContains( 'loop="1"', $actual );
+		$this->assertContains( 'autoplay="1"', $actual );
+		$this->assertContains( 'preload="1"', $actual );
+		$this->assertContains( 'width="123"', $actual );
+		$this->assertContains( 'height="456"', $actual );
+		$this->assertContains( 'class="foobar"', $actual );
+	}
+
+	/**
 	 * Test [video] shortcode processing
 	 *
 	 */
@@ -866,6 +976,48 @@ EOF;
 	}
 
 	/**
+	 * @ticket 35106
+	 */
+	function test_wp_calculate_image_srcset_with_absolute_path_in_meta() {
+		global $_wp_additional_image_sizes;
+
+		$year_month = date('Y/m');
+		$image_meta = wp_get_attachment_metadata( self::$large_id );
+		$uploads_dir_url = 'http://' . WP_TESTS_DOMAIN . '/wp-content/uploads/';
+
+		// Set up test cases for all expected size names.
+		$intermediates = array( 'medium', 'medium_large', 'large', 'full' );
+
+		// Add any soft crop intermediate sizes.
+		foreach ( $_wp_additional_image_sizes as $name => $additional_size ) {
+			if ( ! $_wp_additional_image_sizes[$name]['crop'] || 0 === $_wp_additional_image_sizes[$name]['height'] ) {
+				$intermediates[] = $name;
+			}
+		}
+
+		$expected = '';
+
+		foreach( $image_meta['sizes'] as $name => $size ) {
+			// Whitelist the sizes that should be included so we pick up 'medium_large' in 4.4.
+			if ( in_array( $name, $intermediates ) ) {
+				$expected .= $uploads_dir_url . $year_month . '/' . $size['file'] . ' ' . $size['width'] . 'w, ';
+			}
+		}
+
+		// Add the full size width at the end.
+		$expected .= $uploads_dir_url . $image_meta['file'] . ' ' . $image_meta['width'] .'w';
+
+		// Prepend an absolute path to simulate a pre-2.7 upload
+		$image_meta['file'] = 'H:\home\wordpress\trunk/wp-content/uploads/' . $image_meta['file'];
+
+		foreach ( $intermediates as $int ) {
+			$image_url = wp_get_attachment_image_url( self::$large_id, $int );
+			$size_array = $this->_get_image_size_array_from_name( $int );
+ 			$this->assertSame( $expected, wp_calculate_image_srcset( $size_array, $image_url, $image_meta ) );
+ 		}
+	}
+
+	/**
 	 * @ticket 33641
 	 */
 	function test_wp_calculate_image_srcset_false() {
@@ -1222,5 +1374,43 @@ EOF;
 		$this->assertFalse( wp_calculate_image_srcset( $size_array, $full_src, $image_meta ) );
 		// Intermediate sized GIFs should not include the full size in the srcset.
 		$this->assertFalse( strpos( wp_calculate_image_srcset( $size_array, $large_src, $image_meta ), $full_src ) );
+	}
+
+	/**
+	 * @ticket 35045
+	 * @ticket 33641
+	 */
+	function test_wp_make_content_images_responsive_schemes() {
+		$image_meta = wp_get_attachment_metadata( self::$large_id );
+		$size_array = $this->_get_image_size_array_from_name( 'medium' );
+
+		$srcset = sprintf( 'srcset="%s"', wp_get_attachment_image_srcset( self::$large_id, $size_array, $image_meta ) );
+		$sizes  = sprintf( 'sizes="%s"', wp_get_attachment_image_sizes( self::$large_id, $size_array, $image_meta ) );
+
+		// Build HTML for the editor.
+		$img          = get_image_tag( self::$large_id, '', '', '', 'medium' );
+		$img_https    = str_replace( 'http://', 'https://', $img );
+		$img_relative = str_replace( 'http://', '//', $img );
+
+		// Manually add srcset and sizes to the markup from get_image_tag().
+		$respimg          = preg_replace( '|<img ([^>]+) />|', '<img $1 ' . $srcset . ' ' . $sizes . ' />', $img );
+		$respimg_https    = preg_replace( '|<img ([^>]+) />|', '<img $1 ' . $srcset . ' ' . $sizes . ' />', $img_https );
+		$respimg_relative = preg_replace( '|<img ([^>]+) />|', '<img $1 ' . $srcset . ' ' . $sizes . ' />', $img_relative );
+
+		$content = '
+			<p>Image, http: protocol. Should have srcset and sizes.</p>
+			%1$s
+
+			<p>Image, https: protocol. Should have srcset and sizes.</p>
+			%2$s
+
+			<p>Image, protocol-relative. Should have srcset and sizes.</p>
+			%3$s';
+
+		$unfiltered = sprintf( $content, $img, $img_https, $img_relative );
+		$expected   = sprintf( $content, $respimg, $respimg_https, $respimg_relative );
+		$actual     = wp_make_content_images_responsive( $unfiltered );
+
+		$this->assertSame( $expected, $actual );
 	}
 }

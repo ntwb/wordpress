@@ -75,7 +75,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 	public function prepare_items() {
 		global $status, $plugins, $totals, $page, $orderby, $order, $s;
 
-		wp_reset_vars( array( 'orderby', 'order', 's' ) );
+		wp_reset_vars( array( 'orderby', 'order' ) );
 
 		/**
 		 * Filter the full array of plugins to list in the Plugins list table.
@@ -224,7 +224,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			}
 		}
 
-		if ( $s ) {
+		if ( strlen( $s ) ) {
 			$status = 'search';
 			$plugins['search'] = array_filter( $plugins['all'], array( $this, '_search_callback' ) );
 		}
@@ -268,17 +268,16 @@ class WP_Plugins_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * @staticvar string $term
+	 * @global string $s
+	 *
 	 * @param array $plugin
 	 * @return bool
 	 */
 	public function _search_callback( $plugin ) {
-		static $term = null;
-		if ( is_null( $term ) )
-			$term = wp_unslash( $_REQUEST['s'] );
+		global $s;
 
 		foreach ( $plugin as $value ) {
-			if ( false !== stripos( strip_tags( $value ), $term ) ) {
+			if ( is_string( $value ) && false !== stripos( strip_tags( $value ), $s ) ) {
 				return true;
 			}
 		}
@@ -695,15 +694,14 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			$plugin_name = $plugin_data['Name'];
 		}
 
-		$id = sanitize_title( $plugin_name );
 		if ( ! empty( $totals['upgrade'] ) && ! empty( $plugin_data['update'] ) )
 			$class .= ' update';
 
-		$plugin_slug = ( isset( $plugin_data['slug'] ) ) ? $plugin_data['slug'] : '';
-		printf( "<tr id='%s' class='%s' data-slug='%s'>",
-			$id,
-			$class,
-			$plugin_slug
+		$plugin_slug = isset( $plugin_data['slug'] ) ? $plugin_data['slug'] : sanitize_title( $plugin_name );
+		printf( '<tr class="%s" data-slug="%s" data-plugin="%s">',
+			esc_attr( $class ),
+			esc_attr( $plugin_slug ),
+			esc_attr( $plugin_file )
 		);
 
 		list( $columns, $hidden, $sortable, $primary ) = $this->get_column_info();

@@ -93,7 +93,7 @@ module.exports = function(grunt) {
 					}
 				]
 			},
-			'wp-admin-rtl': {
+			'wp-admin-css-compat-rtl': {
 				options: {
 					processContent: function( src ) {
 						return src.replace( /\.css/g, '-rtl.css' );
@@ -102,14 +102,31 @@ module.exports = function(grunt) {
 				src: SOURCE_DIR + 'wp-admin/css/wp-admin.css',
 				dest: BUILD_DIR + 'wp-admin/css/wp-admin-rtl.css'
 			},
+			'wp-admin-css-compat-min': {
+				options: {
+					processContent: function( src ) {
+						return src.replace( /\.css/g, '.min.css' );
+					}
+				},
+				files: [
+					{
+						src: SOURCE_DIR + 'wp-admin/css/wp-admin.css',
+						dest: BUILD_DIR + 'wp-admin/css/wp-admin.min.css'
+					},
+					{
+						src:  BUILD_DIR + 'wp-admin/css/wp-admin-rtl.css',
+						dest: BUILD_DIR + 'wp-admin/css/wp-admin-rtl.min.css'
+					}
+				]
+			},
 			version: {
 				options: {
 					processContent: function( src ) {
 						return src.replace( /^\$wp_version = '(.+?)';/m, function( str, version ) {
 							version = version.replace( /-src$/, '' );
 
-							// If the version includes an SVN commit (-12345), it's not a released alpha/beta. Append a date.
-							version = version.replace( /-[\d]{5}$/, '-' + grunt.template.today( 'yyyymmdd' ) );
+							// If the version includes an SVN commit (-12345), it's not a released alpha/beta. Append a timestamp.
+							version = version.replace( /-[\d]{5}$/, '-' + grunt.template.today( 'yyyymmdd.HHMMss' ) );
 
 							/* jshint quotmark: true */
 							return "$wp_version = '" + version + "';";
@@ -154,7 +171,6 @@ module.exports = function(grunt) {
 		},
 		cssmin: {
 			options: {
-				'wp-admin': ['wp-admin', 'color-picker', 'customize-controls', 'customize-widgets', 'customize-nav-menus', 'ie', 'install', 'login', 'press-this', 'deprecated-*'],
 				compatibility: 'ie7'
 			},
 			core: {
@@ -163,7 +179,8 @@ module.exports = function(grunt) {
 				dest: BUILD_DIR,
 				ext: '.min.css',
 				src: [
-					'wp-admin/css/{<%= cssmin.options["wp-admin"] %>}.css',
+					'wp-admin/css/*.css',
+					'!wp-admin/css/wp-admin*.css',
 					'wp-includes/css/*.css'
 				]
 			},
@@ -173,7 +190,8 @@ module.exports = function(grunt) {
 				dest: BUILD_DIR,
 				ext: '.min.css',
 				src: [
-					'wp-admin/css/{<%= cssmin.options["wp-admin"] %>}-rtl.css',
+					'wp-admin/css/*-rtl.css',
+					'!wp-admin/css/wp-admin*.css',
 					'wp-includes/css/*-rtl.css'
 				]
 			},
@@ -647,7 +665,8 @@ module.exports = function(grunt) {
 
 	grunt.registerTask( 'copy:all', [
 		'copy:files',
-		'copy:wp-admin-rtl',
+		'copy:wp-admin-css-compat-rtl',
+		'copy:wp-admin-css-compat-min',
 		'copy:version'
 	] );
 

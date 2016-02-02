@@ -102,7 +102,7 @@ function get_comment_author_email( $comment_ID = 0 ) {
  *
  * Care should be taken to protect the email address and assure that email
  * harvesters do not capture your commentors' email address. Most assume that
- * their email address will not appear in raw form on the blog. Doing so will
+ * their email address will not appear in raw form on the site. Doing so will
  * enable anyone, including those that people don't want to get the email
  * address and use it for their own means good and bad.
  *
@@ -133,7 +133,7 @@ function comment_author_email( $comment_ID = 0 ) {
  *
  * Care should be taken to protect the email address and assure that email
  * harvesters do not capture your commentors' email address. Most assume that
- * their email address will not appear in raw form on the blog. Doing so will
+ * their email address will not appear in raw form on the site. Doing so will
  * enable anyone, including those that people don't want to get the email
  * address and use it for their own means good and bad.
  *
@@ -154,7 +154,7 @@ function comment_author_email_link( $linktext = '', $before = '', $after = '' ) 
  *
  * Care should be taken to protect the email address and assure that email
  * harvesters do not capture your commentors' email address. Most assume that
- * their email address will not appear in raw form on the blog. Doing so will
+ * their email address will not appear in raw form on the site. Doing so will
  * enable anyone, including those that people don't want to get the email
  * address and use it for their own means good and bad.
  *
@@ -730,7 +730,6 @@ function get_comment_link( $comment = null, $args = array() ) {
 		 * If the default page displays the oldest comments, the permalinks for comments on the default page
 		 * do not need a 'cpage' query var.
 		 */
-		$default_comments_page = get_option( 'default_comments_page' );
 		if ( 'oldest' === get_option( 'default_comments_page' ) && 1 === $cpage ) {
 			$cpage = '';
 		}
@@ -1242,7 +1241,7 @@ function wp_comment_form_unfiltered_html_nonce() {
  * @global int        $user_ID
  * @global string     $user_identity
  * @global bool       $overridden_cpage
- * @global bool       $withcomments 
+ * @global bool       $withcomments
  *
  * @param string $file              Optional. The file to load. Default '/comments.php'.
  * @param bool   $separate_comments Optional. Whether to separate the comments by comment type.
@@ -1286,10 +1285,15 @@ function comments_template( $file = '/comments.php', $separate_comments = false 
 		'order' => 'ASC',
 		'status'  => 'approve',
 		'post_id' => $post->ID,
-		'hierarchical' => 'threaded',
 		'no_found_rows' => false,
 		'update_comment_meta_cache' => false, // We lazy-load comment meta for performance.
 	);
+
+	if ( get_option('thread_comments') ) {
+		$comment_args['hierarchical'] = 'threaded';
+	} else {
+		$comment_args['hierarchical'] = false;
+	}
 
 	if ( $user_ID ) {
 		$comment_args['include_unapproved'] = array( $user_ID );
@@ -1318,9 +1322,12 @@ function comments_template( $file = '/comments.php', $separate_comments = false 
 				'count'   => true,
 				'orderby' => false,
 				'post_id' => $post->ID,
-				'parent'  => 0,
 				'status'  => 'approve',
 			);
+
+			if ( $comment_args['hierarchical'] ) {
+				$top_level_args['parent'] = 0;
+			}
 
 			if ( isset( $comment_args['include_unapproved'] ) ) {
 				$top_level_args['include_unapproved'] = $comment_args['include_unapproved'];
@@ -1332,22 +1339,48 @@ function comments_template( $file = '/comments.php', $separate_comments = false 
 		}
 	}
 
+	/**
+	 * Filters the arguments used to query comments in comments_template().
+	 *
+	 * @since 4.5.0
+	 *
+	 * @param array $comment_args {
+	 *     Array of arguments. See WP_Comment_Query::__construct() for detailed descriptions.
+	 *
+	 *     @type string|array $orderby                   Field(s) to order by.
+	 *     @type string       $order                     Order of results. Accepts 'ASC' or 'DESC'.
+	 *     @type string       $status                    Comment status.
+	 *     @type array        $include_unapproved        Array of IDs or email addresses whose unapproved comments
+	 *                                                   will be included in results.
+	 *     @type int          $post_id                   ID of the post.
+	 *     @type bool         $no_found_rows             Whether to refrain from querying for found rows.
+	 *     @type bool         $update_comment_meta_cache Whether to prime cache for comment meta.
+	 *     @type bool|string  $hierarchical              Whether to query for comments hierarchically.
+	 *     @type int          $offset                    Comment offset.
+	 *     @type int          $number                    Number of comments to fetch.
+	 * }
+	 */
+	$comment_args = apply_filters( 'comments_template_query_args', $comment_args );
 	$comment_query = new WP_Comment_Query( $comment_args );
 	$_comments = $comment_query->comments;
 
 	// Trees must be flattened before they're passed to the walker.
-	$comments_flat = array();
-	foreach ( $_comments as $_comment ) {
-		$comments_flat[]  = $_comment;
-		$comment_children = $_comment->get_children( array(
-			'format' => 'flat',
-			'status' => $comment_args['status'],
-			'orderby' => $comment_args['orderby']
-		) );
+	if ( $comment_args['hierarchical'] ) {
+		$comments_flat = array();
+		foreach ( $_comments as $_comment ) {
+			$comments_flat[]  = $_comment;
+			$comment_children = $_comment->get_children( array(
+				'format' => 'flat',
+				'status' => $comment_args['status'],
+				'orderby' => $comment_args['orderby']
+			) );
 
-		foreach ( $comment_children as $comment_child ) {
-			$comments_flat[] = $comment_child;
+			foreach ( $comment_children as $comment_child ) {
+				$comments_flat[] = $comment_child;
+			}
 		}
+	} else {
+		$comments_flat = $_comments;
 	}
 
 	/**
@@ -1890,34 +1923,71 @@ function wp_list_comments( $args = array(), $comments = null ) {
 			$_comments = $comments;
 		}
 	} else {
-		if ( empty($wp_query->comments) )
-			return;
-		if ( 'all' != $r['type'] ) {
-			if ( empty($wp_query->comments_by_type) )
-				$wp_query->comments_by_type = separate_comments($wp_query->comments);
-			if ( empty($wp_query->comments_by_type[$r['type']]) )
-				return;
-			$_comments = $wp_query->comments_by_type[$r['type']];
-		} else {
-			$_comments = $wp_query->comments;
-		}
-
-		// Pagination is already handled by `WP_Comment_Query`, so we tell Walker not to bother.
-		if ( $wp_query->max_num_comment_pages ) {
-			$default_comments_page = get_option( 'default_comments_page' );
-			$cpage = get_query_var( 'cpage' );
-			if ( 'newest' === $default_comments_page ) {
-				$r['cpage'] = $cpage;
-
-			// When first page shows oldest comments, post permalink is the same as the comment permalink.
-			} elseif ( $cpage == 1 ) {
-				$r['cpage'] = '';
-			} else {
-				$r['cpage'] = $cpage;
+		/*
+		 * If 'page' or 'per_page' has been passed, and does not match what's in $wp_query,
+		 * perform a separate comment query and allow Walker_Comment to paginate.
+		 */
+		if ( $r['page'] || $r['per_page'] ) {
+			$current_cpage = get_query_var( 'cpage' );
+			if ( ! $current_cpage ) {
+				$current_cpage = 'newest' === get_option( 'default_comments_page' ) ? 1 : $wp_query->max_num_comment_pages;
 			}
 
-			$r['page'] = 0;
-			$r['per_page'] = 0;
+			$current_per_page = get_query_var( 'comments_per_page' );
+			if ( $r['page'] != $current_cpage || $r['per_page'] != $current_per_page ) {
+
+				$comments = get_comments( array(
+					'post_id' => get_the_ID(),
+					'orderby' => 'comment_date_gmt',
+					'order' => 'ASC',
+					'status' => 'all',
+				) );
+
+				if ( 'all' != $r['type'] ) {
+					$comments_by_type = separate_comments( $comments );
+					if ( empty( $comments_by_type[ $r['type'] ] ) ) {
+						return;
+					}
+
+					$_comments = $comments_by_type[ $r['type'] ];
+				} else {
+					$_comments = $comments;
+				}
+			}
+
+		// Otherwise, fall back on the comments from `$wp_query->comments`.
+		} else {
+			if ( empty($wp_query->comments) )
+				return;
+			if ( 'all' != $r['type'] ) {
+				if ( empty($wp_query->comments_by_type) )
+					$wp_query->comments_by_type = separate_comments($wp_query->comments);
+				if ( empty($wp_query->comments_by_type[$r['type']]) )
+					return;
+				$_comments = $wp_query->comments_by_type[$r['type']];
+			} else {
+				$_comments = $wp_query->comments;
+			}
+
+			if ( $wp_query->max_num_comment_pages ) {
+				$default_comments_page = get_option( 'default_comments_page' );
+				$cpage = get_query_var( 'cpage' );
+				if ( 'newest' === $default_comments_page ) {
+					$r['cpage'] = $cpage;
+
+				/*
+				 * When first page shows oldest comments, post permalink is the same as
+				 * the comment permalink.
+				 */
+				} elseif ( $cpage == 1 ) {
+					$r['cpage'] = '';
+				} else {
+					$r['cpage'] = $cpage;
+				}
+
+				$r['page'] = 0;
+				$r['per_page'] = 0;
+			}
 		}
 	}
 
@@ -2047,11 +2117,11 @@ function comment_form( $args = array(), $post_id = null ) {
 	$html5    = 'html5' === $args['format'];
 	$fields   =  array(
 		'author' => '<p class="comment-form-author">' . '<label for="author">' . __( 'Name' ) . ( $req ? ' <span class="required">*</span>' : '' ) . '</label> ' .
-		            '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '" size="30"' . $aria_req . $html_req . ' /></p>',
+		            '<input id="author" name="author" type="text" value="' . esc_attr( $commenter['comment_author'] ) . '" size="30" maxlength="245"' . $aria_req . $html_req . ' /></p>',
 		'email'  => '<p class="comment-form-email"><label for="email">' . __( 'Email' ) . ( $req ? ' <span class="required">*</span>' : '' ) . '</label> ' .
-		            '<input id="email" name="email" ' . ( $html5 ? 'type="email"' : 'type="text"' ) . ' value="' . esc_attr(  $commenter['comment_author_email'] ) . '" size="30" aria-describedby="email-notes"' . $aria_req . $html_req  . ' /></p>',
+		            '<input id="email" name="email" ' . ( $html5 ? 'type="email"' : 'type="text"' ) . ' value="' . esc_attr(  $commenter['comment_author_email'] ) . '" size="30" maxlength="100" aria-describedby="email-notes"' . $aria_req . $html_req  . ' /></p>',
 		'url'    => '<p class="comment-form-url"><label for="url">' . __( 'Website' ) . '</label> ' .
-		            '<input id="url" name="url" ' . ( $html5 ? 'type="url"' : 'type="text"' ) . ' value="' . esc_attr( $commenter['comment_author_url'] ) . '" size="30" /></p>',
+		            '<input id="url" name="url" ' . ( $html5 ? 'type="url"' : 'type="text"' ) . ' value="' . esc_attr( $commenter['comment_author_url'] ) . '" size="30" maxlength="200" /></p>',
 	);
 
 	$required_text = sprintf( ' ' . __('Required fields are marked %s'), '<span class="required">*</span>' );
@@ -2066,7 +2136,7 @@ function comment_form( $args = array(), $post_id = null ) {
 	$fields = apply_filters( 'comment_form_default_fields', $fields );
 	$defaults = array(
 		'fields'               => $fields,
-		'comment_field'        => '<p class="comment-form-comment"><label for="comment">' . _x( 'Comment', 'noun' ) . '</label> <textarea id="comment" name="comment" cols="45" rows="8"  aria-required="true" required="required"></textarea></p>',
+		'comment_field'        => '<p class="comment-form-comment"><label for="comment">' . _x( 'Comment', 'noun' ) . '</label> <textarea id="comment" name="comment" cols="45" rows="8" maxlength="65525" aria-required="true" required="required"></textarea></p>',
 		/** This filter is documented in wp-includes/link-template.php */
 		'must_log_in'          => '<p class="must-log-in">' . sprintf( __( 'You must be <a href="%s">logged in</a> to post a comment.' ), wp_login_url( apply_filters( 'the_permalink', get_permalink( $post_id ) ) ) ) . '</p>',
 		/** This filter is documented in wp-includes/link-template.php */

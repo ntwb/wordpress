@@ -77,7 +77,7 @@ function is_nav_menu( $menu ) {
 }
 
 /**
- * Register navigation menus for a theme.
+ * Register navigation menu locations for a theme.
  *
  * @since 3.0.0
  *
@@ -94,7 +94,7 @@ function register_nav_menus( $locations = array() ) {
 }
 
 /**
- * Unregisters a navigation menu for a theme.
+ * Unregisters a navigation menu location for a theme.
  *
  * @global array $_wp_registered_nav_menus
  *
@@ -115,7 +115,7 @@ function unregister_nav_menu( $location ) {
 }
 
 /**
- * Register a navigation menu for a theme.
+ * Register a navigation menu location for a theme.
  *
  * @since 3.0.0
  *
@@ -126,7 +126,7 @@ function register_nav_menu( $location, $description ) {
 	register_nav_menus( array( $location => $description ) );
 }
 /**
- * Returns an array of all registered navigation menus in a theme
+ * Returns all registered navigation menu locations in a theme.
  *
  * @since 3.0.0
  *
@@ -739,7 +739,8 @@ function wp_setup_nav_menu_item( $menu_item ) {
 				$menu_item->url = get_permalink( $menu_item->object_id );
 
 				$original_object = get_post( $menu_item->object_id );
-				$original_title = $original_object->post_title;
+				/** This filter is documented in wp-includes/post-template.php */
+				$original_title = apply_filters( 'the_title', $original_object->post_title, $original_object->ID );
 
 				if ( '' === $original_title ) {
 					/* translators: %d: ID of a post */

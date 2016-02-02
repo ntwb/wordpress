@@ -304,6 +304,26 @@ class Tests_Rewrite extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 34971
+	 */
+	function test_url_to_postid_static_front_page() {
+		$post_id = self::factory()->post->create( array( 'post_type' => 'page' ) );
+
+		$this->assertSame( 0, url_to_postid( home_url() ) );
+
+		update_option( 'show_on_front', 'page' );
+		update_option( 'page_on_front', $post_id );
+
+		$this->assertSame( $post_id, url_to_postid( set_url_scheme( home_url(), 'http' ) ) );
+		$this->assertSame( $post_id, url_to_postid( set_url_scheme( home_url(), 'https' ) ) );
+		$this->assertSame( $post_id, url_to_postid( str_replace( array( 'http://', 'https://' ), 'http://www.', home_url() ) ) );
+		$this->assertSame( $post_id, url_to_postid( home_url() . '#random' ) );
+		$this->assertSame( $post_id, url_to_postid( home_url() . '?random' ) );
+
+		update_option( 'show_on_front', 'posts' );
+	}
+
+	/**
 	 * @ticket 21970
 	 */
 	function test_parse_request_with_post_slug_that_clashes_with_a_trashed_page() {
@@ -320,4 +340,19 @@ class Tests_Rewrite extends WP_UnitTestCase {
 		$this->set_permalink_structure();
 	}
 
+	/**
+	 * @ticket 29107
+	 */
+	public function test_flush_rules_does_not_delete_option() {
+		$this->set_permalink_structure();
+
+		$rewrite_rules = get_option( 'rewrite_rules' );
+		$this->assertSame( '', $rewrite_rules );
+
+		$this->set_permalink_structure( '/%year%/%monthnum%/%day%/%postname%/' );
+
+		$rewrite_rules = get_option( 'rewrite_rules' );
+		$this->assertInternalType( 'array', $rewrite_rules );
+		$this->assertNotEmpty( $rewrite_rules );
+	}
 }

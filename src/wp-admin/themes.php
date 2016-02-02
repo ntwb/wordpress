@@ -229,7 +229,7 @@ if ( ! $ct->errors() || ( 1 == count( $ct->errors()->get_error_codes() )
 ?>
 
 <div class="theme-browser">
-	<div class="themes">
+	<div class="themes wp-clearfix">
 
 <?php
 /*
@@ -282,7 +282,6 @@ foreach ( $themes as $theme ) :
 	<?php } ?>
 </div>
 <?php endforeach; ?>
-	<br class="clear" />
 	</div>
 </div>
 <div class="theme-overlay"></div>
@@ -403,13 +402,13 @@ $can_install = current_user_can( 'install_themes' );
 
 <script id="tmpl-theme-single" type="text/template">
 	<div class="theme-backdrop"></div>
-	<div class="theme-wrap">
+	<div class="theme-wrap wp-clearfix">
 		<div class="theme-header">
 			<button class="left dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show previous theme' ); ?></span></button>
 			<button class="right dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Show next theme' ); ?></span></button>
 			<button class="close dashicons dashicons-no"><span class="screen-reader-text"><?php _e( 'Close details dialog' ); ?></span></button>
 		</div>
-		<div class="theme-about">
+		<div class="theme-about wp-clearfix">
 			<div class="theme-screenshots">
 			<# if ( data.screenshot[0] ) { #>
 				<div class="screenshot"><img src="{{ data.screenshot[0] }}" alt="" /></div>

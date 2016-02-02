@@ -2336,7 +2336,14 @@ function wp_rel_nofollow( $text ) {
 function wp_rel_nofollow_callback( $matches ) {
 	$text = $matches[1];
 	$atts = shortcode_parse_atts( $matches[1] );
-	$rel = 'nofollow';
+	$rel  = 'nofollow';
+
+	if ( preg_match( '%href=["\'](' . preg_quote( set_url_scheme( home_url(), 'http' ) ) . ')%i', $text ) ||
+	     preg_match( '%href=["\'](' . preg_quote( set_url_scheme( home_url(), 'https' ) ) . ')%i', $text )
+	) {
+		return "<a $text>";
+	}
+
 	if ( ! empty( $atts['rel'] ) ) {
 		$parts = array_map( 'trim', explode( ' ', $atts['rel'] ) );
 		if ( false === array_search( 'nofollow', $parts ) ) {
@@ -4525,7 +4532,7 @@ function print_emoji_detection_script() {
 		 *
 		 * @param string The emoji base URL.
 		 */
-		'baseUrl' => apply_filters( 'emoji_url', set_url_scheme( '//s.w.org/images/core/emoji/72x72/' ) ),
+		'baseUrl' => apply_filters( 'emoji_url', 'https://s.w.org/images/core/emoji/72x72/' ),
 
 		/**
 		 * Filter the extension of the emoji files.
@@ -4637,7 +4644,7 @@ function wp_staticize_emoji( $text ) {
 	$text = wp_encode_emoji( $text );
 
 	/** This filter is documented in wp-includes/formatting.php */
-	$cdn_url = apply_filters( 'emoji_url', set_url_scheme( '//s.w.org/images/core/emoji/72x72/' ) );
+	$cdn_url = apply_filters( 'emoji_url', 'https://s.w.org/images/core/emoji/72x72/' );
 
 	/** This filter is documented in wp-includes/formatting.php */
 	$ext = apply_filters( 'emoji_ext', '.png' );

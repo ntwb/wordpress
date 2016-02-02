@@ -1477,8 +1477,14 @@ function wp_ajax_wp_link_ajax() {
 
 	$args = array();
 
-	if ( isset( $_POST['search'] ) )
+	if ( isset( $_POST['search'] ) ) {
 		$args['s'] = wp_unslash( $_POST['search'] );
+	}
+
+	if ( isset( $_POST['term'] ) ) {
+		$args['s'] = wp_unslash( $_POST['term'] );
+	}
+
 	$args['pagenum'] = ! empty( $_POST['page'] ) ? absint( $_POST['page'] ) : 1;
 
 	require(ABSPATH . WPINC . '/class-wp-editor.php');
@@ -2706,9 +2712,9 @@ function wp_ajax_heartbeat() {
 		 *
 		 * @since 3.6.0
 		 *
-		 * @param array|object $response  The Heartbeat response object or array.
-		 * @param array        $data      The $_POST data sent.
-		 * @param string       $screen_id The screen id.
+		 * @param array  $response  The Heartbeat response.
+		 * @param array  $data      The $_POST data sent.
+		 * @param string $screen_id The screen id.
 		 */
 		$response = apply_filters( 'heartbeat_received', $response, $data, $screen_id );
 	}
@@ -2718,8 +2724,8 @@ function wp_ajax_heartbeat() {
 	 *
 	 * @since 3.6.0
 	 *
-	 * @param array|object $response  The Heartbeat response object or array.
-	 * @param string       $screen_id The screen id.
+	 * @param array  $response  The Heartbeat response.
+	 * @param string $screen_id The screen id.
 	 */
 	$response = apply_filters( 'heartbeat_send', $response, $screen_id );
 
@@ -2730,8 +2736,8 @@ function wp_ajax_heartbeat() {
 	 *
 	 * @since 3.6.0
 	 *
-	 * @param array|object $response  The Heartbeat response object or array.
-	 * @param string       $screen_id The screen id.
+	 * @param array  $response  The Heartbeat response.
+	 * @param string $screen_id The screen id.
 	 */
 	do_action( 'heartbeat_tick', $response, $screen_id );
 

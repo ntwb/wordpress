@@ -226,7 +226,7 @@ function get_search_form( $echo = true ) {
 			$form = '<form role="search" method="get" class="search-form" action="' . esc_url( home_url( '/' ) ) . '">
 				<label>
 					<span class="screen-reader-text">' . _x( 'Search for:', 'label' ) . '</span>
-					<input type="search" class="search-field" placeholder="' . esc_attr_x( 'Search &hellip;', 'placeholder' ) . '" value="' . get_search_query() . '" name="s" title="' . esc_attr_x( 'Search for:', 'label' ) . '" />
+					<input type="search" class="search-field" placeholder="' . esc_attr_x( 'Search &hellip;', 'placeholder' ) . '" value="' . get_search_query() . '" name="s" />
 				</label>
 				<input type="submit" class="search-submit" value="'. esc_attr_x( 'Search', 'submit button' ) .'" />
 			</form>';
@@ -587,42 +587,63 @@ function wp_meta() {
 }
 
 /**
- * Display information about the blog.
+ * Displays information about the current site.
  *
- * @see get_bloginfo() For possible values for the parameter.
  * @since 0.71
  *
- * @param string $show What to display.
+ * @see get_bloginfo() For possible `$show` values
+ *
+ * @param string $show Optional. Site information to display. Default empty.
  */
-function bloginfo( $show='' ) {
+function bloginfo( $show = '' ) {
 	echo get_bloginfo( $show, 'display' );
 }
 
 /**
- * Retrieve information about the blog.
+ * Retrieves information about the current site.
  *
- * Some show parameter values are deprecated and will be removed in future
- * versions. These options will trigger the {@see _deprecated_argument()}
- * function. The deprecated blog info options are listed in the function
- * contents.
+ * Possible values for `$show` include:
  *
- * The possible values for the 'show' parameter are listed below.
+ * - 'name' - Site title (set in Settings > General)
+ * - 'description' - Site tagline (set in Settings > General)
+ * - 'wpurl' - The WordPress address (URL) (set in Settings > General)
+ * - 'url' - The Site address (URL) (set in Settings > General)
+ * - 'admin_email' - Admin email (set in Settings > General)
+ * - 'charset' - The "Encoding for pages and feeds"  (set in Settings > Reading)
+ * - 'version' - The current WordPress version
+ * - 'html_type' - The content-type (default: "text/html"). Themes and plugins
+ *   can override the default value using the {@see 'pre_option_html_type'} filter
+ * - 'text_direction' - The text direction determined by the site's language. is_rtl()
+ *   should be used instead
+ * - 'language' - Language code for the current site
+ * - 'stylesheet_url' - URL to the stylesheet for the active theme. An active child theme
+ *   will take precedence over this value
+ * - 'stylesheet_directory' - Directory path for the active theme.  An active child theme
+ *   will take precedence over this value
+ * - 'template_url' / 'template_directory' - URL of the active theme's directory. An active
+ *   child theme will NOT take precedence over this value
+ * - 'pingback_url' - The pingback XML-RPC file URL (xmlrpc.php)
+ * - 'atom_url' - The Atom feed URL (/feed/atom)
+ * - 'rdf_url' - The RDF/RSS 1.0 feed URL (/feed/rfd)
+ * - 'rss_url' - The RSS 0.92 feed URL (/feed/rss)
+ * - 'rss2_url' - The RSS 2.0 feed URL (/feed)
+ * - 'comments_atom_url' - The comments Atom feed URL (/comments/feed)
+ * - 'comments_rss2_url' - The comments RSS 2.0 feed URL (/comments/feed)
  *
- * 1. url - Blog URI to homepage.
- * 2. wpurl - Blog URI path to WordPress.
- * 3. description - Secondary title
+ * Some `$show` values are deprecated and will be removed in future versions.
+ * These options will trigger the _deprecated_argument() function.
  *
- * The feed URL options can be retrieved from 'rdf_url' (RSS 0.91),
- * 'rss_url' (RSS 1.0), 'rss2_url' (RSS 2.0), or 'atom_url' (Atom feed). The
- * comment feeds can be retrieved from the 'comments_atom_url' (Atom comment
- * feed) or 'comments_rss2_url' (RSS 2.0 comment feed).
+ * Deprecated arguments include:
+ *
+ * - 'siteurl' - Use 'url' instead
+ * - 'home' - Use 'url' instead
  *
  * @since 0.71
  *
  * @global string $wp_version
  *
- * @param string $show   Blog info to retrieve.
- * @param string $filter How to filter what is retrieved.
+ * @param string $show   Optional. Site info to retrieve. Default empty (site name).
+ * @param string $filter Optional. How to filter what is retrieved. Default 'raw'.
  * @return string Mostly string values, might be empty.
  */
 function get_bloginfo( $show = '', $filter = 'raw' ) {
@@ -856,8 +877,8 @@ function wp_get_document_title() {
 		/* translators: %s: search phrase */
 		$title['title'] = sprintf( __( 'Search Results for &#8220;%s&#8221;' ), get_search_query() );
 
-	// If on the home or front page, use the site title.
-	} elseif ( is_home() && is_front_page() ) {
+	// If on the front page, use the site title.
+	} elseif ( is_front_page() ) {
 		$title['title'] = get_bloginfo( 'name', 'display' );
 
 	// If on a post type archive, use the post type archive title.
@@ -869,14 +890,10 @@ function wp_get_document_title() {
 		$title['title'] = single_term_title( '', false );
 
 	/*
-	 * If we're on the blog page and that page is not the homepage or a single
-	 * page that is designated as the homepage, use the container page's title.
+	 * If we're on the blog page that is not the homepage or
+	 * a single post of any post type, use the post title.
 	 */
-	} elseif ( ( is_home() && ! is_front_page() ) || ( ! is_home() && is_front_page() ) ) {
-		$title['title'] = single_post_title( '', false );
-
-	// If on a single post of any post type, use the post title.
-	} elseif ( is_singular() ) {
+	} elseif ( is_home() || is_singular() ) {
 		$title['title'] = single_post_title( '', false );
 
 	// If on a category or tag archive, use the term title.
@@ -904,7 +921,7 @@ function wp_get_document_title() {
 	}
 
 	// Append the description or site title to give context.
-	if ( is_home() && is_front_page() ) {
+	if ( is_front_page() ) {
 		$title['tagline'] = get_bloginfo( 'description', 'display' );
 	} else {
 		$title['site'] = get_bloginfo( 'name', 'display' );
@@ -1486,10 +1503,16 @@ function get_archives_link($url, $text, $format = 'html', $before = '', $after =
 	 * Filter the archive link content.
 	 *
 	 * @since 2.6.0
+	 * @since 4.5.0 Added `$url`, `$text`, `$format`, `$before`, and `$after` params.
 	 *
 	 * @param string $link_html The archive HTML link content.
+	 * @param string $url       URL to archive.
+	 * @param string $text      Archive text description.
+	 * @param string $format    Link format. Can be 'link', 'option', 'html', or custom.
+	 * @param string $before    Content to prepend to the description.
+	 * @param string $after     Content to append to the description.
 	 */
-	return apply_filters( 'get_archives_link', $link_html );
+	return apply_filters( 'get_archives_link', $link_html, $url, $text, $format, $before, $after );
 }
 
 /**

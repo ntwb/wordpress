@@ -563,6 +563,32 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 	}
 
 	/**
+	 * @ticket 35493
+	 */
+	public function test_name_should_not_double_escape_apostrophes() {
+		register_taxonomy( 'wptests_tax', 'post' );
+
+		$name = "Foo'Bar";
+
+		$t = self::factory()->term->create( array(
+			'taxonomy' => 'wptests_tax',
+			'name' => $name,
+		) );
+
+		$term = get_term( $t, 'wptests_tax' );
+
+		$this->assertSame( $name, $term->name );
+
+		$found = get_terms( 'wptests_tax', array(
+			'hide_empty' => false,
+			'fields' => 'ids',
+			'name' => $name,
+		) );
+
+		$this->assertEqualSets( array( $t ), $found );
+	}
+
+	/**
 	 * @ticket 29839
 	 */
 	public function test_childless_should_return_all_terms_for_flat_hierarchy() {
@@ -1663,6 +1689,25 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 		$term0 = get_term( $terms[0] );
 		$this->assertSame( $num_queries, $wpdb->num_queries );
 
+	}
+
+	/**
+	 * @ticket 35382
+	 */
+	public function test_indexes_should_not_be_reset_when_number_of_matched_terms_is_greater_than_number() {
+		register_taxonomy( 'wptests_tax', 'post', array( 'hierarchical' => true ) );
+		$terms = self::factory()->term->create_many( 3, array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( 'wptests_tax', array(
+			'hide_empty' => false,
+			'fields' => 'id=>parent',
+			'number' => 2,
+			'orderby' => 'id',
+			'order' => 'ASC',
+			'hierarchical' => true,
+		) );
+
+		$this->assertSame( array( $terms[0], $terms[1] ), array_keys( $found ) );
 	}
 
 	protected function create_hierarchical_terms_and_posts() {

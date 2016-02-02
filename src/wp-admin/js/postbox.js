@@ -1,4 +1,4 @@
-/* global ajaxurl */
+/* global ajaxurl, postBoxL10n */
 
 var postboxes;
 
@@ -50,7 +50,7 @@ var postboxes;
 			this.page = page;
 			this.init( page, args );
 
-			$handles.on( 'click.postboxes',  this.handle_click );
+			$handles.on( 'click.postboxes', this.handle_click );
 
 			$('.postbox .hndle a').click( function(e) {
 				e.stopPropagation();
@@ -157,8 +157,15 @@ var postboxes;
 		},
 
 		save_state : function(page) {
-			var closed = $('.postbox').filter('.closed').map(function() { return this.id; }).get().join(','),
-				hidden = $('.postbox').filter(':hidden').map(function() { return this.id; }).get().join(',');
+			var closed, hidden;
+
+			// Return on the nav-menus.php screen, see #35112.
+			if ( 'nav-menus' === page ) {
+				return;
+			}
+
+			closed = $( '.postbox' ).filter( '.closed' ).map( function() { return this.id; } ).get().join( ',' );
+			hidden = $( '.postbox' ).filter( ':hidden' ).map( function() { return this.id; } ).get().join( ',' );
 
 			$.post(ajaxurl, {
 				action: 'closed-postboxes',
@@ -190,10 +197,13 @@ var postboxes;
 			$( '#dashboard-widgets .meta-box-sortables:visible' ).each( function() {
 				var t = $(this);
 
-				if ( visible == 1 || t.children('.postbox:visible').length )
+				if ( visible == 1 || t.children('.postbox:visible').length ) {
 					t.removeClass('empty-container');
-				else
+				}
+				else {
 					t.addClass('empty-container');
+					t.attr('data-emptyString', postBoxL10n.postBoxEmptyString);
+				}
 			});
 
 			if ( side.length ) {

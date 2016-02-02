@@ -125,4 +125,58 @@ class Tests_Query_Search extends WP_UnitTestCase {
 
 		$this->assertEqualSets( array( $p3 ), $q->posts );
 	}
+
+	/**
+	 * @ticket 35361
+	 */
+	public function test_search_orderby_should_be_empty_when_search_string_is_longer_than_6_words_and_exclusion_operator_is_used() {
+		$q = new WP_Query( array(
+			's' => 'foo1 foo2 foo3 foo4 foo5 foo6 foo7 -bar',
+			'fields' => 'ids',
+		) );
+
+		$this->assertNotRegExp( '|ORDER BY \(CASE[^\)]+\)|', $q->request );
+	}
+
+	/**
+	 * @ticket 31025
+	 */
+	public function test_s_zero() {
+		$p1 = $this->factory->post->create( array(
+			'post_status' => 'publish',
+			'post_title' => '1',
+		) );
+
+		$p2 = $this->factory->post->create( array(
+			'post_status' => 'publish',
+			'post_title' => '0',
+		) );
+
+		$q = new WP_Query( array(
+			's' => '0',
+			'fields' => 'ids',
+		) );
+
+		$this->assertEqualSets( array( $p2 ), $q->posts );
+	}
+
+	/**
+	 * @ticket 35594
+	 */
+	public function test_search_should_respect_suppress_filters() {
+		add_filter( 'posts_search', array( $this, 'filter_posts_search' ) );
+		add_filter( 'posts_search_orderby', array( $this, 'filter_posts_search' ) );
+		$q = new WP_Query( array(
+			's' => 'foo',
+			'suppress_filters' => true,
+		) );
+		remove_filter( 'posts_search', array( $this, 'filter_posts_search' ) );
+		remove_filter( 'posts_search_orderby', array( $this, 'filter_posts_search' ) );
+
+		$this->assertNotContains( 'posts_search', $q->request );
+	}
+
+	public function filter_posts_search( $sql ) {
+		return $sql . ' /* posts_search */';
+	}
 }

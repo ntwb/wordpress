@@ -161,7 +161,7 @@ function get_taxonomies( $args = array(), $output = 'names', $operator = 'and' )
  * It appears that this function can be used to find all of the names inside of
  * $wp_taxonomies global variable.
  *
- * `<?php $taxonomies = get_object_taxonomies('post'); ?>` Should
+ * `$taxonomies = get_object_taxonomies( 'post' )` Should
  * result in `Array( 'category', 'post_tag' )`
  *
  * @since 2.3.0
@@ -353,8 +353,8 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 	 * @since 4.4.0
 	 *
 	 * @param array  $args        Array of arguments for registering a taxonomy.
-	 * @param array  $object_type Array of names of object types for the taxonomy.
 	 * @param string $taxonomy    Taxonomy key.
+	 * @param array  $object_type Array of names of object types for the taxonomy.
 	 */
 	$args = apply_filters( 'register_taxonomy_args', $args, $taxonomy, (array) $object_type );
 
@@ -473,6 +473,62 @@ function register_taxonomy( $taxonomy, $object_type, $args = array() ) {
 	 * @param array        $args        Array of taxonomy registration arguments.
 	 */
 	do_action( 'registered_taxonomy', $taxonomy, $object_type, $args );
+}
+
+/**
+ * Unregister a taxonomy.
+ *
+ * Can not be used to unregister built-in taxonomies.
+ *
+ * @since 4.5.0
+ *
+ * @global WP    $wp            Current WordPress environment instance.
+ * @global array $wp_taxonomies List of taxonomies.
+ *
+ * @param string $taxonomy Taxonomy name.
+ * @return bool|WP_Error True on success, WP_Error on failure.
+ */
+function unregister_taxonomy( $taxonomy ) {
+	if ( ! taxonomy_exists( $taxonomy ) ) {
+		return new WP_Error( 'invalid_taxonomy', __( 'Invalid taxonomy' ) );
+	}
+
+	$taxonomy_args = get_taxonomy( $taxonomy );
+
+	// Do not allow unregistering internal taxonomies.
+	if ( $taxonomy_args->_builtin ) {
+		return new WP_Error( 'invalid_taxonomy', __( 'Unregistering a built-in taxonomy is not allowed' ) );
+	}
+
+	global $wp, $wp_taxonomies;
+
+	// Remove query var.
+	if ( false !== $taxonomy_args->query_var ) {
+		$wp->remove_query_var( $taxonomy_args->query_var );
+	}
+
+	// Remove rewrite tags and permastructs.
+	if ( false !== $taxonomy_args->rewrite ) {
+		remove_rewrite_tag( "%$taxonomy%" );
+		remove_permastruct( $taxonomy );
+	}
+
+	// Unregister callback handling for metabox.
+	remove_filter( 'wp_ajax_add-' . $taxonomy, '_wp_ajax_add_hierarchical_term' );
+
+	// Remove the taxonomy.
+	unset( $wp_taxonomies[ $taxonomy ] );
+
+	/**
+	 * Fires after a taxonomy is unregistered.
+	 *
+	 * @since 4.5.0
+	 *
+	 * @param string $taxonomy Taxonomy name.
+	 */
+	do_action( 'unregistered_taxonomy', $taxonomy );
+
+	return true;
 }
 
 /**
@@ -1298,7 +1354,8 @@ function get_terms( $taxonomies, $args = '' ) {
 	if ( ! empty( $args['name'] ) ) {
 		$names = (array) $args['name'];
 		foreach ( $names as &$_name ) {
-			$_name = sanitize_term_field( 'name', $_name, 0, reset( $taxonomies ), 'db' );
+			// `sanitize_term_field()` returns slashed data.
+			$_name = stripslashes( sanitize_term_field( 'name', $_name, 0, reset( $taxonomies ), 'db' ) );
 		}
 
 		$where .= " AND t.name IN ('" . implode( "', '", array_map( 'esc_sql', $names ) ) . "')";
@@ -1548,7 +1605,7 @@ function get_terms( $taxonomies, $args = '' ) {
 	}
 
 	if ( $number && is_array( $terms ) && count( $terms ) > $number ) {
-		$terms = array_slice( $terms, $offset, $number );
+		$terms = array_slice( $terms, $offset, $number, true );
 	}
 
 	wp_cache_add( $cache_key, $terms, 'terms', DAY_IN_SECONDS );
@@ -2579,8 +2636,13 @@ function wp_insert_term( $term, $taxonomy, $args = array() ) {
 	if ( $args['parent'] > 0 && ! term_exists( (int) $args['parent'] ) ) {
 		return new WP_Error( 'missing_parent', __( 'Parent term does not exist.' ) );
 	}
+
 	$args['name'] = $term;
 	$args['taxonomy'] = $taxonomy;
+
+	// Coerce null description to strings, to avoid database errors.
+	$args['description'] = (string) $args['description'];
+
 	$args = sanitize_term($args, $taxonomy, 'db');
 
 	// expected_slashed ($name)
@@ -2933,7 +2995,7 @@ function wp_remove_object_terms( $object_id, $terms, $taxonomy ) {
 	$object_id = (int) $object_id;
 
 	if ( ! taxonomy_exists( $taxonomy ) ) {
-		return new WP_Error( 'invalid_taxonomy', __( 'Invalid Taxonomy' ) );
+		return new WP_Error( 'invalid_taxonomy', __( 'Invalid taxonomy' ) );
 	}
 
 	if ( ! is_array( $terms ) ) {
@@ -3558,11 +3620,13 @@ function clean_term_cache($ids, $taxonomy = '', $clean_taxonomy = true) {
 		 * Fires once after each taxonomy's term cache has been cleaned.
 		 *
 		 * @since 2.5.0
+		 * @since 4.5.0 Added $clean_taxonomy param.
 		 *
-		 * @param array  $ids      An array of term IDs.
-		 * @param string $taxonomy Taxonomy slug.
+		 * @param array  $ids            An array of term IDs.
+		 * @param string $taxonomy       Taxonomy slug.
+		 * @param bool   $clean_taxonomy Whether or not to clean taxonomy-wide caches
 		 */
-		do_action( 'clean_term_cache', $ids, $taxonomy );
+		do_action( 'clean_term_cache', $ids, $taxonomy, $clean_taxonomy );
 	}
 
 	wp_cache_set( 'last_changed', microtime(), 'terms' );
@@ -3660,7 +3724,7 @@ function update_object_term_cache($object_ids, $object_type) {
 function update_term_cache( $terms, $taxonomy = '' ) {
 	foreach ( (array) $terms as $term ) {
 		// Create a copy in case the array was passed by reference.
-		$_term = $term;
+		$_term = clone $term;
 
 		// Object ID should not be cached.
 		unset( $_term->object_id );

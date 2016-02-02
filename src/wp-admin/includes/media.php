@@ -2688,6 +2688,8 @@ function multisite_over_quota_message() {
  * Displays the image and editor in the post editor
  *
  * @since 3.5.0
+ *
+ * @param WP_Post $post A post object.
  */
 function edit_form_image_editor( $post ) {
 	$open = isset( $_GET['image-editor'] );
@@ -2701,7 +2703,7 @@ function edit_form_image_editor( $post ) {
 	$alt_text = get_post_meta( $post->ID, '_wp_attachment_image_alt', true );
 
 	$att_url = wp_get_attachment_url( $post->ID ); ?>
-	<div class="wp_attachment_holder">
+	<div class="wp_attachment_holder wp-clearfix">
 	<?php
 	if ( wp_attachment_is_image( $post->ID ) ) :
 		$image_edit_button = '';
@@ -2713,7 +2715,7 @@ function edit_form_image_editor( $post ) {
 
 		<div class="imgedit-response" id="imgedit-response-<?php echo $attachment_id; ?>"></div>
 
-		<div<?php if ( $open ) echo ' style="display:none"'; ?> class="wp_attachment_image" id="media-head-<?php echo $attachment_id; ?>">
+		<div<?php if ( $open ) echo ' style="display:none"'; ?> class="wp_attachment_image wp-clearfix" id="media-head-<?php echo $attachment_id; ?>">
 			<p id="thumbnail-head-<?php echo $attachment_id; ?>"><img class="thumbnail" src="<?php echo set_url_scheme( $thumb_url[0] ); ?>" style="max-width:100%" alt="" /></p>
 			<p><?php echo $image_edit_button; ?></p>
 		</div>

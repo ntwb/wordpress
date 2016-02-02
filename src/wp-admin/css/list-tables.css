@@ -142,7 +142,7 @@
 
 #submitted-on,
 .submitted-on {
-	color: #777;
+	color: #555d66;
 }
 
 /* reply to comments */
@@ -972,14 +972,6 @@ tr.inline-edit-row td,
 .inline-edit-row fieldset .inline-edit-group {
 	clear: both;
 	line-height: 2.5;
-}
-
-.inline-edit-row fieldset .inline-edit-group:after {
-	content: ".";
-	display: block;
-	height: 0;
-	clear: both;
-	visibility: hidden;
 }
 
 .inline-edit-row p.submit {

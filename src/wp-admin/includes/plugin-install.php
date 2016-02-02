@@ -333,6 +333,12 @@ function display_plugins_table() {
 		case 'install_plugins_recommended' :
 			echo '<p>' . __( 'These suggestions are based on the plugins you and other users have installed.' ) . '</p>';
 			break;
+		case 'install_plugins_beta' :
+			printf(
+				'<p>' . __( 'You are using a development version of WordPress. These feature plugins are also under development. <a href="%s">Learn more</a>.' ) . '</p>',
+				'https://make.wordpress.org/core/handbook/about/release-cycle/features-as-plugins/'
+			);
+			break;
 	}
 
 	?>
@@ -651,7 +657,7 @@ function install_plugin_information() {
 				break;
 			case 'update_available':
 				if ( $status['url'] ) {
-					echo '<a data-slug="' . esc_attr( $api->slug ) . '" id="plugin_update_from_iframe" class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __( 'Install Update Now' ) .'</a>';
+					echo '<a data-slug="' . esc_attr( $api->slug ) . '" data-plugin="' . esc_attr( $status['file'] ) . '" id="plugin_update_from_iframe" class="button button-primary right" href="' . $status['url'] . '" target="_parent">' . __( 'Install Update Now' ) .'</a>';
 				}
 				break;
 			case 'newer_installed':

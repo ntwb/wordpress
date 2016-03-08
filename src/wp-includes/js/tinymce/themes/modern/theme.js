@@ -589,6 +589,18 @@ tinymce.ThemeManager.add('modern', function(editor) {
 		});
 	}
 
+	function fireSkinLoaded(editor) {
+		return function() {
+			if (editor.initialized) {
+				editor.fire('SkinLoaded');
+			} else {
+				editor.on('init', function() {
+					editor.fire('SkinLoaded');
+				});
+			}
+		};
+	}
+
 	/**
 	 * Renders the inline editor UI.
 	 *
@@ -709,7 +721,7 @@ tinymce.ThemeManager.add('modern', function(editor) {
 
 		// Preload skin css
 		if (args.skinUiCss) {
-			tinymce.DOM.styleSheetLoader.load(args.skinUiCss);
+			tinymce.DOM.styleSheetLoader.load(args.skinUiCss, fireSkinLoaded(editor));
 		}
 
 		return {};
@@ -735,7 +747,7 @@ tinymce.ThemeManager.add('modern', function(editor) {
 		}
 
 		if (args.skinUiCss) {
-			tinymce.DOM.loadCSS(args.skinUiCss);
+			tinymce.DOM.styleSheetLoader.load(args.skinUiCss, fireSkinLoaded(editor));
 		}
 
 		// Basic UI layout

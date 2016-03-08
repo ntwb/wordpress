@@ -282,8 +282,10 @@ Cropper = wp.media.controller.State.extend({
 		toolbar:     'crop',
 		content:     'crop',
 		router:      false,
+		canSkipCrop: false,
 
-		canSkipCrop: false
+		// Default doCrop Ajax arguments to allow the Customizer (for example) to inject state.
+		doCropArgs: {}
 	},
 
 	activate: function() {
@@ -367,11 +369,15 @@ Cropper = wp.media.controller.State.extend({
 	},
 
 	doCrop: function( attachment ) {
-		return wp.ajax.post( 'custom-header-crop', {
-			nonce: attachment.get('nonces').edit,
-			id: attachment.get('id'),
-			cropDetails: attachment.get('cropDetails')
-		} );
+		return wp.ajax.post( 'custom-header-crop', _.extend(
+			{},
+			this.defaults.doCropArgs,
+			{
+				nonce: attachment.get( 'nonces' ).edit,
+				id: attachment.get( 'id' ),
+				cropDetails: attachment.get( 'cropDetails' )
+			}
+		) );
 	}
 });
 
@@ -3754,7 +3760,7 @@ AttachmentsBrowser = View.extend({
 			AttachmentView: wp.media.view.Attachment.Library
 		});
 
-		this.listenTo( this.controller, 'toggle:upload:attachment', _.bind( this.toggleUploader, this ) );
+		this.controller.on( 'toggle:upload:attachment', this.toggleUploader, this );
 		this.controller.on( 'edit:selection', this.editSelection );
 		this.createToolbar();
 		if ( this.options.sidebar ) {

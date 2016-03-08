@@ -469,6 +469,30 @@ function update_comment_meta($comment_id, $meta_key, $meta_value, $prev_value = 
 }
 
 /**
+ * Queue comments for metadata lazyloading.
+ *
+ * @since 4.5.0
+ *
+ * @param array $comments Array of comment objects.
+ */
+function wp_queue_comments_for_comment_meta_lazyload( $comments ) {
+	// Don't use `wp_list_pluck()` to avoid by-reference manipulation.
+	$comment_ids = array();
+	if ( is_array( $comments ) ) {
+		foreach ( $comments as $comment ) {
+			if ( $comment instanceof WP_Comment ) {
+				$comment_ids[] = $comment->comment_ID;
+			}
+		}
+	}
+
+	if ( $comment_ids ) {
+		$lazyloader = wp_metadata_lazyloader();
+		$lazyloader->queue_objects( 'comment', $comment_ids );
+	}
+}
+
+/**
  * Sets the cookies used to store an unauthenticated commentator's identity. Typically used
  * to recall previous comments by this commentator that are still held in moderation.
  *
@@ -948,41 +972,58 @@ function get_page_of_comment( $comment_ID, $args = array() ) {
 }
 
 /**
- * Calculate the maximum character length of a column from the comments table.
+ * Get the maximum character lengths for the comment form fields.
  *
  * @since 4.5.0
  *
  * @global wpdb $wpdb WordPress database abstraction object.
  *
- * @param string $column Name of a column in the comments table.
- * @return int Maximum column character length.
+ * @return array Maximum character length for the comment form fields.
  */
-function wp_get_comment_column_max_length( $column ) {
+function wp_get_comment_fields_max_lengths() {
 	global $wpdb;
 
-	$col_length = $wpdb->get_col_length( $wpdb->comments, $column );
-	if ( ! is_array( $col_length ) && (int) $col_length > 0 ) {
-		$max_length = (int) $col_length;
-	} elseif ( is_array( $col_length ) && isset( $col_length['length'] ) && intval( $col_length['length'] ) > 0 ) {
-		$max_length = (int) $col_length['length'];
-	} else {
-		// Assume a TEXT column, 65535 - 10.
-		$max_length = 65525;
-	}
+	$lengths = array(
+		'comment_author'       => 245,
+		'comment_author_email' => 100,
+		'comment_author_url'   => 200,
+		'comment_content'      => 65525,
+	);
 
-	if ( ! empty( $col_length['type'] ) && 'byte' === $col_length['type'] ) {
-		$max_length = $max_length - 10;
+	if ( $wpdb->is_mysql ) {
+		foreach ( $lengths as $column => $length ) {
+			$col_length = $wpdb->get_col_length( $wpdb->comments, $column );
+			$max_length = 0;
+
+			// No point if we can't get the DB column lengths
+			if ( is_wp_error( $col_length ) ) {
+				break;
+			}
+
+			if ( ! is_array( $col_length ) && (int) $col_length > 0 ) {
+				$max_length = (int) $col_length;
+			} elseif ( is_array( $col_length ) && isset( $col_length['length'] ) && intval( $col_length['length'] ) > 0 ) {
+				$max_length = (int) $col_length['length'];
+
+				if ( ! empty( $col_length['type'] ) && 'byte' === $col_length['type'] ) {
+					$max_length = $max_length - 10;
+				}
+			}
+
+			if ( $max_length > 0 ) {
+				$lengths[ $column ] = $max_length;
+			}
+		}
 	}
 
 	/**
-	 * Filters the calculated length for a given column of the comments table.
+	 * Filters the lengths for the comment form fields.
 	 *
 	 * @since 4.5.0
 	 *
-	 * @param int    $max_length Maximum column character length.
-	 * @param string $column     Column name.
+	 * @param array  $lengths Associative array 'field_name' => 'maximum length'.
 	 */
-	return apply_filters( 'wp_get_comment_column_max_length', $max_length, $column );
+	return apply_filters( 'wp_get_comment_fields_max_lengths', $lengths );
 }
 
 /**
@@ -1610,7 +1651,7 @@ function wp_filter_comment($commentdata) {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @param int $comment_agent The comment author's browser user agent.
+	 * @param string $comment_agent The comment author's browser user agent.
 	 */
 	$commentdata['comment_agent'] = apply_filters( 'pre_comment_user_agent', ( isset( $commentdata['comment_agent'] ) ? $commentdata['comment_agent'] : '' ) );
 	/** This filter is documented in wp-includes/comment.php */
@@ -1620,7 +1661,7 @@ function wp_filter_comment($commentdata) {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @param int $comment_content The comment content.
+	 * @param string $comment_content The comment content.
 	 */
 	$commentdata['comment_content'] = apply_filters( 'pre_comment_content', $commentdata['comment_content'] );
 	/**
@@ -1628,7 +1669,7 @@ function wp_filter_comment($commentdata) {
 	 *
 	 * @since 1.5.0
 	 *
-	 * @param int $comment_author_ip The comment author's IP.
+	 * @param string $comment_author_ip The comment author's IP.
 	 */
 	$commentdata['comment_author_IP'] = apply_filters( 'pre_comment_user_ip', $commentdata['comment_author_IP'] );
 	/** This filter is documented in wp-includes/comment.php */
@@ -1771,11 +1812,13 @@ function wp_new_comment( $commentdata ) {
 	 * Fires immediately after a comment is inserted into the database.
 	 *
 	 * @since 1.2.0
+	 * @since 4.5.0 The `$commentdata` parameter was added.
 	 *
 	 * @param int        $comment_ID       The comment ID.
 	 * @param int|string $comment_approved 1 if the comment is approved, 0 if not, 'spam' if spam.
+	 * @param array      $commentdata      Comment data.
 	 */
-	do_action( 'comment_post', $comment_ID, $commentdata['comment_approved'] );
+	do_action( 'comment_post', $comment_ID, $commentdata['comment_approved'], $commentdata );
 
 	return $comment_ID;
 }
@@ -2164,7 +2207,7 @@ function discover_pingback_server_uri( $url, $deprecated = '' ) {
 		return false;
 
 	//Do not search for a pingback server on our own uploads
-	$uploads_dir = wp_upload_dir();
+	$uploads_dir = wp_get_upload_dir();
 	if ( 0 === strpos($url, $uploads_dir['baseurl']) )
 		return false;
 
@@ -2833,6 +2876,7 @@ function wp_handle_comment_submission( $comment_data ) {
 	}
 
 	$comment_type = '';
+	$max_lengths = wp_get_comment_fields_max_lengths();
 
 	if ( get_option( 'require_name_email' ) && ! $user->exists() ) {
 		if ( 6 > strlen( $comment_author_email ) || '' == $comment_author ) {
@@ -2842,21 +2886,21 @@ function wp_handle_comment_submission( $comment_data ) {
 		}
 	}
 
-	if ( isset( $comment_author ) && wp_get_comment_column_max_length( 'comment_author' ) < mb_strlen( $comment_author, '8bit' ) ) {
+	if ( isset( $comment_author ) && $max_lengths['comment_author'] < mb_strlen( $comment_author, '8bit' ) ) {
 		return new WP_Error( 'comment_author_column_length', __( '<strong>ERROR</strong>: your name is too long.' ), 200 );
 	}
 
-	if ( isset( $comment_author_email ) && wp_get_comment_column_max_length( 'comment_author_email' ) < strlen( $comment_author_email ) ) {
+	if ( isset( $comment_author_email ) && $max_lengths['comment_author_email'] < strlen( $comment_author_email ) ) {
 		return new WP_Error( 'comment_author_email_column_length', __( '<strong>ERROR</strong>: your email address is too long.' ), 200 );
 	}
 
-	if ( isset( $comment_author_url ) && wp_get_comment_column_max_length( 'comment_author_url' ) < strlen( $comment_author_url ) ) {
+	if ( isset( $comment_author_url ) && $max_lengths['comment_author_url'] < strlen( $comment_author_url ) ) {
 		return new WP_Error( 'comment_author_url_column_length', __( '<strong>ERROR</strong>: your url is too long.' ), 200 );
 	}
 
 	if ( '' == $comment_content ) {
 		return new WP_Error( 'require_valid_comment', __( '<strong>ERROR</strong>: please type a comment.' ), 200 );
-	} elseif ( wp_get_comment_column_max_length( 'comment_content' ) < mb_strlen( $comment_content, '8bit' ) ) {
+	} elseif ( $max_lengths['comment_content'] < mb_strlen( $comment_content, '8bit' ) ) {
 		return new WP_Error( 'comment_content_column_length', __( '<strong>ERROR</strong>: your comment is too long.' ), 200 );
 	}
 

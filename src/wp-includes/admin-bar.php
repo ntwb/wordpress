@@ -573,7 +573,7 @@ function wp_admin_bar_edit_menu( $wp_admin_bar ) {
 					'href' => get_permalink( $post->ID )
 				) );
 			}
-		} elseif ( 'edit-tags' == $current_screen->base
+		} elseif ( 'term' == $current_screen->base
 			&& isset( $tag ) && is_object( $tag ) && ! is_wp_error( $tag )
 			&& ( $tax = get_taxonomy( $tag->taxonomy ) )
 			&& $tax->public )
@@ -879,7 +879,7 @@ function _admin_bar_bump_cb() { ?>
  *
  * @since 3.1.0
  *
- * @global WP_Admin_Bar $wp_admin_bar
+ * @global bool $show_admin_bar
  *
  * @param bool $show Whether to allow the admin bar to show.
  */
@@ -893,8 +893,8 @@ function show_admin_bar( $show ) {
  *
  * @since 3.1.0
  *
- * @global WP_Admin_Bar $wp_admin_bar
- * @global string       $pagenow
+ * @global bool   $show_admin_bar
+ * @global string $pagenow
  *
  * @return bool Whether the admin bar should be showing.
  */

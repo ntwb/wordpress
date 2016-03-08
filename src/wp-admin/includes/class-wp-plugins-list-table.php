@@ -65,7 +65,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 	/**
 	 *
 	 * @global string $status
-	 * @global type   $plugins
+	 * @global array  $plugins
 	 * @global array  $totals
 	 * @global int    $page
 	 * @global string $orderby
@@ -78,23 +78,25 @@ class WP_Plugins_List_Table extends WP_List_Table {
 		wp_reset_vars( array( 'orderby', 'order' ) );
 
 		/**
-		 * Filter the full array of plugins to list in the Plugins list table.
+		 * Filters the full array of plugins to list in the Plugins list table.
 		 *
 		 * @since 3.0.0
 		 *
 		 * @see get_plugins()
 		 *
-		 * @param array $plugins An array of plugins to display in the list table.
+		 * @param array $all_plugins An array of plugins to display in the list table.
 		 */
+		$all_plugins = apply_filters( 'all_plugins', get_plugins() );
+
 		$plugins = array(
-			'all' => apply_filters( 'all_plugins', get_plugins() ),
-			'search' => array(),
-			'active' => array(),
-			'inactive' => array(),
+			'all'                => $all_plugins,
+			'search'             => array(),
+			'active'             => array(),
+			'inactive'           => array(),
 			'recently_activated' => array(),
-			'upgrade' => array(),
-			'mustuse' => array(),
-			'dropins' => array()
+			'upgrade'            => array(),
+			'mustuse'            => array(),
+			'dropins'            => array(),
 		);
 
 		$screen = $this->screen;
@@ -268,7 +270,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 	}
 
 	/**
-	 * @global string $s
+	 * @global string $s URL encoded search term.
 	 *
 	 * @param array $plugin
 	 * @return bool
@@ -277,7 +279,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 		global $s;
 
 		foreach ( $plugin as $value ) {
-			if ( is_string( $value ) && false !== stripos( strip_tags( $value ), $s ) ) {
+			if ( is_string( $value ) && false !== stripos( strip_tags( $value ), urldecode( $s ) ) ) {
 				return true;
 			}
 		}
@@ -316,7 +318,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 		global $plugins;
 
 		if ( ! empty( $_REQUEST['s'] ) ) {
-			$s = esc_html( $_REQUEST['s'] );
+			$s = esc_html( wp_unslash( $_REQUEST['s'] ) );
 
 			printf( __( 'No plugins found for &#8220;%s&#8221;.' ), $s );
 

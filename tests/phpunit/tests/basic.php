@@ -8,7 +8,7 @@ class Tests_Basic extends WP_UnitTestCase {
 
 	function test_license() {
 		$license = file_get_contents( ABSPATH . 'license.txt' );
-		preg_match( '#Copyright (\d+) by the contributors#', $license, $matches );
+		preg_match( '#Copyright 2011-(\d+) by the contributors#', $license, $matches );
 		$this_year = date( 'Y' );
 		$this->assertEquals( $this_year, trim( $matches[1] ), "license.txt's year needs to be updated to $this_year." );
 	}
@@ -91,13 +91,18 @@ EOF;
 		$this->assertEquals($expected, mask_input_value($in));
 	}
 
+	/**
+	 * @ticket 17884
+	 */
 	function test_setting_nonexistent_arrays() {
 		$page = 1;
 		$field = 'settings';
 
 		$empty_array[$page][$field] = 'foo';
 
+		// Assertion not strictly needed; we mainly want to show that a notice is not thrown.
 		unset( $empty_array[$page]['bar']['baz'] );
+		$this->assertFalse( isset( $empty_array[ $page ]['bar']['baz'] ) );
 	}
 
 	function test_magic_getter() {

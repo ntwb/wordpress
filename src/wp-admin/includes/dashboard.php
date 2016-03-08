@@ -130,14 +130,19 @@ function wp_dashboard_setup() {
 }
 
 /**
+ * Adds a new dashboard widget.
  *
- * @global array   $wp_dashboard_control_callbacks
+ * @since 2.7.0
  *
- * @param string   $widget_id
- * @param string   $widget_name
- * @param callable $callback
- * @param callable $control_callback
- * @param array    $callback_args
+ * @global array $wp_dashboard_control_callbacks
+ *
+ * @param string   $widget_id        Widget ID  (used in the 'id' attribute for the widget).
+ * @param string   $widget_name      Title of the widget.
+ * @param callable $callback         Function that fills the widget with the desired content.
+ *                                   The function should echo its output.
+ * @param callable $control_callback Optional. Function that outputs controls for the widget. Default null.
+ * @param array    $callback_args    Optional. Data that should be set as the $args property of the widget array
+ *                                   (which is the second parameter passed to your callback). Default null.
  */
 function wp_add_dashboard_widget( $widget_id, $widget_name, $callback, $control_callback = null, $callback_args = null ) {
 	$screen = get_current_screen();
@@ -169,9 +174,13 @@ function wp_add_dashboard_widget( $widget_id, $widget_name, $callback, $control_
 }
 
 /**
+ * Outputs controls for the current dashboard widget.
  *
- * @param type $dashboard
- * @param type $meta_box
+ * @access private
+ * @since 2.7.0
+ *
+ * @param mixed $dashboard
+ * @param array $meta_box
  */
 function _wp_dashboard_control_callback( $dashboard, $meta_box ) {
 	echo '<form method="post" class="dashboard-widget-control-form">';
@@ -305,7 +314,7 @@ function wp_dashboard_right_now() {
 		 * Prior to 3.8.0, the widget was named 'Right Now'.
 		 *
 		 * @since 3.0.0
-		 * @since 4.5.0 No title attribute output by default.
+		 * @since 4.5.0 The default for `$title` was updated to an empty string.
 		 *
 		 * @param string $title Default attribute text.
 		 */
@@ -566,17 +575,23 @@ function wp_dashboard_recent_drafts( $drafts = false ) {
 }
 
 /**
+ * Outputs a row for the Recent Comments widget.
+ *
+ * @access private
+ * @since 2.7.0
+ *
  * @global WP_Comment $comment
  *
- * @param WP_Comment $comment
- * @param bool       $show_date
+ * @param WP_Comment $comment   The current comment.
+ * @param bool       $show_date Optional. Whether to display the date.
  */
 function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 	$GLOBALS['comment'] = clone $comment;
 
-	if ( $comment->comment_post_ID > 0 && current_user_can( 'edit_post', $comment->comment_post_ID ) ) {
+	if ( $comment->comment_post_ID > 0 ) {
+
 		$comment_post_title = _draft_or_post_title( $comment->comment_post_ID );
-		$comment_post_url = get_edit_post_link( $comment->comment_post_ID );
+		$comment_post_url = get_the_permalink( $comment->comment_post_ID );
 		$comment_post_link = "<a href='$comment_post_url'>$comment_post_title</a>";
 	} else {
 		$comment_post_link = '';
@@ -644,10 +659,9 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 			$actions_string .= "<span class='$action'>$sep$link</span>";
 		}
 	}
-
 ?>
 
-		<div id="comment-<?php echo $comment->comment_ID; ?>" <?php comment_class( array( 'comment-item', wp_get_comment_status( $comment ) ), $comment ); ?>>
+		<li id="comment-<?php echo $comment->comment_ID; ?>" <?php comment_class( array( 'comment-item', wp_get_comment_status( $comment ) ), $comment ); ?>>
 
 			<?php echo get_avatar( $comment, 50, 'mystery' ); ?>
 
@@ -655,24 +669,25 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 
 			<div class="dashboard-comment-wrap has-row-actions">
 			<p class="comment-meta">
-				<?php
+			<?php
+				// Comments might not have a post they relate to, e.g. programmatically created ones.
 				if ( $comment_post_link ) {
 					printf(
 						/* translators: 1: comment author, 2: post link, 3: notification if the comment is pending */
-						__( 'From %1$s on %2$s%3$s' ),
+						__( 'From %1$s on %2$s %3$s' ),
 						'<cite class="comment-author">' . get_comment_author_link( $comment ) . '</cite>',
 						$comment_post_link,
-						' <span class="approve">' . __( '[Pending]' ) . '</span>'
+						'<span class="approve">' . __( '[Pending]' ) . '</span>'
 					);
 				} else {
 					printf(
 						/* translators: 1: comment author, 2: notification if the comment is pending */
 						__( 'From %1$s %2$s' ),
 						'<cite class="comment-author">' . get_comment_author_link( $comment ) . '</cite>',
-						' <span class="approve">' . __( '[Pending]' ) . '</span>'
+						'<span class="approve">' . __( '[Pending]' ) . '</span>'
 					);
 				}
-				?>
+			?>
 			</p>
 
 			<?php
@@ -690,15 +705,36 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 				$type = esc_html( $type );
 			?>
 			<div class="dashboard-comment-wrap has-row-actions">
-			<?php /* translators: %1$s is type of comment, %2$s is link to the post */ ?>
-			<p class="comment-meta"><?php printf( _x( '%1$s on %2$s', 'dashboard' ), "<strong>$type</strong>", $comment_post_link ); ?></p>
+			<p class="comment-meta">
+			<?php
+				// Pingbacks, Trackbacks or custom comment types might not have a post they relate to, e.g. programmatically created ones.
+				if ( $comment_post_link ) {
+					printf(
+						/* translators: 1: type of comment, 2: post link, 3: notification if the comment is pending */
+						_x( '%1$s on %2$s %3$s', 'dashboard' ),
+						"<strong>$type</strong>",
+						$comment_post_link,
+						'<span class="approve">' . __( '[Pending]' ) . '</span>'
+					);
+				} else {
+					printf(
+						/* translators: 1: type of comment, 2: notification if the comment is pending */
+						_x( '%1$s %2$s', 'dashboard' ),
+						"<strong>$type</strong>",
+						'<span class="approve">' . __( '[Pending]' ) . '</span>'
+					);
+				}
+			?>
+			</p>
 			<p class="comment-author"><?php comment_author_link( $comment ); ?></p>
 
 			<?php endif; // comment_type ?>
 			<blockquote><p><?php comment_excerpt( $comment ); ?></p></blockquote>
+			<?php if ( $actions_string ) : ?>
 			<p class="row-actions"><?php echo $actions_string; ?></p>
+			<?php endif; ?>
 			</div>
-		</div>
+		</li>
 <?php
 	$GLOBALS['comment'] = null;
 }
@@ -807,16 +843,15 @@ function wp_dashboard_recent_posts( $args ) {
 			// Use the post edit link for those who can edit, the permalink otherwise.
 			$recent_post_link = current_user_can( 'edit_post', get_the_ID() ) ? get_edit_post_link() : get_permalink();
 
-			/* translators: 1: relative date, 2: time, 3: post edit link or permalink, 4: post title, 5: aria label */
-			$format = __( '<span>%1$s, %2$s</span> <a href="%3$s" aria-label="%5$s">%4$s</a>' );
 			$draft_or_post_title = _draft_or_post_title();
-			printf( "<li>$format</li>",
-				$relative,
-				get_the_time(),
+			printf(
+				'<li><span>%1$s</span> <a href="%2$s" aria-label="%3$s">%4$s</a></li>',
+				/* translators: 1: relative date, 2: time */
+				sprintf( _x( '%1$s, %2$s', 'dashboard' ), $relative, get_the_time() ),
 				$recent_post_link,
-				$draft_or_post_title,
 				/* translators: %s: post title */
-				esc_attr( sprintf( __( 'Edit &#8220;%s&#8221;' ), $draft_or_post_title ) )
+				esc_attr( sprintf( __( 'Edit &#8220;%s&#8221;' ), $draft_or_post_title ) ),
+				$draft_or_post_title
 			);
 		}
 
@@ -868,15 +903,17 @@ function wp_dashboard_recent_comments( $total_items = 5 ) {
 
 	if ( $comments ) {
 		echo '<div id="latest-comments" class="activity-block">';
-		echo '<h3>' . __( 'Comments' ) . '</h3>';
+		echo '<h3>' . __( 'Recent Comments' ) . '</h3>';
 
-		echo '<div id="the-comment-list" data-wp-lists="list:comment">';
+		echo '<ul id="the-comment-list" data-wp-lists="list:comment">';
 		foreach ( $comments as $comment )
 			_wp_dashboard_recent_comments_row( $comment );
-		echo '</div>';
+		echo '</ul>';
 
-		if ( current_user_can('edit_posts') )
-			_get_list_table('WP_Comments_List_Table')->views();
+		if ( current_user_can( 'edit_posts' ) ) {
+			echo '<h3 class="screen-reader-text">' . __( 'View more comments' ) . '</h3>';
+			_get_list_table( 'WP_Comments_List_Table' )->views();
+		}
 
 		wp_comment_reply( -1, false, 'dashboard', false );
 		wp_comment_trashnotice();

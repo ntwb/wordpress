@@ -549,7 +549,7 @@ function upgrade_all() {
 	if ( $wp_current_db_version < 35700 )
 		upgrade_440();
 
-	if ( $wp_current_db_version < 36180 )
+	if ( $wp_current_db_version < 36686 )
 		upgrade_450();
 
 	maybe_disable_link_manager();
@@ -1663,17 +1663,25 @@ function upgrade_440() {
 }
 
 /**
- * Execute changes made in WordPress 4.5.0
+ * Executes changes made in WordPress 4.5.0.
  *
  * @ignore
  * @since 4.5.0
  *
- * @global int $wp_current_db_version
+ * @global int  $wp_current_db_version Current database version.
+ * @global wpdb $wpdb                  WordPress database abstraction object.
  */
 function upgrade_450() {
-	global $wp_current_db_version;
-	if ( $wp_current_db_version < 36180 )
+	global $wp_current_db_version, $wpdb;
+
+	if ( $wp_current_db_version < 36180 ) {
 		wp_clear_scheduled_hook( 'wp_maybe_auto_update' );
+	}
+
+	// Remove unused email confirmation options, moved to usermeta.
+	if ( $wp_current_db_version < 36679 && is_multisite() ) {
+		$wpdb->query( "DELETE FROM $wpdb->options WHERE option_name REGEXP '^[0-9]+_new_email$'" );
+	}
 }
 
 /**

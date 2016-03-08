@@ -160,7 +160,7 @@ $messages['page'] = array(
 	 9 => sprintf( __( 'Page scheduled for: %s.' ), '<strong>' . $scheduled_date . '</strong>' ) . $scheduled_page_link_html,
 	10 => __( 'Page draft updated.' ) . $preview_page_link_html,
 );
-$messages['attachment'] = array_fill( 1, 10, __( 'Media attachment updated.' ) ); // Hack, for now.
+$messages['attachment'] = array_fill( 1, 10, __( 'Media file updated.' ) ); // Hack, for now.
 
 /**
  * Filter the post updated messages.
@@ -197,7 +197,7 @@ $form_extra .= "<input type='hidden' id='post_ID' name='post_ID' value='" . esc_
 
 // Detect if there exists an autosave newer than the post and if that autosave is different than the post
 if ( $autosave && mysql2date( 'U', $autosave->post_modified_gmt, false ) > mysql2date( 'U', $post->post_modified_gmt, false ) ) {
-	foreach ( _wp_post_revision_fields() as $autosave_field => $_autosave_field ) {
+	foreach ( _wp_post_revision_fields( $post ) as $autosave_field => $_autosave_field ) {
 		if ( normalize_whitespace( $autosave->$autosave_field ) != normalize_whitespace( $post->$autosave_field ) ) {
 			$notice = sprintf( __( 'There is an autosave of this post that is more recent than the version below. <a href="%s">View the autosave</a>' ), get_edit_post_link( $autosave->ID ) );
 			break;

@@ -150,7 +150,7 @@ class WP_Comment_Query {
 	 * @since 4.4.0 `$parent__in` and `$parent__not_in` were added.
 	 * @since 4.4.0 Order by `comment__in` was added. `$update_comment_meta_cache`, `$no_found_rows`,
 	 *              `$hierarchical`, and `$update_comment_post_cache` were added.
-	 * @since 4.5.0 `$author_url` was added.
+	 * @since 4.5.0 Introduced the `$author_url` argument.
 	 * @access public
 	 *
 	 * @param string|array $query {
@@ -214,16 +214,17 @@ class WP_Comment_Query {
 	 *                                                   Default empty.
 	 *     @type int          $post_ID                   Currently unused.
 	 *     @type int          $post_id                   Limit results to those affiliated with a given post ID.
-	 *                                                   Default null.
+	 *                                                   Default 0.
 	 *     @type array        $post__in                  Array of post IDs to include affiliated comments for.
 	 *                                                   Default empty.
 	 *     @type array        $post__not_in              Array of post IDs to exclude affiliated comments for.
 	 *                                                   Default empty.
 	 *     @type int          $post_author               Post author ID to limit results by. Default empty.
-	 *     @type string       $post_status               Post status to retrieve affiliated comments for.
+	 *     @type string|array $post_status               Post status or array of post statuses to retrieve
+	 *                                                   affiliated comments for. Pass 'any' to match any value.
 	 *                                                   Default empty.
-	 *     @type string       $post_type                 Post type to retrieve affiliated comments for.
-	 *                                                   Default empty.
+	 *     @type string       $post_type                 Post type or array of post types to retrieve affiliated
+	 *                                                   comments for. Pass 'any' to match any value. Default empty.
 	 *     @type string       $post_name                 Post name to retrieve affiliated comments for.
 	 *                                                   Default empty.
 	 *     @type int          $post_parent               Post parent ID to retrieve affiliated comments for.
@@ -273,10 +274,12 @@ class WP_Comment_Query {
 			'orderby' => '',
 			'order' => 'DESC',
 			'parent' => '',
+			'parent__in' => '',
+			'parent__not_in' => '',
 			'post_author__in' => '',
 			'post_author__not_in' => '',
 			'post_ID' => '',
-			'post_id' => null,
+			'post_id' => 0,
 			'post__in' => '',
 			'post__not_in' => '',
 			'post_author' => '',
@@ -645,8 +648,9 @@ class WP_Comment_Query {
 			$fields = "$wpdb->comments.comment_ID";
 		}
 
-		if ( strlen( $this->query_vars['post_id'] ) ) {
-			$this->sql_clauses['where']['post_id'] = $wpdb->prepare( 'comment_post_ID = %d', $this->query_vars['post_id'] );
+		$post_id = absint( $this->query_vars['post_id'] );
+		if ( ! empty( $post_id ) ) {
+			$this->sql_clauses['where']['post_id'] = $wpdb->prepare( 'comment_post_ID = %d', $post_id );
 		}
 
 		// Parse comment IDs for an IN clause.
@@ -757,7 +761,7 @@ class WP_Comment_Query {
 
 		// If any post-related query vars are passed, join the posts table.
 		$join_posts_table = false;
-		$plucked = wp_array_slice_assoc( $this->query_vars, array( 'post_author', 'post_name', 'post_parent', 'post_status', 'post_type' ) );
+		$plucked = wp_array_slice_assoc( $this->query_vars, array( 'post_author', 'post_name', 'post_parent' ) );
 		$post_fields = array_filter( $plucked );
 
 		if ( ! empty( $post_fields ) ) {
@@ -766,6 +770,27 @@ class WP_Comment_Query {
 				// $field_value may be an array.
 				$esses = array_fill( 0, count( (array) $field_value ), '%s' );
 				$this->sql_clauses['where'][ $field_name ] = $wpdb->prepare( " {$wpdb->posts}.{$field_name} IN (" . implode( ',', $esses ) . ')', $field_value );
+			}
+		}
+
+		// 'post_status' and 'post_type' are handled separately, due to the specialized behavior of 'any'.
+		foreach ( array( 'post_status', 'post_type' ) as $field_name ) {
+			$q_values = array();
+			if ( ! empty( $this->query_vars[ $field_name ] ) ) {
+				$q_values = $this->query_vars[ $field_name ];
+				if ( ! is_array( $q_values ) ) {
+					$q_values = explode( ',', $q_values );
+				}
+
+				// 'any' will cause the query var to be ignored.
+				if ( in_array( 'any', $q_values, true ) || empty( $q_values ) ) {
+					continue;
+				}
+
+				$join_posts_table = true;
+
+				$esses = array_fill( 0, count( $q_values ), '%s' );
+				$this->sql_clauses['where'][ $field_name ] = $wpdb->prepare( " {$wpdb->posts}.{$field_name} IN (" . implode( ',', $esses ) . ")", $q_values );
 			}
 		}
 

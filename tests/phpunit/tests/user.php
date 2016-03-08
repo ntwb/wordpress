@@ -214,7 +214,9 @@ class Tests_User extends WP_UnitTestCase {
 	 */
 	function test_user_unset_lowercase_id( $user ) {
 		// Test 'id' (lowercase)
+		$id = $user->id;
 		unset( $user->id );
+		$this->assertSame( $id, $user->id );
 		return $user;
 	}
 
@@ -656,7 +658,7 @@ class Tests_User extends WP_UnitTestCase {
 	 */
 	function test_illegal_user_logins_multisite() {
 		if ( ! is_multisite() ) {
-			return;
+			$this->markTestSkipped( __METHOD__ . ' requires multisite.' );
 		}
 
 		$user_data = array(
@@ -902,6 +904,23 @@ class Tests_User extends WP_UnitTestCase {
 		$this->assertWPError( $u );
 	}
 
+	/**
+	 * @ticket 35750
+	 */
+	public function test_wp_update_user_should_delete_userslugs_cache() {
+		$u = self::factory()->user->create();
+		$user = get_userdata( $u );
+
+		wp_update_user( array(
+			'ID' => $u,
+			'user_nicename' => 'newusernicename',
+		) );
+		$updated_user = get_userdata( $u );
+
+		$this->assertFalse( wp_cache_get( $user->user_nicename, 'userslugs' ) );
+		$this->assertEquals( $u, wp_cache_get( $updated_user->user_nicename, 'userslugs' ) );
+	}
+
 	function test_changing_email_invalidates_password_reset_key() {
 		global $wpdb;
 
@@ -1011,14 +1030,18 @@ class Tests_User extends WP_UnitTestCase {
 
 		wp_new_user_notification( self::$contrib_id, null, $notify );
 
+		$mailer = tests_retrieve_phpmailer_instance();
+
 		/*
 		 * Check to see if a notification email was sent to the
 		 * post author `blackburn@battlefield3.com` and and site admin `admin@example.org`.
 		 */
-		if ( ! empty( $GLOBALS['phpmailer']->mock_sent ) ) {
-			$was_admin_email_sent = ( isset( $GLOBALS['phpmailer']->mock_sent[0] ) && WP_TESTS_EMAIL == $GLOBALS['phpmailer']->mock_sent[0]['to'][0][0] );
-			$was_user_email_sent = ( isset( $GLOBALS['phpmailer']->mock_sent[1] ) && 'blackburn@battlefield3.com' == $GLOBALS['phpmailer']->mock_sent[1]['to'][0][0] );
-		}
+		$admin_email = $mailer->get_recipient( 'to' );
+		$was_admin_email_sent = $admin_email && WP_TESTS_EMAIL === $admin_email->address;
+
+		$user_email = $mailer->get_recipient( 'to', 1 );
+		$was_user_email_sent = $user_email && 'blackburn@battlefield3.com' == $user_email->address;
+
 
 		$this->assertSame( $admin_email_sent_expected, $was_admin_email_sent, 'Admin email result was not as expected in test_wp_new_user_notification' );
 		$this->assertSame( $user_email_sent_expected , $was_user_email_sent, 'User email result was not as expected in test_wp_new_user_notification' );

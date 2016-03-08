@@ -345,8 +345,12 @@ h3 {
 	margin: 1em 0;
 }
 
+.update-core-php h2 {
+	margin-top: 2em;
+}
+
 .update-php h2,
-.update-core-php h2,
+.update-messages h2,
 h4 {
 	font-size: 1em;
 	margin: 1.33em 0;
@@ -439,7 +443,7 @@ code {
 
 .subsubsub a .count,
 .subsubsub a.current .count {
-	color: #999;
+	color: #555d66; /* #f1f1f1 background */
 	font-weight: normal;
 }
 
@@ -512,6 +516,7 @@ code {
 }
 
 .widefat th input,
+.updates-table td input,
 .widefat thead td input,
 .widefat tfoot td input {
 	margin: 0 0 0 8px;
@@ -525,18 +530,13 @@ code {
 	vertical-align: top;
 }
 
-.widefat th input[type=checkbox],
-.widefat thead td input[type=checkbox],
-.widefat tfoot td input[type=checkbox] {
-	margin-top: -1px;
-}
-
 .widefat tbody th.check-column {
 	padding: 9px 0 22px;
 }
 
 .widefat thead td.check-column,
 .widefat tbody th.check-column,
+.updates-table tbody td.check-column,
 .widefat tfoot td.check-column {
 	padding: 11px 0 0 3px;
 }
@@ -661,11 +661,6 @@ ul.striped > :nth-child(odd),
 	border-right-color: #99d;
 }
 
-.media-upload-form label.form-help,
-td.help {
-	color: #9a9a9a;
-}
-
 /* Helper classes for plugins to leverage the active WordPress color scheme */
 
 .highlight {
@@ -698,7 +693,7 @@ td.help {
 }
 
 .wp-ui-text-icon {
-	color: #999;
+	color: #82878c; /* same as new icons */
 }
 
 /* For emoji replacement images */
@@ -842,6 +837,7 @@ hr {
 }
 
 abbr.required,
+span.required,
 .file-error,
 .widget-control-remove:hover,
 .row-actions .delete a:hover,
@@ -895,10 +891,6 @@ abbr.required,
 	padding: 6px 10px 8px;
 }
 
-.misc-pub-revisions .howto {
-	padding-left: 25px;
-}
-
 .misc-pub-filename {
 	word-wrap: break-word;
 }
@@ -918,26 +910,6 @@ abbr.required,
 
 #sticky-span {
 	margin-left: 18px;
-}
-
-.side-info {
-	margin: 0;
-	padding: 4px;
-	font-size: 11px;
-}
-
-.side-info h5 {
-	padding-bottom: 7px;
-	font-size: 14px;
-	margin: 12px 2px 5px;
-	border-bottom: 1px solid #dadada;
-}
-
-.side-info ul {
-	margin: 0;
-	padding-left: 18px;
-	list-style: square;
-	color: #666;
 }
 
 .approve,
@@ -2189,7 +2161,7 @@ body.iframe {
 }
 
 .media-icon img {
-	border: 1px solid #e7e7e7;
+	border: 1px solid #e5e5e5;
 	border: 1px solid rgba(0, 0, 0, 0.07);
 }
 
@@ -2550,6 +2522,10 @@ div.action-links {
 	margin: 0 0 10px;
 }
 
+#plugin-information .fyi-description {
+	margin-top: 0;
+}
+
 #plugin-information .counter-container {
 	margin: 3px 0;
 }
@@ -2563,7 +2539,7 @@ div.action-links {
 #plugin-information .counter-back {
 	height: 17px;
 	width: 92px;
-	background-color: #ececec;
+	background-color: #e5e5e5;
 	float: left;
 }
 
@@ -2659,7 +2635,7 @@ div.action-links {
 	overflow: hidden; /* clearfix */
 	width: 100%;
 	margin-bottom: 20px;
-	border-bottom: 1px solid #e6e6e6;
+	border-bottom: 1px solid #e5e5e5;
 }
 
 #plugin-information .review-title-section {

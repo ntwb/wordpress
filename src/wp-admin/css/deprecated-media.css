@@ -69,6 +69,11 @@ div#media-upload-header {
 	padding: 0;
 }
 
+.media-upload-form label.form-help,
+td.help {
+	color: #72777c;
+}
+
 form {
 	margin: 1em;
 }
@@ -147,7 +152,8 @@ thead.media-item-info tr {
 	border: 8px solid #fff;
 }
 
-abbr.required {
+abbr.required,
+span.required {
 	text-decoration: none;
 	border: none;
 }
@@ -270,7 +276,7 @@ abbr.required {
 	clear: both;
 	padding: 0 0 3px;
 	font-size: 1.6em;
-	border-bottom: 1px solid #DADADA;
+	border-bottom: 1px solid #ddd;
 }
 
 h3.media-title  {
@@ -278,7 +284,7 @@ h3.media-title  {
 }
 
 h4.media-sub-title  {
-	border-bottom: 1px solid #DADADA;
+	border-bottom: 1px solid #ddd;
 	font-size: 1.3em;
 	margin: 12px;
 	padding: 0 0 3px;
@@ -359,7 +365,12 @@ h4.media-sub-title {
 }
 
 p.media-types {
+	margin: 0;
 	padding: 1em;
+}
+
+p.media-types-required-info {
+	padding-top: 0;
 }
 
 tr.not-image {

@@ -77,7 +77,7 @@ if ( 'grid' === $mode ) {
 		<?php
 		echo esc_html( $title );
 		if ( current_user_can( 'upload_files' ) ) { ?>
-			<a href="media-new.php" class="page-title-action"><?php echo esc_html_x( 'Add New', 'file' ); ?></a><?php
+			<a href="<?php echo admin_url( 'media-new.php' ); ?>" class="page-title-action"><?php echo esc_html_x( 'Add New', 'file' ); ?></a><?php
 		}
 		?>
 		</h1>
@@ -222,7 +222,7 @@ require_once( ABSPATH . 'wp-admin/admin-header.php' );
 <?php
 echo esc_html( $title );
 if ( current_user_can( 'upload_files' ) ) { ?>
-	<a href="media-new.php" class="page-title-action"><?php echo esc_html_x('Add New', 'file'); ?></a><?php
+	<a href="<?php echo admin_url( 'media-new.php' ); ?>" class="page-title-action"><?php echo esc_html_x('Add New', 'file'); ?></a><?php
 }
 if ( isset( $_REQUEST['s'] ) && strlen( $_REQUEST['s'] ) ) {
 	/* translators: %s: search keywords */
@@ -254,7 +254,7 @@ if ( ! empty( $_GET['detach'] ) && $detached = absint( $_GET['detach'] ) ) {
 		$message = __( 'Media file detached.' );
 	} else {
 		/* translators: %s: number of media files */
-		$message = _n( '%s media file detached.', '%s media filse detached.', $detached );
+		$message = _n( '%s media file detached.', '%s media files detached.', $detached );
 	}
 	$message = sprintf( $message, number_format_i18n( $detached ) );
 	$_SERVER['REQUEST_URI'] = remove_query_arg( array( 'detach', 'attached' ), $_SERVER['REQUEST_URI'] );

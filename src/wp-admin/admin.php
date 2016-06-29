@@ -48,7 +48,7 @@ if ( get_option('db_upgraded') ) {
 		exit;
 
 	/**
-	 * Filter whether to attempt to perform the multisite DB upgrade routine.
+	 * Filters whether to attempt to perform the multisite DB upgrade routine.
 	 *
 	 * In single site, the user would be redirected to wp-admin/upgrade.php.
 	 * In multisite, the DB upgrade routine is automatically fired, but only
@@ -139,7 +139,7 @@ else
 
 if ( current_user_can( 'manage_options' ) ) {
 	/**
-	 * Filter the maximum memory limit available for administration screens.
+	 * Filters the maximum memory limit available for administration screens.
 	 *
 	 * This only applies to administrators, who may require more memory for tasks like updates.
 	 * Memory limits when processing images (uploaded or edited by users of any role) are
@@ -161,7 +161,7 @@ if ( current_user_can( 'manage_options' ) ) {
  * Note, this does not just run on user-facing admin screens.
  * It runs on admin-ajax.php and admin-post.php as well.
  *
- * This is roughly analogous to the more general 'init' hook, which fires earlier.
+ * This is roughly analogous to the more general {@see 'init'} hook, which fires earlier.
  *
  * @since 2.5.0
  */
@@ -175,7 +175,7 @@ if ( isset($plugin_page) ) {
 	if ( ! $page_hook = get_plugin_page_hook($plugin_page, $the_parent) ) {
 		$page_hook = get_plugin_page_hook($plugin_page, $plugin_page);
 
-		// Backwards compatibility for plugins using add_management_page().
+		// Back-compat for plugins using add_management_page().
 		if ( empty( $page_hook ) && 'edit.php' == $pagenow && '' != get_plugin_page_hook($plugin_page, 'tools.php') ) {
 			// There could be plugin specific params on the URL, so we need the whole query string
 			if ( !empty($_SERVER[ 'QUERY_STRING' ]) )
@@ -356,7 +356,7 @@ if ( isset($plugin_page) ) {
 		elseif ( $taxnow == 'link_category' )
 			do_action( 'load-edit-link-categories.php' );
 	} elseif( 'term.php' === $pagenow ) {
-		do_action( 'edit-tags.php' );
+		do_action( 'load-edit-tags.php' );
 	}
 }
 

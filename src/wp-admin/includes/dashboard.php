@@ -65,7 +65,7 @@ function wp_dashboard_setup() {
 		do_action( 'wp_network_dashboard_setup' );
 
 		/**
-		 * Filter the list of widgets to load for the Network Admin dashboard.
+		 * Filters the list of widgets to load for the Network Admin dashboard.
 		 *
 		 * @since 3.1.0
 		 *
@@ -82,7 +82,7 @@ function wp_dashboard_setup() {
 		do_action( 'wp_user_dashboard_setup' );
 
 		/**
-		 * Filter the list of widgets to load for the User Admin dashboard.
+		 * Filters the list of widgets to load for the User Admin dashboard.
 		 *
 		 * @since 3.1.0
 		 *
@@ -99,7 +99,7 @@ function wp_dashboard_setup() {
 		do_action( 'wp_dashboard_setup' );
 
 		/**
-		 * Filter the list of widgets to load for the admin dashboard.
+		 * Filters the list of widgets to load for the admin dashboard.
 		 *
 		 * @since 2.5.0
 		 *
@@ -263,7 +263,7 @@ function wp_dashboard_right_now() {
 	}
 	// Comments
 	$num_comm = wp_count_comments();
-	if ( $num_comm && $num_comm->approved ) {
+	if ( $num_comm && ( $num_comm->approved || $num_comm->moderated ) ) {
 		$text = sprintf( _n( '%s Comment', '%s Comments', $num_comm->approved ), number_format_i18n( $num_comm->approved ) );
 		?>
 		<li class="comment-count"><a href="edit-comments.php"><?php echo $text; ?></a></li>
@@ -283,7 +283,7 @@ function wp_dashboard_right_now() {
 	}
 
 	/**
-	 * Filter the array of extra elements to list in the 'At a Glance'
+	 * Filters the array of extra elements to list in the 'At a Glance'
 	 * dashboard widget.
 	 *
 	 * Prior to 3.8.0, the widget was named 'Right Now'. Each element
@@ -308,7 +308,7 @@ function wp_dashboard_right_now() {
 	if ( ! is_network_admin() && ! is_user_admin() && current_user_can( 'manage_options' ) && '0' == get_option( 'blog_public' ) ) {
 
 		/**
-		 * Filter the link title attribute for the 'Search Engines Discouraged'
+		 * Filters the link title attribute for the 'Search Engines Discouraged'
 		 * message displayed in the 'At a Glance' dashboard widget.
 		 *
 		 * Prior to 3.8.0, the widget was named 'Right Now'.
@@ -321,7 +321,7 @@ function wp_dashboard_right_now() {
 		$title = apply_filters( 'privacy_on_link_title', '' );
 
 		/**
-		 * Filter the link label for the 'Search Engines Discouraged' message
+		 * Filters the link label for the 'Search Engines Discouraged' message
 		 * displayed in the 'At a Glance' dashboard widget.
 		 *
 		 * Prior to 3.8.0, the widget was named 'Right Now'.
@@ -538,7 +538,7 @@ function wp_dashboard_recent_drafts( $drafts = false ) {
 		);
 
 		/**
-		 * Filter the post query arguments for the 'Recent Drafts' dashboard widget.
+		 * Filters the post query arguments for the 'Recent Drafts' dashboard widget.
 		 *
 		 * @since 4.4.0
 		 *
@@ -630,12 +630,10 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 			$actions['trash'] = "<a href='$trash_url' data-wp-lists='delete:the-comment-list:comment-$comment->comment_ID::trash=1' class='delete vim-d vim-destructive' aria-label='" . esc_attr__( 'Move this comment to the Trash' ) . "'>" . _x( 'Trash', 'verb' ) . '</a>';
 		}
 
-		if ( '1' === $comment->comment_approved ) {
-			$actions['view'] = '<a class="comment-link" href="' . esc_url( get_comment_link( $comment ) ) . '" aria-label="' . esc_attr__( 'View this comment' ) . '">' . __( 'View' ) . '</a>';
-		}
+		$actions['view'] = '<a class="comment-link" href="' . esc_url( get_comment_link( $comment ) ) . '" aria-label="' . esc_attr__( 'View this comment' ) . '">' . __( 'View' ) . '</a>';
 
 		/**
-		 * Filter the action links displayed for each comment in the 'Recent Comments'
+		 * Filters the action links displayed for each comment in the 'Recent Comments'
 		 * dashboard widget.
 		 *
 		 * @since 2.6.0
@@ -653,9 +651,13 @@ function _wp_dashboard_recent_comments_row( &$comment, $show_date = true ) {
 			( ( ('approve' == $action || 'unapprove' == $action) && 2 === $i ) || 1 === $i ) ? $sep = '' : $sep = ' | ';
 
 			// Reply and quickedit need a hide-if-no-js span
-			if ( 'reply' == $action || 'quickedit' == $action )
+			if ( 'reply' == $action || 'quickedit' == $action ) {
 				$action .= ' hide-if-no-js';
+			}
 
+			if ( 'view' === $action && '1' !== $comment->comment_approved ) {
+				$action .= ' hidden';
+			}
 			$actions_string .= "<span class='$action'>$sep$link</span>";
 		}
 	}
@@ -804,7 +806,7 @@ function wp_dashboard_recent_posts( $args ) {
 	);
 
 	/**
-	 * Filter the query arguments used for the Recent Posts widget.
+	 * Filters the query arguments used for the Recent Posts widget.
 	 *
 	 * @since 4.2.0
 	 *
@@ -833,10 +835,10 @@ function wp_dashboard_recent_posts( $args ) {
 			} elseif ( date( 'Y-m-d', $time ) == $tomorrow ) {
 				$relative = __( 'Tomorrow' );
 			} elseif ( date( 'Y', $time ) !== date( 'Y', current_time( 'timestamp' ) ) ) {
-				/* translators: date and time format for recent posts on the dashboard, from a different calendar year, see http://php.net/date */
+				/* translators: date and time format for recent posts on the dashboard, from a different calendar year, see https://secure.php.net/date */
 				$relative = date_i18n( __( 'M jS Y' ), $time );
 			} else {
-				/* translators: date and time format for recent posts on the dashboard, see http://php.net/date */
+				/* translators: date and time format for recent posts on the dashboard, see https://secure.php.net/date */
 				$relative = date_i18n( __( 'M jS' ), $time );
 			}
 
@@ -1066,7 +1068,7 @@ function wp_dashboard_primary() {
 		'news' => array(
 
 			/**
-			 * Filter the primary link URL for the 'WordPress News' dashboard widget.
+			 * Filters the primary link URL for the 'WordPress News' dashboard widget.
 			 *
 			 * @since 2.5.0
 			 *
@@ -1075,7 +1077,7 @@ function wp_dashboard_primary() {
 			'link' => apply_filters( 'dashboard_primary_link', __( 'https://wordpress.org/news/' ) ),
 
 			/**
-			 * Filter the primary feed URL for the 'WordPress News' dashboard widget.
+			 * Filters the primary feed URL for the 'WordPress News' dashboard widget.
 			 *
 			 * @since 2.3.0
 			 *
@@ -1084,7 +1086,7 @@ function wp_dashboard_primary() {
 			'url' => apply_filters( 'dashboard_primary_feed', __( 'http://wordpress.org/news/feed/' ) ),
 
 			/**
-			 * Filter the primary link title for the 'WordPress News' dashboard widget.
+			 * Filters the primary link title for the 'WordPress News' dashboard widget.
 			 *
 			 * @since 2.3.0
 			 *
@@ -1099,7 +1101,7 @@ function wp_dashboard_primary() {
 		'planet' => array(
 
 			/**
-			 * Filter the secondary link URL for the 'WordPress News' dashboard widget.
+			 * Filters the secondary link URL for the 'WordPress News' dashboard widget.
 			 *
 			 * @since 2.3.0
 			 *
@@ -1108,7 +1110,7 @@ function wp_dashboard_primary() {
 			'link' => apply_filters( 'dashboard_secondary_link', __( 'https://planet.wordpress.org/' ) ),
 
 			/**
-			 * Filter the secondary feed URL for the 'WordPress News' dashboard widget.
+			 * Filters the secondary feed URL for the 'WordPress News' dashboard widget.
 			 *
 			 * @since 2.3.0
 			 *
@@ -1117,7 +1119,7 @@ function wp_dashboard_primary() {
 			'url' => apply_filters( 'dashboard_secondary_feed', __( 'https://planet.wordpress.org/feed/' ) ),
 
 			/**
-			 * Filter the secondary link title for the 'WordPress News' dashboard widget.
+			 * Filters the secondary link title for the 'WordPress News' dashboard widget.
 			 *
 			 * @since 2.3.0
 			 *
@@ -1126,7 +1128,7 @@ function wp_dashboard_primary() {
 			'title'        => apply_filters( 'dashboard_secondary_title', __( 'Other WordPress News' ) ),
 
 			/**
-			 * Filter the number of secondary link items for the 'WordPress News' dashboard widget.
+			 * Filters the number of secondary link items for the 'WordPress News' dashboard widget.
 			 *
 			 * @since 4.4.0
 			 *
@@ -1259,7 +1261,7 @@ function wp_dashboard_plugins_output( $rss, $args = array() ) {
 /**
  * Display file upload quota on dashboard.
  *
- * Runs on the activity_box_end hook in wp_dashboard_right_now().
+ * Runs on the {@see 'activity_box_end'} hook in wp_dashboard_right_now().
  *
  * @since 3.0.0
  *
@@ -1353,7 +1355,7 @@ function wp_dashboard_browser_nag() {
 	}
 
 	/**
-	* Filter the notice output for the 'Browse Happy' nag meta box.
+	* Filters the notice output for the 'Browse Happy' nag meta box.
 	*
 	* @since 3.2.0
 	*

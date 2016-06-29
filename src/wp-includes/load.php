@@ -184,6 +184,23 @@ function wp_maintenance() {
 	if ( ( time() - $upgrading ) >= 600 )
 		return;
 
+	/**
+	 * Filters whether to enable maintenance mode.
+	 *
+	 * This filter runs before it can be used by plugins. It is designed for
+	 * non-web runtimes. If this filter returns true, maintenance mode will be
+	 * active and the request will end. If false, the request will be allowed to
+	 * continue processing even if maintenance mode should be active.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param bool $enable_checks Whether to enable maintenance mode. Default true.
+	 * @param int  $upgrading     The timestamp set in the .maintenance file.
+	 */
+	if ( ! apply_filters( 'enable_maintenance_mode', true, $upgrading ) ) {
+		return;
+	}
+
 	if ( file_exists( WP_CONTENT_DIR . '/maintenance.php' ) ) {
 		require_once( WP_CONTENT_DIR . '/maintenance.php' );
 		die();
@@ -285,6 +302,22 @@ function timer_stop( $display = 0, $precision = 3 ) {
  * @access private
  */
 function wp_debug_mode() {
+	/**
+	 * Filters whether to allow the debug mode check to occur.
+	 *
+	 * This filter runs before it can be used by plugins. It is designed for
+	 * non-web run-times. Returning false causes the `WP_DEBUG` and related
+	 * constants to not be checked and the default php values for errors
+	 * will be used unless you take care to update them yourself.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param bool $enable_debug_mode Whether to enable debug mode checks to occur. Default true.
+	 */
+	if ( ! apply_filters( 'enable_wp_debug_mode_checks', true ) ){
+		return;
+	}
+
 	if ( WP_DEBUG ) {
 		error_reporting( E_ALL );
 
@@ -302,7 +335,7 @@ function wp_debug_mode() {
 	}
 
 	if ( defined( 'XMLRPC_REQUEST' ) || defined( 'REST_REQUEST' ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) ) {
-		ini_set( 'display_errors', 0 );
+		@ini_set( 'display_errors', 0 );
 	}
 }
 
@@ -331,7 +364,7 @@ function wp_set_lang_dir() {
 			 */
 			define( 'WP_LANG_DIR', WP_CONTENT_DIR . '/languages' );
 			if ( !defined( 'LANGDIR' ) ) {
-				// Old static relative path maintained for limited backwards compatibility - won't work in some cases
+				// Old static relative path maintained for limited backward compatibility - won't work in some cases.
 				define( 'LANGDIR', 'wp-content/languages' );
 			}
 		} else {
@@ -344,7 +377,7 @@ function wp_set_lang_dir() {
 			 */
 			define( 'WP_LANG_DIR', ABSPATH . WPINC . '/languages' );
 			if ( !defined( 'LANGDIR' ) ) {
-				// Old relative path maintained for backwards compatibility
+				// Old relative path maintained for backward compatibility.
 				define( 'LANGDIR', WPINC . '/languages' );
 			}
 		}
@@ -477,7 +510,7 @@ function wp_start_object_cache() {
 
 	if ( function_exists( 'wp_cache_add_global_groups' ) ) {
 		wp_cache_add_global_groups( array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'networks', 'sites' ) );
-		wp_cache_add_non_persistent_groups( array( 'comment', 'counts', 'plugins' ) );
+		wp_cache_add_non_persistent_groups( array( 'counts', 'plugins' ) );
 	}
 }
 
@@ -657,7 +690,7 @@ function wp_clone( $object ) {
 /**
  * Whether the current request is for an administrative interface page.
  *
- * Does not check if the user is an administrator; {@see current_user_can()}
+ * Does not check if the user is an administrator; current_user_can()
  * for checking roles and capabilities.
  *
  * @since 1.5.1
@@ -680,7 +713,7 @@ function is_admin() {
  *
  * e.g. `/wp-admin/`
  *
- * Does not check if the user is an administrator; {@see current_user_can()}
+ * Does not check if the user is an administrator; current_user_can()
  * for checking roles and capabilities.
  *
  * @since 3.1.0
@@ -703,7 +736,7 @@ function is_blog_admin() {
  *
  * e.g. `/wp-admin/network/`
  *
- * Does not check if the user is an administrator; {@see current_user_can()}
+ * Does not check if the user is an administrator; current_user_can()
  * for checking roles and capabilities.
  *
  * @since 3.1.0
@@ -728,7 +761,7 @@ function is_network_admin() {
  *
  * Does not inform on whether the user is an admin! Use capability
  * checks to tell if the user should be accessing a section or not
- * {@see current_user_can()}.
+ * current_user_can().
  *
  * @since 3.1.0
  *
@@ -774,6 +807,29 @@ function is_multisite() {
 function get_current_blog_id() {
 	global $blog_id;
 	return absint($blog_id);
+}
+
+/**
+ * Retrieves the current network ID.
+ *
+ * @since 4.6.0
+ *
+ * @global WP_Network $current_site The current network.
+ *
+ * @return int The ID of the current network.
+ */
+function get_current_network_id() {
+	if ( ! is_multisite() ) {
+		return 1;
+	}
+
+	$current_site = get_current_site();
+
+	if ( ! isset( $current_site->id ) ) {
+		return get_main_network_id();
+	}
+
+	return absint( $current_site->id );
 }
 
 /**
@@ -894,4 +950,27 @@ function wp_installing( $is_installing = null ) {
 	}
 
 	return (bool) $installing;
+}
+
+/**
+ * Determines if SSL is used.
+ *
+ * @since 2.6.0
+ * @since 4.6.0 Moved from functions.php to load.php
+ *
+ * @return bool True if SSL, otherwise false.
+ */
+function is_ssl() {
+	if ( isset( $_SERVER['HTTPS'] ) ) {
+		if ( 'on' == strtolower( $_SERVER['HTTPS'] ) ) {
+			return true;
+		}
+
+		if ( '1' == $_SERVER['HTTPS'] ) {
+			return true;
+		}
+	} elseif ( isset($_SERVER['SERVER_PORT'] ) && ( '443' == $_SERVER['SERVER_PORT'] ) ) {
+		return true;
+	}
+	return false;
 }

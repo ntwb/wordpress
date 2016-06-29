@@ -93,6 +93,7 @@
 		var doingUndoRedo;
 		var doingUndoRedoTimer;
 		var $ = window.jQuery;
+		var urlErrors = {};
 
 		function getSelectedLink() {
 			var href, html,
@@ -131,11 +132,62 @@
 		}
 
 		function removePlaceholderStrings( content, dataAttr ) {
-			if ( dataAttr ) {
-				content = content.replace( / data-wplink-edit="true"/g, '' );
+			return content.replace( /(<a [^>]+>)([\s\S]*?)<\/a>/g, function( all, tag, text ) {
+				if ( tag.indexOf( ' href="_wp_link_placeholder"' ) > -1 ) {
+					return text;
+				}
+
+				if ( dataAttr ) {
+					tag = tag.replace( / data-wplink-edit="true"/g, '' );
+				}
+
+				tag = tag.replace( / data-wplink-url-error="true"/g, '' );
+
+				return tag + text + '</a>';
+			});
+		}
+
+		function checkLink( node ) {
+			var $link = editor.$( node );
+			var href = $link.attr( 'href' );
+
+			if ( ! href || typeof $ === 'undefined' ) {
+				return;
 			}
 
-			return content.replace( /<a [^>]*?href="_wp_link_placeholder"[^>]*>([\s\S]+)<\/a>/g, '$1' );
+			// Early check
+			if ( /^http/i.test( href ) && ! /\.[a-z]{2,63}(\/|$)/i.test( href ) ) {
+				urlErrors[href] = tinymce.translate( 'Invalid host name.' );
+			}
+
+			if ( urlErrors.hasOwnProperty( href ) ) {
+				$link.attr( 'data-wplink-url-error', 'true' );
+				return;
+			} else {
+				$link.removeAttr( 'data-wplink-url-error' );
+			}
+
+			$.post(
+				window.ajaxurl, {
+					action: 'test_url',
+					nonce: $( '#_wplink_urltest_nonce' ).val(),
+					href: href
+				},
+				'json'
+			).done( function( response ) {
+				if ( response.success ) {
+					return;
+				}
+
+				if ( response.data && response.data.error ) {
+					urlErrors[href] = response.data.error;
+					$link.attr( 'data-wplink-url-error', 'true' );
+
+					if ( toolbar && toolbar.visible() ) {
+						toolbar.$el.find( '.wp-link-preview a' ).addClass( 'wplink-url-error' ).attr( 'title', editor.dom.encode( response.data.error ) );
+					}
+				}
+			});
 		}
 
 		editor.on( 'preinit', function() {
@@ -158,7 +210,7 @@
 				editToolbar = editor.wp._createToolbar( editButtons, true );
 
 				editToolbar.on( 'show', function() {
-					if ( ! tinymce.$( document.body ).hasClass( 'modal-open' ) ) {
+					if ( typeof window.wpLink === 'undefined' || ! window.wpLink.modalOpen ) {
 						window.setTimeout( function() {
 							var element = editToolbar.$el.find( 'input.ui-autocomplete-input' )[0],
 								selection = linkNode && ( linkNode.textContent || linkNode.innerText );
@@ -231,6 +283,8 @@
 				if ( ! tinymce.trim( linkNode.innerHTML ) ) {
 					editor.$( linkNode ).text( text || href );
 				}
+
+				checkLink( linkNode );
 			}
 
 			inputInstance.reset();
@@ -420,7 +474,7 @@
 						}
 					} ).autocomplete( 'instance' )._renderItem = function( ul, item ) {
 						return $( '<li role="option" id="mce-wp-autocomplete-' + item.ID + '">' )
-						.append( '<span>' + item.title + '</span>&nbsp;<span class="alignright">' + item.info + '</span>' )
+						.append( '<span>' + item.title + '</span>&nbsp;<span class="wp-editor-float-right">' + item.info + '</span>' )
 						.appendTo( ul );
 					};
 
@@ -440,10 +494,26 @@
 							$input.autocomplete( 'search' );
 						}
 					} )
+					// Returns a jQuery object containing the menu element.
 					.autocomplete( 'widget' )
 						.addClass( 'wplink-autocomplete' )
 						.attr( 'role', 'listbox' )
-						.removeAttr( 'tabindex' ); // Remove the `tabindex=0` attribute added by jQuery UI.
+						.removeAttr( 'tabindex' ) // Remove the `tabindex=0` attribute added by jQuery UI.
+						/*
+						 * Looks like Safari and VoiceOver need an `aria-selected` attribute. See ticket #33301.
+						 * The `menufocus` and `menublur` events are the same events used to add and remove
+						 * the `ui-state-focus` CSS class on the menu items. See jQuery UI Menu Widget.
+						 */
+						.on( 'menufocus', function( event, ui ) {
+							ui.item.attr( 'aria-selected', 'true' );
+						})
+						.on( 'menublur', function() {
+							/*
+							 * The `menublur` event returns an object where the item is `null`
+							 * so we need to find the active item with other means.
+							 */
+							$( this ).find( '[aria-selected="true"]' ).removeAttr( 'aria-selected' );
+						});
 				}
 
 				tinymce.$( input ).on( 'keydown', function( event ) {
@@ -457,9 +527,9 @@
 
 		editor.on( 'wptoolbar', function( event ) {
 			var linkNode = editor.dom.getParent( event.element, 'a' ),
-				$linkNode, href, edit;
+				$linkNode, href, edit, title;
 
-			if ( tinymce.$( document.body ).hasClass( 'modal-open' ) ) {
+			if ( typeof window.wpLink !== 'undefined' && window.wpLink.modalOpen ) {
 				editToolbar.tempHide = true;
 				return;
 			}
@@ -472,7 +542,7 @@
 				edit = $linkNode.attr( 'data-wplink-edit' );
 
 				if ( href === '_wp_link_placeholder' || edit ) {
-					if ( edit && ! inputInstance.getURL() ) {
+					if ( href !== '_wp_link_placeholder' && ! inputInstance.getURL() ) {
 						inputInstance.setURL( href );
 					}
 
@@ -482,6 +552,13 @@
 					previewInstance.setURL( href );
 					event.element = linkNode;
 					event.toolbar = toolbar;
+					title = urlErrors.hasOwnProperty( href ) ? editor.dom.encode( urlErrors[ href ] ) : null;
+
+					if ( $linkNode.attr( 'data-wplink-url-error' ) === 'true' ) {
+						toolbar.$el.find( '.wp-link-preview a' ).addClass( 'wplink-url-error' ).attr( 'title', title );
+					} else {
+						toolbar.$el.find( '.wp-link-preview a' ).removeClass( 'wplink-url-error' ).attr( 'title', null );
+					}
 				}
 			}
 		} );
@@ -539,7 +616,8 @@
 			close: function() {
 				editToolbar.tempHide = false;
 				editor.execCommand( 'wp_link_cancel' );
-			}
+			},
+			checkLink: checkLink
 		};
 	} );
 } )( window.tinymce );

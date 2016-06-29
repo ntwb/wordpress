@@ -70,24 +70,28 @@ function _wp_ajax_menu_quick_search( $request = array() ) {
 
 	} elseif ( preg_match('/quick-search-(posttype|taxonomy)-([a-zA-Z_-]*\b)/', $type, $matches) ) {
 		if ( 'posttype' == $matches[1] && get_post_type_object( $matches[2] ) ) {
-			query_posts(array(
-				'posts_per_page' => 10,
-				'post_type' => $matches[2],
-				's' => $query,
-			));
-			if ( ! have_posts() )
+			$search_results_query = new WP_Query( array(
+				'no_found_rows'          => true,
+				'update_post_meta_cache' => false,
+				'update_post_term_cache' => false,
+				'posts_per_page'         => 10,
+				'post_type'              => $matches[2],
+				's'                      => $query,
+			) );
+			if ( ! $search_results_query->have_posts() ) {
 				return;
-			while ( have_posts() ) {
-				the_post();
+			}
+			while ( $search_results_query->have_posts() ) {
+				$post = $search_results_query->next_post();
 				if ( 'markup' == $response_format ) {
-					$var_by_ref = get_the_ID();
+					$var_by_ref = $post->ID;
 					echo walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', array( get_post( $var_by_ref ) ) ), 0, (object) $args );
 				} elseif ( 'json' == $response_format ) {
 					echo wp_json_encode(
 						array(
-							'ID' => get_the_ID(),
-							'post_title' => get_the_title(),
-							'post_type' => get_post_type(),
+							'ID' => $post->ID,
+							'post_title' => get_the_title( $post->ID ),
+							'post_type' => $matches[2],
 						)
 					);
 					echo "\n";
@@ -186,7 +190,7 @@ function wp_nav_menu_post_type_meta_boxes() {
 
 	foreach ( $post_types as $post_type ) {
 		/**
-		 * Filter whether a menu items meta box will be added for the current
+		 * Filters whether a menu items meta box will be added for the current
 		 * object type.
 		 *
 		 * If a falsey value is returned instead of an object, the menu items
@@ -400,7 +404,7 @@ function wp_nav_menu_item_post_type_meta_box( $object, $post_type ) {
 				$args['walker'] = $walker;
 
 				/**
-				 * Filter the posts displayed in the 'Most Recent' tab of the current
+				 * Filters the posts displayed in the 'Most Recent' tab of the current
 				 * post type's menu items meta box.
 				 *
 				 * The dynamic portion of the hook name, `$post_type_name`, refers to the post type name.
@@ -508,7 +512,7 @@ function wp_nav_menu_item_post_type_meta_box( $object, $post_type ) {
 				}
 
 				/**
-				 * Filter the posts displayed in the 'View All' tab of the current
+				 * Filters the posts displayed in the 'View All' tab of the current
 				 * post type's menu items meta box.
 				 *
 				 * The dynamic portion of the hook name, `$post_type_name`, refers
@@ -518,9 +522,9 @@ function wp_nav_menu_item_post_type_meta_box( $object, $post_type ) {
 				 *
 				 * @see WP_Query::query()
 				 *
-				 * @param array  $posts     The posts for the current post type.
-				 * @param array  $args      An array of WP_Query arguments.
-				 * @param object $post_type The current post type object for this menu item meta box.
+				 * @param array        $posts     The posts for the current post type.
+				 * @param array        $args      An array of WP_Query arguments.
+				 * @param WP_Post_Type $post_type The current post type object for this menu item meta box.
 				 */
 				$posts = apply_filters( "nav_menu_items_{$post_type_name}", $posts, $args, $post_type );
 				$checkbox_items = walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', $posts), 0, (object) $args );
@@ -888,7 +892,7 @@ function wp_get_nav_menu_to_edit( $menu_id = 0 ) {
 			return $result . ' <ul class="menu" id="menu-to-edit"> </ul>';
 
 		/**
-		 * Filter the Walker class used when adding nav menu items.
+		 * Filters the Walker class used when adding nav menu items.
 		 *
 		 * @since 3.0.0
 		 *
@@ -916,11 +920,13 @@ function wp_get_nav_menu_to_edit( $menu_id = 0 ) {
 				$some_invalid_menu_items = true;
 		}
 
-		if ( $some_pending_menu_items )
-			$result .= '<div class="updated inline"><p>' . __('Click Save Menu to make pending menu items public.') . '</p></div>';
+		if ( $some_pending_menu_items ) {
+			$result .= '<div class="notice notice-info notice-alt inline"><p>' . __( 'Click Save Menu to make pending menu items public.' ) . '</p></div>';
+		}
 
-		if ( $some_invalid_menu_items )
-			$result .= '<div class="error inline"><p>' . __('There are some invalid menu items. Please check or delete them.') . '</p></div>';
+		if ( $some_invalid_menu_items ) {
+			$result .= '<div class="notice notice-error notice-alt inline"><p>' . __( 'There are some invalid menu items. Please check or delete them.' ) . '</p></div>';
+		}
 
 		$result .= '<ul class="menu" id="menu-to-edit"> ';
 		$result .= walk_nav_menu_tree( array_map('wp_setup_nav_menu_item', $menu_items), 0, (object) array('walker' => $walker ) );
@@ -941,13 +947,13 @@ function wp_get_nav_menu_to_edit( $menu_id = 0 ) {
  */
 function wp_nav_menu_manage_columns() {
 	return array(
-		'_title'      => __( 'Show advanced menu properties' ),
-		'cb'          => '<input type="checkbox" />',
-		'link-target' => __( 'Link Target' ),
-		'attr-title'  => __( 'Title Attribute' ),
-		'css-classes' => __( 'CSS Classes' ),
-		'xfn'         => __( 'Link Relationship (XFN)' ),
-		'description' => __( 'Description' ),
+		'_title'          => __( 'Show advanced menu properties' ),
+		'cb'              => '<input type="checkbox" />',
+		'link-target'     => __( 'Link Target' ),
+		'title-attribute' => __( 'Title Attribute' ),
+		'css-classes'     => __( 'CSS Classes' ),
+		'xfn'             => __( 'Link Relationship (XFN)' ),
+		'description'     => __( 'Description' ),
 	);
 }
 
@@ -1056,4 +1062,47 @@ function wp_nav_menu_update_menu_items ( $nav_menu_selected_id, $nav_menu_select
 	unset( $menu_items, $unsorted_menu_items );
 
 	return $messages;
+}
+
+/**
+ * If a JSON blob of navigation menu data is in POST data, expand it and inject
+ * it into `$_POST` to avoid PHP `max_input_vars` limitations. See #14134.
+ *
+ * @ignore
+ * @since 4.5.3
+ * @access private
+ */
+function _wp_expand_nav_menu_post_data() {
+	if ( ! isset( $_POST['nav-menu-data'] ) ) {
+		return;
+	}
+
+	$data = json_decode( stripslashes( $_POST['nav-menu-data'] ) );
+
+	if ( ! is_null( $data ) && $data ) {
+		foreach ( $data as $post_input_data ) {
+			// For input names that are arrays (e.g. `menu-item-db-id[3][4][5]`),
+			// derive the array path keys via regex and set the value in $_POST.
+			preg_match( '#([^\[]*)(\[(.+)\])?#', $post_input_data->name, $matches );
+
+			$array_bits = array( $matches[1] );
+
+			if ( isset( $matches[3] ) ) {
+				$array_bits = array_merge( $array_bits, explode( '][', $matches[3] ) );
+			}
+
+			$new_post_data = array();
+
+			// Build the new array value from leaf to trunk.
+			for ( $i = count( $array_bits ) - 1; $i >= 0; $i -- ) {
+				if ( $i == count( $array_bits ) - 1 ) {
+					$new_post_data[ $array_bits[ $i ] ] = wp_slash( $post_input_data->value );
+				} else {
+					$new_post_data = array( $array_bits[ $i ] => $new_post_data );
+				}
+			}
+
+			$_POST = array_replace_recursive( $_POST, $new_post_data );
+		}
+	}
 }

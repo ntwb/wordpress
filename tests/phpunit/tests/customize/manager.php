@@ -126,6 +126,139 @@ class Tests_WP_Customize_Manager extends WP_UnitTestCase {
 	}
 
 	/**
+	 * Test the WP_Customize_Manager::post_value() method for a setting value that fails validation.
+	 *
+	 * @ticket 34893
+	 */
+	function test_invalid_post_value() {
+		$default_value = 'foo_default';
+		$setting = $this->manager->add_setting( 'foo', array(
+			'validate_callback' => array( $this, 'filter_customize_validate_foo' ),
+			'sanitize_callback' => array( $this, 'filter_customize_sanitize_foo' ),
+		) );
+		$this->assertEquals( $default_value, $this->manager->post_value( $setting, $default_value ) );
+		$this->assertEquals( $default_value, $setting->post_value( $default_value ) );
+
+		$post_value = 'bar';
+		$this->manager->set_post_value( 'foo', $post_value );
+		$this->assertEquals( strtoupper( $post_value ), $this->manager->post_value( $setting, $default_value ) );
+		$this->assertEquals( strtoupper( $post_value ), $setting->post_value( $default_value ) );
+
+		$this->manager->set_post_value( 'foo', 'return_wp_error_in_sanitize' );
+		$this->assertEquals( $default_value, $this->manager->post_value( $setting, $default_value ) );
+		$this->assertEquals( $default_value, $setting->post_value( $default_value ) );
+
+		$this->manager->set_post_value( 'foo', 'return_null_in_sanitize' );
+		$this->assertEquals( $default_value, $this->manager->post_value( $setting, $default_value ) );
+		$this->assertEquals( $default_value, $setting->post_value( $default_value ) );
+
+		$post_value = '<script>evil</script>';
+		$this->manager->set_post_value( 'foo', $post_value );
+		$this->assertEquals( $default_value, $this->manager->post_value( $setting, $default_value ) );
+		$this->assertEquals( $default_value, $setting->post_value( $default_value ) );
+	}
+
+	/**
+	 * Filter customize_validate callback.
+	 *
+	 * @param mixed $value Value.
+	 * @return string|WP_Error
+	 */
+	function filter_customize_sanitize_foo( $value ) {
+		if ( 'return_null_in_sanitize' === $value ) {
+			$value = null;
+		} elseif ( is_string( $value ) ) {
+			$value = strtoupper( $value );
+			if ( false !== stripos( $value, 'return_wp_error_in_sanitize' ) ) {
+				$value = new WP_Error( 'invalid_value_in_sanitize', __( 'Invalid value.' ), array( 'source' => 'filter_customize_sanitize_foo' ) );
+			}
+		}
+		return $value;
+	}
+
+	/**
+	 * Filter customize_validate callback.
+	 *
+	 * @param WP_Error $validity Validity.
+	 * @param mixed    $value    Value.
+	 * @return WP_Error
+	 */
+	function filter_customize_validate_foo( $validity, $value ) {
+		if ( false !== stripos( $value, '<script' ) ) {
+			$validity->add( 'invalid_value_in_validate', __( 'Invalid value.' ), array( 'source' => 'filter_customize_validate_foo' ) );
+		}
+		return $validity;
+	}
+
+	/**
+	 * Test WP_Customize_Manager::validate_setting_values().
+	 *
+	 * @see WP_Customize_Manager::validate_setting_values()
+	 */
+	function test_validate_setting_values() {
+		$setting = $this->manager->add_setting( 'foo', array(
+			'validate_callback' => array( $this, 'filter_customize_validate_foo' ),
+			'sanitize_callback' => array( $this, 'filter_customize_sanitize_foo' ),
+		) );
+
+		$post_value = 'bar';
+		$this->manager->set_post_value( 'foo', $post_value );
+		$validities = $this->manager->validate_setting_values( $this->manager->unsanitized_post_values() );
+		$this->assertCount( 1, $validities );
+		$this->assertEquals( array( 'foo' => true ), $validities );
+
+		$this->manager->set_post_value( 'foo', 'return_wp_error_in_sanitize' );
+		$invalid_settings = $this->manager->validate_setting_values( $this->manager->unsanitized_post_values() );
+		$this->assertCount( 1, $invalid_settings );
+		$this->assertArrayHasKey( $setting->id, $invalid_settings );
+		$this->assertInstanceOf( 'WP_Error', $invalid_settings[ $setting->id ] );
+		$error = $invalid_settings[ $setting->id ];
+		$this->assertEquals( 'invalid_value_in_sanitize', $error->get_error_code() );
+		$this->assertEquals( array( 'source' => 'filter_customize_sanitize_foo' ), $error->get_error_data() );
+
+		$this->manager->set_post_value( 'foo', 'return_null_in_sanitize' );
+		$invalid_settings = $this->manager->validate_setting_values( $this->manager->unsanitized_post_values() );
+		$this->assertCount( 1, $invalid_settings );
+		$this->assertArrayHasKey( $setting->id, $invalid_settings );
+		$this->assertInstanceOf( 'WP_Error', $invalid_settings[ $setting->id ] );
+		$this->assertNull( $invalid_settings[ $setting->id ]->get_error_data() );
+
+		$post_value = '<script>evil</script>';
+		$this->manager->set_post_value( 'foo', $post_value );
+		$invalid_settings = $this->manager->validate_setting_values( $this->manager->unsanitized_post_values() );
+		$this->assertCount( 1, $invalid_settings );
+		$this->assertArrayHasKey( $setting->id, $invalid_settings );
+		$this->assertInstanceOf( 'WP_Error', $invalid_settings[ $setting->id ] );
+		$error = $invalid_settings[ $setting->id ];
+		$this->assertEquals( 'invalid_value_in_validate', $error->get_error_code() );
+		$this->assertEquals( array( 'source' => 'filter_customize_validate_foo' ), $error->get_error_data() );
+	}
+
+	/**
+	 * Test WP_Customize_Manager::prepare_setting_validity_for_js().
+	 *
+	 * @see WP_Customize_Manager::prepare_setting_validity_for_js()
+	 */
+	function test_prepare_setting_validity_for_js() {
+		$this->assertTrue( $this->manager->prepare_setting_validity_for_js( true ) );
+		$error = new WP_Error();
+		$error->add( 'bad_letter', 'Bad letter' );
+		$error->add( 'bad_letter', 'Bad letra' );
+		$error->add( 'bad_number', 'Bad number', array( 'number' => 123 ) );
+		$validity = $this->manager->prepare_setting_validity_for_js( $error );
+		$this->assertInternalType( 'array', $validity );
+		foreach ( $error->errors as $code => $messages ) {
+			$this->assertArrayHasKey( $code, $validity );
+			$this->assertInternalType( 'array', $validity[ $code ] );
+			$this->assertEquals( join( ' ', $messages ), $validity[ $code ]['message'] );
+			$this->assertArrayHasKey( 'data', $validity[ $code ] );
+			$this->assertArrayHasKey( 'from_server', $validity[ $code ]['data'] );
+		}
+		$this->assertArrayHasKey( 'number', $validity['bad_number']['data'] );
+		$this->assertEquals( 123, $validity['bad_number']['data']['number'] );
+	}
+
+	/**
 	 * Test WP_Customize_Manager::set_post_value().
 	 *
 	 * @see WP_Customize_Manager::set_post_value()
@@ -416,6 +549,7 @@ class Tests_WP_Customize_Manager extends WP_UnitTestCase {
 
 		$this->assertContains( 'var _wpCustomizeSettings =', $content );
 		$this->assertContains( '"blogname"', $content );
+		$this->assertContains( '"type":"option"', $content );
 		$this->assertContains( '_wpCustomizeSettings.controls', $content );
 		$this->assertContains( '_wpCustomizeSettings.settings', $content );
 		$this->assertContains( '</script>', $content );
@@ -456,6 +590,7 @@ class Tests_WP_Customize_Manager extends WP_UnitTestCase {
 		$this->assertArrayHasKey( 'activePanels', $settings );
 		$this->assertArrayHasKey( 'activeSections', $settings );
 		$this->assertArrayHasKey( 'activeControls', $settings );
+		$this->assertArrayHasKey( 'settingValidities', $settings );
 		$this->assertArrayHasKey( 'nonce', $settings );
 		$this->assertArrayHasKey( '_dirty', $settings );
 

@@ -1021,9 +1021,10 @@ class Tests_User extends WP_UnitTestCase {
 	 *
 	 * @dataProvider data_wp_new_user_notifications
 	 * @ticket 33654
+	 * @ticket 36009
 	 */
 	function test_wp_new_user_notification( $notify, $admin_email_sent_expected, $user_email_sent_expected ) {
-		unset( $GLOBALS['phpmailer']->mock_sent );
+		reset_phpmailer_instance();
 
 		$was_admin_email_sent = false;
 		$was_user_email_sent = false;
@@ -1036,11 +1037,16 @@ class Tests_User extends WP_UnitTestCase {
 		 * Check to see if a notification email was sent to the
 		 * post author `blackburn@battlefield3.com` and and site admin `admin@example.org`.
 		 */
-		$admin_email = $mailer->get_recipient( 'to' );
-		$was_admin_email_sent = $admin_email && WP_TESTS_EMAIL === $admin_email->address;
+		$first_recipient = $mailer->get_recipient( 'to' );
+		if ( $first_recipient ) {
+			$was_admin_email_sent = WP_TESTS_EMAIL === $first_recipient->address;
+			$was_user_email_sent = 'blackburn@battlefield3.com' === $first_recipient->address;
+		}
 
-		$user_email = $mailer->get_recipient( 'to', 1 );
-		$was_user_email_sent = $user_email && 'blackburn@battlefield3.com' == $user_email->address;
+		$second_recipient = $mailer->get_recipient( 'to', 1 );
+		if ( $second_recipient ) {
+			$was_user_email_sent = 'blackburn@battlefield3.com' === $second_recipient->address;
+		}
 
 
 		$this->assertSame( $admin_email_sent_expected, $was_admin_email_sent, 'Admin email result was not as expected in test_wp_new_user_notification' );
@@ -1074,6 +1080,11 @@ class Tests_User extends WP_UnitTestCase {
 				false,
 			),
 			array(
+				'user',
+				false,
+				true,
+			),
+			array(
 				'both',
 				true,
 				true,
@@ -1089,7 +1100,7 @@ class Tests_User extends WP_UnitTestCase {
 	 * @expectedDeprecated wp_new_user_notification
 	 */
 	function test_wp_new_user_notification_old_signature_throws_deprecated_warning_but_sends() {
-		unset( $GLOBALS['phpmailer']->mock_sent );
+		reset_phpmailer_instance();
 
 		$was_admin_email_sent = false;
 		$was_user_email_sent = false;
@@ -1114,7 +1125,7 @@ class Tests_User extends WP_UnitTestCase {
 	 * @ticket 34377
 	 */
 	function test_wp_new_user_notification_old_signature_no_password() {
-		unset( $GLOBALS['phpmailer']->mock_sent );
+		reset_phpmailer_instance();
 
 		$was_admin_email_sent = false;
 		$was_user_email_sent = false;
@@ -1131,5 +1142,72 @@ class Tests_User extends WP_UnitTestCase {
 
 		$this->assertTrue( $was_admin_email_sent );
 		$this->assertFalse( $was_user_email_sent );
+	}
+
+	/**
+	 * Checks that calling edit_user() with no password returns an error when adding, and doesn't when updating.
+	 *
+	 * @ticket 35715
+	 */
+	function test_edit_user_blank_pw() {
+		$_POST = $_GET = $_REQUEST = array();
+		$_POST['role'] = 'subscriber';
+		$_POST['email'] = 'user1@example.com';
+		$_POST['user_login'] = 'user_login1';
+		$_POST['first_name'] = 'first_name1';
+		$_POST['last_name'] = 'last_name1';
+		$_POST['nickname'] = 'nickname1';
+		$_POST['display_name'] = 'display_name1';
+
+		// Check new user with missing password.
+		$response = edit_user();
+
+		$this->assertInstanceOf( 'WP_Error', $response );
+		$this->assertEquals( 'pass', $response->get_error_code() );
+
+		// Check new user with password set.
+		$_POST['pass1'] = $_POST['pass2'] = 'password';
+
+		$user_id = edit_user();
+		$user = get_user_by( 'ID', $user_id );
+
+		$this->assertInternalType( 'int', $user_id );
+		$this->assertInstanceOf( 'WP_User', $user );
+		$this->assertEquals( 'nickname1', $user->nickname );
+
+		// Check updating user with empty password.
+		$_POST['nickname'] = 'nickname_updated';
+		$_POST['pass1'] = $_POST['pass2'] = '';
+
+		$user_id = edit_user( $user_id );
+
+		$this->assertInternalType( 'int', $user_id );
+		$this->assertEquals( 'nickname_updated', $user->nickname );
+
+		// Check updating user with missing second password.
+		$_POST['nickname'] = 'nickname_updated2';
+		$_POST['pass1'] = 'blank_pass2';
+		$_POST['pass2'] = '';
+
+		$response = edit_user( $user_id );
+
+		$this->assertInstanceOf( 'WP_Error', $response );
+		$this->assertEquals( 'pass', $response->get_error_code() );
+		$this->assertEquals( 'nickname_updated', $user->nickname );
+
+		// Check updating user with empty password via `check_passwords` action.
+		add_action( 'check_passwords', array( $this, 'action_check_passwords_blank_pw' ), 10, 2 );
+		$user_id = edit_user( $user_id );
+		remove_action( 'check_passwords', array( $this, 'action_check_passwords_blank_pw' ) );
+
+		$this->assertInternalType( 'int', $user_id );
+		$this->assertEquals( 'nickname_updated2', $user->nickname );
+	}
+
+	/**
+	 * Check passwords action for test_edit_user_blank_pw().
+	 */
+	function action_check_passwords_blank_pw( $user_login, &$pass1 ) {
+		$pass1 = '';
 	}
 }

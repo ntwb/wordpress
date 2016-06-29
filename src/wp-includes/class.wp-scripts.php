@@ -93,15 +93,6 @@ class WP_Scripts extends WP_Dependencies {
 	public $print_html = '';
 
 	/**
-	 * HTML to print before the script handle.
-	 *
-	 * @since 4.5.0
-	 * @access public
-	 * @var string
-	 */
-	public $print_html_before = '';
-
-	/**
 	 * Holds inline code if concatenation is enabled.
 	 *
 	 * @since 2.8.0
@@ -295,7 +286,7 @@ class WP_Scripts extends WP_Dependencies {
 
 		if ( $this->do_concat ) {
 			/**
-			 * Filter the script loader source.
+			 * Filters the script loader source.
 			 *
 			 * @since 2.2.0
 			 *
@@ -304,11 +295,13 @@ class WP_Scripts extends WP_Dependencies {
 			 */
 			$srce = apply_filters( 'script_loader_src', $src, $handle );
 
-			if ( $before_handle && ! $conditional ) {
-				$this->print_html_before .= $before_handle;
-			}
+			if ( $this->in_default_dir( $srce ) && ( $before_handle || $after_handle ) ) {
+				$this->do_concat = false;
 
-			if ( $this->in_default_dir( $srce ) && ! $conditional && ! $after_handle ) {
+				// Have to print the so-far concatenated scripts right away to maintain the right order.
+				_print_scripts();
+				$this->reset();
+			} elseif ( $this->in_default_dir( $srce ) && ! $conditional ) {
 				$this->print_code .= $this->print_extra_script( $handle, false );
 				$this->concat .= "$handle,";
 				$this->concat_version .= "$handle$ver";
@@ -352,7 +345,7 @@ class WP_Scripts extends WP_Dependencies {
 		$tag = "{$cond_before}{$before_handle}<script type='text/javascript' src='$src'></script>\n{$after_handle}{$cond_after}";
 
 		/**
-		 * Filter the HTML script tag of an enqueued script.
+		 * Filters the HTML script tag of an enqueued script.
 		 *
 		 * @since 4.1.0
 		 *
@@ -363,11 +356,7 @@ class WP_Scripts extends WP_Dependencies {
 		$tag = apply_filters( 'script_loader_tag', $tag, $handle, $src );
 
 		if ( $this->do_concat ) {
-			if ( $after_handle ) {
-				$this->print_html_before .= $tag;
-			} else {
-				$this->print_html .= $tag;
-			}
+			$this->print_html .= $tag;
 		} else {
 			echo $tag;
 		}
@@ -513,7 +502,7 @@ class WP_Scripts extends WP_Dependencies {
 		$r = parent::all_deps( $handles, $recursion, $group );
 		if ( ! $recursion ) {
 			/**
-			 * Filter the list of script dependencies left to print.
+			 * Filters the list of script dependencies left to print.
 			 *
 			 * @since 2.3.0
 			 *
@@ -592,7 +581,6 @@ class WP_Scripts extends WP_Dependencies {
 		$this->concat = '';
 		$this->concat_version = '';
 		$this->print_html = '';
-		$this->print_html_before = '';
 		$this->ext_version = '';
 		$this->ext_handles = '';
 	}

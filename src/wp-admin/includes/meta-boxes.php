@@ -170,7 +170,7 @@ echo esc_html( $visibility_trans ); ?></span>
 </div><!-- .misc-pub-section -->
 
 <?php
-/* translators: Publish box date format, see http://php.net/date */
+/* translators: Publish box date format, see https://secure.php.net/date */
 $datef = __( 'M j, Y @ H:i' );
 if ( 0 != $post->ID ) {
 	if ( 'future' == $post->post_status ) { // scheduled for publishing at a future date
@@ -296,7 +296,7 @@ function attachment_submit_meta_box( $post ) {
 
 <div id="misc-publishing-actions">
 	<?php
-	/* translators: Publish box date format, see http://php.net/date */
+	/* translators: Publish box date format, see https://secure.php.net/date */
 	$datef = __( 'M j, Y @ H:i' );
 	$stamp = __('Uploaded on: <b>%1$s</b>');
 	$date = date_i18n( $datef, strtotime( $post->post_date ) );
@@ -522,7 +522,7 @@ function post_categories_meta_box( $post, $box ) {
 					);
 
 					/**
-					 * Filter the arguments for the taxonomy parent dropdown on the Post Edit page.
+					 * Filters the arguments for the taxonomy parent dropdown on the Post Edit page.
 					 *
 					 * @since 4.4.0
 					 *
@@ -798,7 +798,7 @@ function page_attributes_meta_box($post) {
 		);
 
 		/**
-		 * Filter the arguments used to generate a Pages drop-down element.
+		 * Filters the arguments used to generate a Pages drop-down element.
 		 *
 		 * @since 3.3.0
 		 *
@@ -835,7 +835,7 @@ function page_attributes_meta_box($post) {
 <label class="screen-reader-text" for="page_template"><?php _e('Page Template') ?></label><select name="page_template" id="page_template">
 <?php
 /**
- * Filter the title of the default page template displayed in the drop-down.
+ * Filters the title of the default page template displayed in the drop-down.
  *
  * @since 4.1.0
  *
@@ -853,7 +853,7 @@ $default_title = apply_filters( 'default_page_template_title',  __( 'Default Tem
 <p><strong><?php _e('Order') ?></strong></p>
 <p><label class="screen-reader-text" for="menu_order"><?php _e('Order') ?></label><input name="menu_order" type="text" size="4" id="menu_order" value="<?php echo esc_attr($post->menu_order) ?>" /></p>
 <?php if ( 'page' == $post->post_type && get_current_screen()->get_help_tabs() ) { ?>
-<p><?php _e( 'Need help? Use the Help tab in the upper right of your screen.' ); ?></p>
+<p><?php _e( 'Need help? Use the Help tab above the screen title.' ); ?></p>
 <?php
 	}
 }

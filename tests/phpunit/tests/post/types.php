@@ -29,7 +29,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 		register_post_type( 'foo' );
 
 		$pobj = get_post_type_object( 'foo' );
-		$this->assertInstanceOf( 'stdClass', $pobj );
+		$this->assertInstanceOf( 'WP_Post_Type', $pobj );
 		$this->assertEquals( 'foo', $pobj->name );
 
 		// Test some defaults
@@ -61,7 +61,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 35985
-	 * @covers register_post_type()
+	 * @covers ::register_post_type()
 	 */
 	function test_register_post_type_exclude_from_search_should_default_to_opposite_value_of_public() {
 		/*
@@ -75,7 +75,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 35985
-	 * @covers register_post_type()
+	 * @covers ::register_post_type()
 	 */
 	function test_register_post_type_publicly_queryable_should_default_to_value_of_public() {
 		/*
@@ -89,7 +89,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 35985
-	 * @covers register_post_type()
+	 * @covers ::register_post_type()
 	 */
 	function test_register_post_type_show_ui_should_default_to_value_of_public() {
 		/*
@@ -103,7 +103,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 35985
-	 * @covers register_post_type()
+	 * @covers ::register_post_type()
 	 */
 	function test_register_post_type_show_in_menu_should_default_to_value_of_show_ui() {
 		/*
@@ -122,7 +122,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 35985
-	 * @covers register_post_type()
+	 * @covers ::register_post_type()
 	 */
 	function test_register_post_type_show_in_nav_menus_should_default_to_value_of_public() {
 		/*
@@ -136,7 +136,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 35985
-	 * @covers register_post_type()
+	 * @covers ::register_post_type()
 	 */
 	function test_register_post_type_show_in_admin_bar_should_default_to_value_of_show_in_menu() {
 		/*
@@ -554,7 +554,7 @@ class Tests_Post_Types extends WP_UnitTestCase {
 	 * @since 4.5.0
 	 *
 	 * @param array $args register_post_type() arguments.
-	 * @return stdClass Post type object for `$this->post_type`.
+	 * @return WP_Post_Type Post type object for `$this->post_type`.
 	 */
 	public function register_post_type( $args = array() ) {
 		register_post_type( $this->post_type, $args );

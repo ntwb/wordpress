@@ -158,6 +158,72 @@ EOF;
 		$this->assertEquals( $content, $result );
 	}
 
+	function data_autoembed() {
+		return array(
+
+			// Should embed
+			array(
+'https://w.org',
+'[embed]'
+			),
+			array(
+'test
+ https://w.org
+test',
+'test
+ [embed]
+test'
+			),
+			array(
+'<p class="test">https://w.org</p>',
+'<p class="test">[embed]</p>'
+			),
+			array(
+'<p> https://w.org </p>',
+'<p> [embed] </p>'
+			),
+			array(
+'<p>test
+https://w.org
+test</p>',
+'<p>test
+[embed]
+test</p>'
+			),
+			array(
+'<p>https://w.org
+</p>',
+'<p>[embed]
+</p>'
+			),
+
+			// Should NOT embed
+			array(
+'test https://w.org</p>'
+			),
+			array(
+'<span>https://w.org</a>'
+			),
+			array(
+'<pre>https://w.org
+</p>'
+			),
+			array(
+'<a href="https://w.org">
+https://w.org</a>'
+			),
+		);
+	}
+
+	/**
+	 * @dataProvider data_autoembed
+	 */
+	function test_autoembed( $content, $result = null ) {
+		$wp_embed = new Test_Autoembed;
+
+		$this->assertEquals( $wp_embed->autoembed( $content ), $result ? $result : $content );
+	}
+
 	function test_wp_prepare_attachment_for_js() {
 		// Attachment without media
 		$id = wp_insert_attachment(array(
@@ -207,12 +273,12 @@ EOF;
 		$this->assertEquals( '1TB', wp_convert_bytes_to_hr( $tb ) );
 		$this->assertEquals( '1GB', wp_convert_bytes_to_hr( $gb ) );
 		$this->assertEquals( '1MB', wp_convert_bytes_to_hr( $mb ) );
-		$this->assertEquals( '1kB', wp_convert_bytes_to_hr( $kb ) );
+		$this->assertEquals( '1KB', wp_convert_bytes_to_hr( $kb ) );
 
 		$this->assertEquals( '1 TB', size_format( $tb ) );
 		$this->assertEquals( '1 GB', size_format( $gb ) );
 		$this->assertEquals( '1 MB', size_format( $mb ) );
-		$this->assertEquals( '1 kB', size_format( $kb ) );
+		$this->assertEquals( '1 KB', size_format( $kb ) );
 
 		// now some values around
 		$hr = wp_convert_bytes_to_hr( $tb + $tb / 2 + $mb );
@@ -449,7 +515,7 @@ VIDEO;
 		$this->assertNotContains( 'autoplay', $actual );
 		$this->assertContains( 'preload="none"', $actual );
 		$this->assertContains( 'class="wp-audio-shortcode"', $actual );
-		$this->assertContains( 'style="width: 100%; visibility: hidden;"', $actual );
+		$this->assertContains( 'style="width: 100%;"', $actual );
 
 		$actual = wp_audio_shortcode( array(
 			'src'      => 'https://example.com/foo.mp3',
@@ -584,14 +650,19 @@ VIDEO;
 			$_wp_additional_image_sizes = array();
 		}
 
+		remove_image_size( 'test-size' );
+
 		$this->assertArrayNotHasKey( 'test-size', $_wp_additional_image_sizes );
 		add_image_size( 'test-size', 200, 600 );
-		$this->assertArrayHasKey( 'test-size', $_wp_additional_image_sizes );
-		$this->assertEquals( 200, $_wp_additional_image_sizes['test-size']['width'] );
-		$this->assertEquals( 600, $_wp_additional_image_sizes['test-size']['height'] );
+
+		$sizes = $_wp_additional_image_sizes;
 
 		// Clean up
 		remove_image_size( 'test-size' );
+
+		$this->assertArrayHasKey( 'test-size', $sizes );
+		$this->assertEquals( 200, $sizes['test-size']['width'] );
+		$this->assertEquals( 600, $sizes['test-size']['height'] );
 	}
 
 	/**
@@ -1605,5 +1676,14 @@ EOF;
 		$expected = sprintf( $html, $url, $attachment[0], $alt, $attachment[1], $attachment[2], $align, $size, $id );
 
 		$this->assertSame( $expected, get_image_send_to_editor( $id, $caption, $title, $align, $url, $rel, $size, $alt ) );
+	}
+}
+
+/**
+ * Helper class for `test_autoembed`.
+ */
+class Test_Autoembed extends WP_Embed {
+	public function shortcode( $attr, $url = '' ) {
+		return '[embed]';
 	}
 }

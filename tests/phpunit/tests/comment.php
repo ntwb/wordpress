@@ -9,7 +9,7 @@ class Tests_Comment extends WP_UnitTestCase {
 
 	public function setUp() {
 		parent::setUp();
-		unset( $GLOBALS['phpmailer']->mock_sent );
+		reset_phpmailer_instance();
 	}
 
 	public static function wpSetUpBeforeClass( $factory ) {
@@ -558,7 +558,7 @@ class Tests_Comment extends WP_UnitTestCase {
 			&& WP_TESTS_EMAIL == $GLOBALS['phpmailer']->mock_sent[0]['to'][0][0]
 		) {
 			$email_sent_when_comment_added = true;
-			unset( $GLOBALS['phpmailer']->mock_sent );
+			reset_phpmailer_instance();
 		} else {
 			$email_sent_when_comment_added = false;
 		}
@@ -589,7 +589,7 @@ class Tests_Comment extends WP_UnitTestCase {
 		} else {
 			$email_sent_when_comment_approved = false;
 		}
-		unset( $GLOBALS['phpmailer']->mock_sent );
+		reset_phpmailer_instance();
 
 		// Post authors are notified when a new comment is added to their post.
 		$data = array(
@@ -607,7 +607,7 @@ class Tests_Comment extends WP_UnitTestCase {
 		     ! empty( $GLOBALS['phpmailer']->mock_sent ) &&
 		     'test@test.com' == $GLOBALS['phpmailer']->mock_sent[0]['to'][0][0] ) {
 			$email_sent_when_comment_added = true;
-			unset( $GLOBALS['phpmailer']->mock_sent );
+			reset_phpmailer_instance();
 		} else {
 			$email_sent_when_comment_added = false;
 		}
@@ -686,5 +686,83 @@ class Tests_Comment extends WP_UnitTestCase {
 		foreach ( $lengths as $field => $length ) {
 			$this->assertSame( $expected[ $field ], $length );
 		}
+	}
+
+	public function test_update_should_invalidate_comment_cache() {
+		global $wpdb;
+
+		$c = self::factory()->comment->create( array( 'comment_author' => 'Foo' ) );
+
+		$comment = get_comment( $c );
+		$this->assertSame( 'Foo', $comment->comment_author );
+
+		wp_update_comment( array(
+			'comment_ID' => $c,
+			'comment_author' => 'Bar',
+		) );
+
+		$comment = get_comment( $c );
+
+		$this->assertSame( 'Bar', $comment->comment_author );
+	}
+
+	public function test_trash_should_invalidate_comment_cache() {
+		global $wpdb;
+
+		$c = self::factory()->comment->create();
+
+		$comment = get_comment( $c );
+
+		wp_trash_comment( $c );
+
+		$comment = get_comment( $c );
+
+		$this->assertSame( 'trash', $comment->comment_approved );
+	}
+
+	public function test_untrash_should_invalidate_comment_cache() {
+		global $wpdb;
+
+		$c = self::factory()->comment->create();
+		wp_trash_comment( $c );
+
+		$comment = get_comment( $c );
+		$this->assertSame( 'trash', $comment->comment_approved );
+
+		wp_untrash_comment( $c );
+
+		$comment = get_comment( $c );
+
+		$this->assertSame( '1', $comment->comment_approved );
+	}
+
+	public function test_spam_should_invalidate_comment_cache() {
+		global $wpdb;
+
+		$c = self::factory()->comment->create();
+
+		$comment = get_comment( $c );
+
+		wp_spam_comment( $c );
+
+		$comment = get_comment( $c );
+
+		$this->assertSame( 'spam', $comment->comment_approved );
+	}
+
+	public function test_unspam_should_invalidate_comment_cache() {
+		global $wpdb;
+
+		$c = self::factory()->comment->create();
+		wp_spam_comment( $c );
+
+		$comment = get_comment( $c );
+		$this->assertSame( 'spam', $comment->comment_approved );
+
+		wp_unspam_comment( $c );
+
+		$comment = get_comment( $c );
+
+		$this->assertSame( '1', $comment->comment_approved );
 	}
 }

@@ -50,7 +50,7 @@ function wp_embed_unregister_handler( $id, $priority = 10 ) {
  *
  * The default height is 1.5 times the width, or 1000px, whichever is smaller.
  *
- * The 'embed_defaults' filter can be used to adjust either of these values.
+ * The {@see 'embed_defaults'} filter can be used to adjust either of these values.
  *
  * @since 2.9.0
  *
@@ -70,7 +70,7 @@ function wp_embed_defaults( $url = '' ) {
 	$height = min( ceil( $width * 1.5 ), 1000 );
 
 	/**
-	 * Filter the default array of embed dimensions.
+	 * Filters the default array of embed dimensions.
 	 *
 	 * @since 2.9.0
 	 *
@@ -161,7 +161,7 @@ function wp_oembed_remove_provider( $format ) {
  */
 function wp_maybe_load_embeds() {
 	/**
-	 * Filter whether to load the default embed handlers.
+	 * Filters whether to load the default embed handlers.
 	 *
 	 * Returning a falsey value will prevent loading the default embed handlers.
 	 *
@@ -175,10 +175,8 @@ function wp_maybe_load_embeds() {
 
 	wp_embed_register_handler( 'youtube_embed_url', '#https?://(www.)?youtube\.com/(?:v|embed)/([^/]+)#i', 'wp_embed_handler_youtube' );
 
-	wp_embed_register_handler( 'googlevideo', '#http://video\.google\.([A-Za-z.]{2,5})/videoplay\?docid=([\d-]+)(.*?)#i', 'wp_embed_handler_googlevideo' );
-
 	/**
-	 * Filter the audio embed handler callback.
+	 * Filters the audio embed handler callback.
 	 *
 	 * @since 3.6.0
 	 *
@@ -187,50 +185,13 @@ function wp_maybe_load_embeds() {
 	wp_embed_register_handler( 'audio', '#^https?://.+?\.(' . join( '|', wp_get_audio_extensions() ) . ')$#i', apply_filters( 'wp_audio_embed_handler', 'wp_embed_handler_audio' ), 9999 );
 
 	/**
-	 * Filter the video embed handler callback.
+	 * Filters the video embed handler callback.
 	 *
 	 * @since 3.6.0
 	 *
 	 * @param callable $handler Video embed handler callback function.
 	 */
 	wp_embed_register_handler( 'video', '#^https?://.+?\.(' . join( '|', wp_get_video_extensions() ) . ')$#i', apply_filters( 'wp_video_embed_handler', 'wp_embed_handler_video' ), 9999 );
-}
-
-/**
- * The Google Video embed handler callback.
- *
- * Google Video does not support oEmbed.
- *
- * @see WP_Embed::register_handler()
- * @see WP_Embed::shortcode()
- *
- * @param array  $matches The RegEx matches from the provided regex when calling wp_embed_register_handler().
- * @param array  $attr    Embed attributes.
- * @param string $url     The original URL that was matched by the regex.
- * @param array  $rawattr The original unmodified attributes.
- * @return string The embed HTML.
- */
-function wp_embed_handler_googlevideo( $matches, $attr, $url, $rawattr ) {
-	// If the user supplied a fixed width AND height, use it
-	if ( !empty($rawattr['width']) && !empty($rawattr['height']) ) {
-		$width  = (int) $rawattr['width'];
-		$height = (int) $rawattr['height'];
-	} else {
-		list( $width, $height ) = wp_expand_dimensions( 425, 344, $attr['width'], $attr['height'] );
-	}
-
-	/**
-	 * Filter the Google Video embed output.
-	 *
-	 * @since 2.9.0
-	 *
-	 * @param string $html    Google Video HTML embed markup.
-	 * @param array  $matches The RegEx matches from the provided regex.
-	 * @param array  $attr    An array of embed attributes.
-	 * @param string $url     The original URL that was matched by the regex.
-	 * @param array  $rawattr The original unmodified attributes.
-	 */
-	return apply_filters( 'embed_googlevideo', '<embed type="application/x-shockwave-flash" src="http://video.google.com/googleplayer.swf?docid=' . esc_attr($matches[2]) . '&amp;hl=en&amp;fs=true" style="width:' . esc_attr($width) . 'px;height:' . esc_attr($height) . 'px" allowFullScreen="true" allowScriptAccess="always" />', $matches, $attr, $url, $rawattr );
 }
 
 /**
@@ -254,7 +215,7 @@ function wp_embed_handler_youtube( $matches, $attr, $url, $rawattr ) {
 	$embed = $wp_embed->autoembed( "https://youtube.com/watch?v={$matches[2]}" );
 
 	/**
-	 * Filter the YoutTube embed output.
+	 * Filters the YoutTube embed output.
 	 *
 	 * @since 4.0.0
 	 *
@@ -283,7 +244,7 @@ function wp_embed_handler_audio( $matches, $attr, $url, $rawattr ) {
 	$audio = sprintf( '[audio src="%s" /]', esc_url( $url ) );
 
 	/**
-	 * Filter the audio embed output.
+	 * Filters the audio embed output.
 	 *
 	 * @since 3.6.0
 	 *
@@ -315,7 +276,7 @@ function wp_embed_handler_video( $matches, $attr, $url, $rawattr ) {
 	$video = sprintf( '[video %s src="%s" /]', $dimensions, esc_url( $url ) );
 
 	/**
-	 * Filter the video embed output.
+	 * Filters the video embed output.
 	 *
 	 * @since 3.6.0
 	 *
@@ -354,7 +315,7 @@ function wp_oembed_add_discovery_links() {
 	}
 
 	/**
-	 * Filter the oEmbed discovery links HTML.
+	 * Filters the oEmbed discovery links HTML.
 	 *
 	 * @since 4.4.0
 	 *
@@ -395,7 +356,7 @@ function get_post_embed_url( $post = null ) {
 	}
 
 	/**
-	 * Filter the URL to embed a specific post.
+	 * Filters the URL to embed a specific post.
 	 *
 	 * @since 4.4.0
 	 *
@@ -431,7 +392,7 @@ function get_oembed_endpoint_url( $permalink = '', $format = 'json' ) {
 	}
 
 	/**
-	 * Filter the oEmbed endpoint URL.
+	 * Filters the oEmbed endpoint URL.
 	 *
 	 * @since 4.4.0
 	 *
@@ -501,7 +462,7 @@ JS;
 	);
 
 	/**
-	 * Filter the embed HTML output for a given post.
+	 * Filters the embed HTML output for a given post.
 	 *
 	 * @since 4.4.0
 	 *
@@ -523,7 +484,8 @@ JS;
  * @return array|false Response data on success, false if post doesn't exist.
  */
 function get_oembed_response_data( $post, $width ) {
-	$post = get_post( $post );
+	$post  = get_post( $post );
+	$width = absint( $width );
 
 	if ( ! $post ) {
 		return false;
@@ -534,7 +496,7 @@ function get_oembed_response_data( $post, $width ) {
 	}
 
 	/**
-	 * Filter the allowed minimum and maximum widths for the oEmbed response.
+	 * Filters the allowed minimum and maximum widths for the oEmbed response.
 	 *
 	 * @since 4.4.0
 	 *
@@ -571,7 +533,7 @@ function get_oembed_response_data( $post, $width ) {
 	}
 
 	/**
-	 * Filter the oEmbed response data.
+	 * Filters the oEmbed response data.
 	 *
 	 * @since 4.4.0
 	 *
@@ -839,7 +801,7 @@ function the_excerpt_embed() {
 	$output = get_the_excerpt();
 
 	/**
-	 * Filter the post excerpt for the embed template.
+	 * Filters the post excerpt for the embed template.
 	 *
 	 * @since 4.4.0
 	 *
@@ -877,7 +839,6 @@ function wp_embed_excerpt_attachment( $content ) {
  * @since 4.4.0
  */
 function enqueue_embed_scripts() {
-	wp_enqueue_style( 'open-sans' );
 	wp_enqueue_style( 'wp-embed-template-ie' );
 
 	/**
@@ -1071,11 +1032,47 @@ function the_embed_site_title() {
 	$site_title = '<div class="wp-embed-site-title">' . $site_title . '</div>';
 
 	/**
-	 * Filter the site title HTML in the embed footer.
+	 * Filters the site title HTML in the embed footer.
 	 *
 	 * @since 4.4.0
 	 *
 	 * @param string $site_title The site title HTML.
 	 */
 	echo apply_filters( 'embed_site_title_html', $site_title );
+}
+
+/**
+ * Filters the oEmbed result before any HTTP requests are made.
+ *
+ * If the URL belongs to the current site, the result is fetched directly instead of
+ * going through the oEmbed discovery process.
+ *
+ * @since 4.5.3
+ *
+ * @param null|string $result The UNSANITIZED (and potentially unsafe) HTML that should be used to embed. Default null.
+ * @param string      $url    The URL that should be inspected for discovery `<link>` tags.
+ * @param array       $args   oEmbed remote get arguments.
+ * @return null|string The UNSANITIZED (and potentially unsafe) HTML that should be used to embed.
+ *                     Null if the URL does not belong to the current site.
+ */
+function wp_filter_pre_oembed_result( $result, $url, $args ) {
+	$post_id = url_to_postid( $url );
+
+	/** This filter is documented in wp-includes/class-wp-oembed-controller.php */
+	$post_id = apply_filters( 'oembed_request_post_id', $post_id, $url );
+
+	if ( ! $post_id ) {
+		return $result;
+	}
+
+	$width = isset( $args['width'] ) ? $args['width'] : 0;
+
+	$data = get_oembed_response_data( $post_id, $width );
+	$data = _wp_oembed_get_object()->data2html( (object) $data, $url );
+
+	if ( ! $data ) {
+		return $result;
+	}
+
+	return $data;
 }

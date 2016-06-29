@@ -328,6 +328,69 @@ class Tests_Actions extends WP_UnitTestCase {
 		$this->assertFalse( doing_filter( 'testing' ) ); // No longer doing this filter
 	}
 
+	/**
+	 * @ticket 36819
+	 */
+	function test_backup_plugin_globals_returns_filters() {
+		$backup = _backup_plugin_globals();
+		$this->assertArrayHasKey( 'backup_wp_filter',         $backup );
+		$this->assertArrayHasKey( 'backup_wp_actions',        $backup );
+		$this->assertArrayHasKey( 'backup_wp_current_filter', $backup );
+		$this->assertArrayHasKey( 'backup_merged_filters', $backup );
+	}
+
+	/**
+	 * @ticket 36819
+	 */
+	function test_backup_plugin_globals_returns_filters_from_first_time_called() {
+		$backup = _backup_plugin_globals();
+
+		$a = new MockAction();
+		$tag = rand_str();
+
+		add_action($tag, array(&$a, 'action'));
+
+		$new_backup = _backup_plugin_globals();
+		$this->assertEquals( $backup, $new_backup );
+	}
+
+	/**
+	 * @ticket 36819
+	 */
+	function test_restore_plugin_globals_from_stomp() {
+		global $wp_actions;
+		$original_actions = $wp_actions;
+
+		_backup_plugin_globals();
+
+		$wp_actions = array();
+		
+		$this->assertEmpty( $wp_actions );
+		_restore_plugin_globals();
+
+		$this->assertEquals( $GLOBALS['wp_actions'], $original_actions );
+	}
+
+	/**
+	 * @ticket 36819
+	 */
+	function test_restore_plugin_globals_includes_additions() {
+		global $wp_filter;
+		$original_filter = $wp_filter;
+
+		$backup = _backup_plugin_globals();
+
+		$a = new MockAction();
+		$tag = rand_str();
+		add_action($tag, array(&$a, 'action'));
+		
+		$this->assertNotEquals( $GLOBALS['wp_filter'], $original_filter );
+
+		_restore_plugin_globals();
+
+		$this->assertNotEquals( $GLOBALS['wp_filter'], $original_filter );
+	}
+
 	function apply_testing_filter() {
 		$this->apply_testing_filter = true;
 
@@ -355,5 +418,88 @@ class Tests_Actions extends WP_UnitTestCase {
 		$this->assertTrue( doing_filter( 'testing' ) );
 		$this->assertTrue( doing_filter( 'testing_nested' ) );
 		$this->assertFalse( doing_filter( 'something_else' ) );
+	}
+
+	/**
+	 * @ticket 10441
+	 * @expectedDeprecated tests_do_action_deprecated
+	 */
+	public function test_do_action_deprecated() {
+		$p = new WP_Post( (object) array( 'post_title' => 'Foo' ) );
+
+		add_action( 'tests_do_action_deprecated', array( __CLASS__, 'deprecated_action_callback' ) );
+		do_action_deprecated( 'tests_do_action_deprecated', array( $p ), '4.6' );
+		remove_action( 'tests_do_action_deprecated', array( __CLASS__, 'deprecated_action_callback' ) );
+
+		$this->assertSame( 'Bar', $p->post_title );
+	}
+
+	public static function deprecated_action_callback( $p ) {
+		$p->post_title = 'Bar';
+	}
+
+	/**
+	 * @ticket 10441
+	 * @expectedDeprecated tests_do_action_deprecated
+	 */
+	public function test_do_action_deprecated_with_multiple_params() {
+		$p1 = new WP_Post( (object) array( 'post_title' => 'Foo1' ) );
+		$p2 = new WP_Post( (object) array( 'post_title' => 'Foo2' ) );
+
+		add_action( 'tests_do_action_deprecated', array( __CLASS__, 'deprecated_action_callback_multiple_params' ), 10, 2 );
+		do_action_deprecated( 'tests_do_action_deprecated', array( $p1, $p2 ), '4.6' );
+		remove_action( 'tests_do_action_deprecated', array( __CLASS__, 'deprecated_action_callback_multiple_params' ), 10, 2 );
+
+		$this->assertSame( 'Bar1', $p1->post_title );
+		$this->assertSame( 'Bar2', $p2->post_title );
+	}
+
+	public static function deprecated_action_callback_multiple_params( $p1, $p2 ) {
+		$p1->post_title = 'Bar1';
+		$p2->post_title = 'Bar2';
+	}
+
+	/**
+	 * @ticket 10441
+	 * @expectedDeprecated tests_apply_filters_deprecated
+	 */
+	public function test_apply_filters_deprecated() {
+		$p = 'Foo';
+
+		add_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback' ) );
+		$p = apply_filters_deprecated( 'tests_apply_filters_deprecated', array( $p ), '4.6' );
+		remove_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback' ) );
+
+		$this->assertSame( 'Bar', $p );
+	}
+
+	public static function deprecated_filter_callback( $p ) {
+		$p = 'Bar';
+		return $p;
+	}
+
+	/**
+	 * @ticket 10441
+	 * @expectedDeprecated tests_apply_filters_deprecated
+	 */
+	public function test_apply_filters_deprecated_with_multiple_params() {
+		$p1 = 'Foo1';
+		$p2 = 'Foo2';
+
+		add_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback_multiple_params' ), 10, 2 );
+		$p1 = apply_filters_deprecated( 'tests_apply_filters_deprecated', array( $p1, $p2 ), '4.6' );
+		remove_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback_multiple_params' ), 10, 2 );
+
+		$this->assertSame( 'Bar1', $p1 );
+
+		// Not passed by reference, so not modified.
+		$this->assertSame( 'Foo2', $p2 );
+	}
+
+	public static function deprecated_filter_callback_multiple_params( $p1, $p2 ) {
+		$p1 = 'Bar1';
+		$p2 = 'Bar2';
+
+		return $p1;
 	}
 }

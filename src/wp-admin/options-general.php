@@ -17,7 +17,7 @@ if ( ! current_user_can( 'manage_options' ) )
 
 $title = __('General Settings');
 $parent_file = 'options-general.php';
-/* translators: date and time format for exact current time, mainly about timezones, see http://php.net/date */
+/* translators: date and time format for exact current time, mainly about timezones, see https://secure.php.net/date */
 $timezone_format = _x('Y-m-d H:i:s', 'timezone date format');
 
 add_action('admin_head', 'options_general_add_js');
@@ -231,7 +231,7 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 	<fieldset><legend class="screen-reader-text"><span><?php _e('Date Format') ?></span></legend>
 <?php
 	/**
-	* Filter the default date formats.
+	* Filters the default date formats.
 	*
 	* @since 2.7.0
 	* @since 4.0.0 Added ISO date standard YYYY-MM-DD format.
@@ -268,7 +268,7 @@ if ( empty($tzstring) ) { // Create a UTC+- zone if no timezone string exists
 	<fieldset><legend class="screen-reader-text"><span><?php _e('Time Format') ?></span></legend>
 <?php
 	/**
-	* Filter the default time formats.
+	* Filters the default time formats.
 	*
 	* @since 2.7.0
 	*

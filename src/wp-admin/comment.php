@@ -197,7 +197,7 @@ if ( $comment->comment_approved != '0' ) { // if not unapproved
 	<?php
 		/* translators: 1: comment date, 2: comment time */
 		$submitted = sprintf( __( '%1$s at %2$s' ),
-			/* translators: comment date format. See http://php.net/date */
+			/* translators: comment date format. See https://secure.php.net/date */
 			get_comment_date( __( 'Y/m/d' ), $comment ),
 			get_comment_date( __( 'g:i a' ), $comment )
 		);
@@ -211,9 +211,9 @@ if ( $comment->comment_approved != '0' ) { // if not unapproved
 </tr>
 <tr>
 <th scope="row"><?php /* translators: field name in comment form */ _ex('Comment', 'noun'); ?></th>
-<td>
-	<?php echo $comment->comment_content; ?>
-	<p><a href="<?php echo admin_url( "comment.php?action=editcomment&amp;c={$comment->comment_ID}" ); ?>"><?php esc_attr_e( 'Edit' ); ?></a></p>
+<td class="comment-content">
+	<?php comment_text( $comment ); ?>
+	<p class="edit-comment"><a href="<?php echo admin_url( "comment.php?action=editcomment&amp;c={$comment->comment_ID}" ); ?>"><?php esc_attr_e( 'Edit' ); ?></a></p>
 </td>
 </tr>
 </table>
@@ -313,7 +313,7 @@ case 'editedcomment' :
 	$location = ( empty( $_POST['referredby'] ) ? "edit-comments.php?p=$comment_post_id" : $_POST['referredby'] ) . '#comment-' . $comment_id;
 
 	/**
-	 * Filter the URI the user is redirected to after editing a comment in the admin.
+	 * Filters the URI the user is redirected to after editing a comment in the admin.
 	 *
 	 * @since 2.1.0
 	 *

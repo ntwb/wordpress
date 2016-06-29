@@ -60,7 +60,7 @@ class Tests_Functions extends WP_UnitTestCase {
 		// test if boundaries are correct
 		$this->assertEquals('1 GB', size_format($gb, 0));
 		$this->assertEquals('1 MB', size_format($mb, 0));
-		$this->assertEquals('1 kB', size_format($kb, 0));
+		$this->assertEquals('1 KB', size_format($kb, 0));
 		$this->assertEquals('1 B',  size_format($b, 0));
 		// now some values around
 		// add some bytes to make sure the result isn't 1.4999999
@@ -214,6 +214,45 @@ class Tests_Functions extends WP_UnitTestCase {
 	 */
 	function test_no_new_serializable_types() {
 		$this->assertFalse( is_serialized( 'C:16:"Serialized_Class":6:{a:0:{}}' ) );
+	}
+
+	/**
+	 * @dataProvider data_is_serialized_string
+	 */
+	public function test_is_serialized_string( $value, $result ) {
+		$this->assertSame( is_serialized_string( $value ), $result );
+	}
+
+	public function data_is_serialized_string() {
+		return array(
+			// Not a string.
+			array( 0, false ),
+
+			// Too short when trimmed.
+			array( 's:3   ', false ),
+
+			// Too short.
+			array( 's:3', false ),
+
+			// No colon in second position.
+			array( 's!3:"foo";', false ),
+
+			// No trailing semicolon.
+			array( 's:3:"foo"', false ),
+
+			// Wrong type.
+			array( 'a:3:"foo";', false ),
+
+			// No closing quote.
+			array( 'a:3:"foo;', false ),
+
+			// Wrong number of characters is close enough for is_serialized_string().
+			array( 's:12:"foo";', true ),
+
+			// Okay.
+			array( 's:3:"foo";', true ),
+
+		);
 	}
 
 	/**
@@ -812,5 +851,40 @@ class Tests_Functions extends WP_UnitTestCase {
 			array( '2016-03-02T19:13:00', '16-03-02 19:13' ),
 			array( '2016-03-02T19:13:00', '16-03-02 19:13' )
 		);
+	}
+
+	/**
+	 * @ticket 35987
+	 */
+	public function test_wp_get_ext_types() {
+		$extensions = wp_get_ext_types();
+
+		$this->assertInternalType( 'array', $extensions );
+		$this->assertNotEmpty( $extensions );
+
+		add_filter( 'ext2type', '__return_empty_array' );
+		$extensions = wp_get_ext_types();
+		$this->assertSame( array(), $extensions );
+
+		remove_filter( 'ext2type', '__return_empty_array' );
+		$extensions = wp_get_ext_types();
+		$this->assertInternalType( 'array', $extensions );
+		$this->assertNotEmpty( $extensions );
+	}
+
+	/**
+	 * @ticket 35987
+	 */
+	public function test_wp_ext2type() {
+		$extensions = wp_get_ext_types();
+
+		foreach ( $extensions as $type => $extensionList ) {
+			foreach ( $extensionList as $extension ) {
+				$this->assertEquals( $type, wp_ext2type( $extension ) );
+				$this->assertEquals( $type, wp_ext2type( strtoupper( $extension ) ) );
+			}
+		}
+
+		$this->assertNull( wp_ext2type( 'unknown_format' ) );
 	}
 }

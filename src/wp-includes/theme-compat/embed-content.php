@@ -1,10 +1,9 @@
 <?php
 /**
- * Contains the post embed content template part.
+ * Contains the post embed content template part
  *
- * When a post is embedded in an iframe, this file is used to
- * create the content template part output if the active theme does not include
- * a content-embed.php template.
+ * When a post is embedded in an iframe, this file is used to create the content template part
+ * output if the active theme does not include an embed-content.php template.
  *
  * @package WordPress
  * @subpackage Theme_Compat
@@ -28,7 +27,7 @@
 		$image_size   = 'full'; // Fallback.
 
 		$meta = wp_get_attachment_metadata( $thumbnail_id );
-		if ( is_array( $meta ) ) {
+		if ( ! empty( $meta['sizes'] ) ) {
 			foreach ( $meta['sizes'] as $size => $data ) {
 				if ( $data['width'] / $data['height'] > $aspect_ratio ) {
 					$aspect_ratio = $data['width'] / $data['height'];
@@ -39,7 +38,7 @@
 		}
 
 		/**
-		 * Filter the thumbnail image size for use in the embed template.
+		 * Filters the thumbnail image size for use in the embed template.
 		 *
 		 * @since 4.4.0
 		 * @since 4.5.0 Added `$thumbnail_id` parameter.
@@ -52,7 +51,7 @@
 		$shape = $measurements[0] / $measurements[1] >= 1.75 ? 'rectangular' : 'square';
 
 		/**
-		 * Filter the thumbnail shape for use in the embed template.
+		 * Filters the thumbnail shape for use in the embed template.
 		 *
 		 * Rectangular images are shown above the title while square images
 		 * are shown next to the content.
@@ -91,7 +90,7 @@
 
 		<?php
 		/**
-		 * Print additional content after the embed excerpt.
+		 * Prints additional content after the embed excerpt.
 		 *
 		 * @since 4.4.0
 		 */
@@ -104,7 +103,7 @@
 			<div class="wp-embed-meta">
 				<?php
 				/**
-				 * Print additional meta content in the embed template.
+				 * Prints additional meta content in the embed template.
 				 *
 				 * @since 4.4.0
 				 */

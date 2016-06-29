@@ -125,7 +125,7 @@ class WP_List_Table {
 	 *                            Default empty
 	 *     @type bool   $ajax     Whether the list table supports AJAX. This includes loading
 	 *                            and sorting data, for example. If true, the class will call
-	 *                            the {@see _js_vars()} method in the footer to provide variables
+	 *                            the _js_vars() method in the footer to provide variables
 	 *                            to any scripts handling AJAX events. Default false.
 	 *     @type string $screen   String containing the hook name used to determine the current
 	 *                            screen. If left null, the current screen will be automatically set.
@@ -166,7 +166,7 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private properties readable for backwards compatibility.
+	 * Make private properties readable for backward compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -181,7 +181,7 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private properties settable for backwards compatibility.
+	 * Make private properties settable for backward compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -197,7 +197,7 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private properties checkable for backwards compatibility.
+	 * Make private properties checkable for backward compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -212,7 +212,7 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private properties un-settable for backwards compatibility.
+	 * Make private properties un-settable for backward compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -226,7 +226,7 @@ class WP_List_Table {
 	}
 
 	/**
-	 * Make private/protected methods readable for backwards compatibility.
+	 * Make private/protected methods readable for backward compatibility.
 	 *
 	 * @since 4.0.0
 	 * @access public
@@ -388,7 +388,7 @@ class WP_List_Table {
 	public function views() {
 		$views = $this->get_views();
 		/**
-		 * Filter the list of available list table views.
+		 * Filters the list of available list table views.
 		 *
 		 * The dynamic portion of the hook name, `$this->screen->id`, refers
 		 * to the ID of the current screen, usually a string.
@@ -432,13 +432,13 @@ class WP_List_Table {
 	 * @access protected
 	 *
 	 * @param string $which The location of the bulk actions: 'top' or 'bottom'.
-	 *                      This is designated as optional for backwards-compatibility.
+	 *                      This is designated as optional for backward compatibility.
 	 */
 	protected function bulk_actions( $which = '' ) {
 		if ( is_null( $this->_actions ) ) {
 			$no_new_actions = $this->_actions = $this->get_bulk_actions();
 			/**
-			 * Filter the list table Bulk Actions drop-down.
+			 * Filters the list table Bulk Actions drop-down.
 			 *
 			 * The dynamic portion of the hook name, `$this->screen->id`, refers
 			 * to the ID of the current screen, usually a string.
@@ -541,7 +541,7 @@ class WP_List_Table {
 		global $wpdb, $wp_locale;
 
 		/**
-		 * Filter whether to remove the 'Months' drop-down from the post list table.
+		 * Filters whether to remove the 'Months' drop-down from the post list table.
 		 *
 		 * @since 4.2.0
 		 *
@@ -568,7 +568,7 @@ class WP_List_Table {
 		", $post_type ) );
 
 		/**
-		 * Filter the 'Months' drop-down results.
+		 * Filters the 'Months' drop-down results.
 		 *
 		 * @since 3.7.0
 		 *
@@ -721,7 +721,7 @@ class WP_List_Table {
 			$per_page = $default;
 
 		/**
-		 * Filter the number of items to be displayed on each page of the list table.
+		 * Filters the number of items to be displayed on each page of the list table.
 		 *
 		 * The dynamic hook name, $option, refers to the `per_page` option depending
 		 * on the type of list table in use. Possible values include: 'edit_comments_per_page',
@@ -763,10 +763,11 @@ class WP_List_Table {
 		$output = '<span class="displaying-num">' . sprintf( _n( '%s item', '%s items', $total_items ), number_format_i18n( $total_items ) ) . '</span>';
 
 		$current = $this->get_pagenum();
+		$removable_query_args = wp_removable_query_args();
 
 		$current_url = set_url_scheme( 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] );
 
-		$current_url = remove_query_arg( array( 'hotkeys_highlight_last', 'hotkeys_highlight_first' ), $current_url );
+		$current_url = remove_query_arg( $removable_query_args, $current_url );
 
 		$page_links = array();
 
@@ -951,7 +952,7 @@ class WP_List_Table {
 		}
 
 		/**
-		 * Filter the name of the primary column for the current list table.
+		 * Filters the name of the primary column for the current list table.
 		 *
 		 * @since 4.3.0
 		 *
@@ -993,7 +994,7 @@ class WP_List_Table {
 
 		$sortable_columns = $this->get_sortable_columns();
 		/**
-		 * Filter the list table sortable columns for a specific screen.
+		 * Filters the list table sortable columns for a specific screen.
 		 *
 		 * The dynamic portion of the hook name, `$this->screen->id`, refers
 		 * to the ID of the current screen, usually a string.

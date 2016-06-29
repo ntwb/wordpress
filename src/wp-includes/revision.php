@@ -38,7 +38,7 @@ function _wp_post_revision_fields( $post = array(), $deprecated = false ) {
 	}
 
 	/**
-	 * Filter the list of fields saved in post revisions.
+	 * Filters the list of fields saved in post revisions.
 	 *
 	 * Included by default: 'post_title', 'post_content' and 'post_excerpt'.
 	 *
@@ -138,7 +138,7 @@ function wp_save_post_revision( $post_id ) {
 		}
 
 		/**
-		 * Filter whether the post has changed since the last revision.
+		 * Filters whether the post has changed since the last revision.
 		 *
 		 * By default a revision is saved only if one of the revisioned fields has changed.
 		 * This filter can override that so a revision is saved even if nothing has changed.
@@ -162,7 +162,7 @@ function wp_save_post_revision( $post_id ) {
 			}
 
 			/**
-			 * Filter whether a post has changed.
+			 * Filters whether a post has changed.
 			 *
 			 * By default a revision is saved only if one of the revisioned fields has changed.
 			 * This filter allows for additional checks to determine if there were changes.
@@ -322,7 +322,7 @@ function _wp_put_post_revision( $post = null, $autosave = false ) {
  *
  * @param int|WP_Post $post   The post ID or object.
  * @param string      $output Optional. OBJECT, ARRAY_A, or ARRAY_N.
- * @param string      $filter Optional sanitation filter. @see sanitize_post().
+ * @param string      $filter Optional sanitation filter. See sanitize_post().
  * @return WP_Post|array|null Null if error or post object if success.
  */
 function wp_get_post_revision(&$post, $output = OBJECT, $filter = 'raw') {
@@ -377,14 +377,6 @@ function wp_restore_post_revision( $revision_id, $fields = null ) {
 	$post_id = wp_update_post( $update );
 	if ( ! $post_id || is_wp_error( $post_id ) )
 		return $post_id;
-
-	// Add restore from details
-	$restore_details = array(
-		'restored_revision_id' => $revision_id,
-		'restored_by_user'     => get_current_user_id(),
-		'restored_time'        => time()
-	);
-	update_post_meta( $post_id, '_post_restored_from', $restore_details );
 
 	// Update last edit user
 	update_post_meta( $post_id, '_edit_last', get_current_user_id() );
@@ -500,7 +492,7 @@ function wp_revisions_to_keep( $post ) {
 		$num = 0;
 
 	/**
-	 * Filter the number of revisions to save for the given post.
+	 * Filters the number of revisions to save for the given post.
 	 *
 	 * Overrides the value of WP_POST_REVISIONS.
 	 *

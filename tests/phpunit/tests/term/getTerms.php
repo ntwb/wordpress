@@ -30,6 +30,32 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 
 	/**
 	 * @ticket 35495
+	 * @ticket 35381
+	 */
+	public function test_legacy_params_as_query_string_should_be_properly_parsed() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		$term = self::factory()->term->create( array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( 'wptests_tax', 'hide_empty=0&fields=ids&update_term_meta_cache=0' );
+
+		$this->assertEqualSets( array( $term ), $found );
+	}
+
+	/**
+	 * @ticket 35495
+	 * @ticket 35381
+	 */
+	public function test_new_params_as_query_string_should_be_properly_parsed() {
+		register_taxonomy( 'wptests_tax', 'post' );
+		$term = self::factory()->term->create( array( 'taxonomy' => 'wptests_tax' ) );
+
+		$found = get_terms( 'taxonomy=wptests_tax&hide_empty=0&fields=ids&update_term_meta_cache=0' );
+
+		$this->assertEqualSets( array( $term ), $found );
+	}
+
+	/**
+	 * @ticket 35495
 	 */
 	public function test_excluding_taxonomy_arg_should_return_terms_from_all_taxonomies() {
 		register_taxonomy( 'wptests_tax1', 'post' );
@@ -267,6 +293,7 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 	function test_get_terms_search() {
 		$term_id1 = self::factory()->tag->create( array( 'slug' => 'burrito' ) );
 		$term_id2 = self::factory()->tag->create( array( 'name' => 'Wilbur' ) );
+		$term_id3 = self::factory()->tag->create( array( 'name' => 'Foo' ) );
 
 		$terms = get_terms( 'post_tag', array( 'hide_empty' => false, 'search' => 'bur', 'fields' => 'ids' ) );
 		$this->assertEqualSets( array( $term_id1, $term_id2 ), $terms );
@@ -2150,6 +2177,27 @@ class Tests_Term_getTerms extends WP_UnitTestCase {
 			'order'      => 'ASC',
 		) );
 		$this->assertEqualSets( array(), $found );
+	}
+
+	/**
+	 * @ticket 36992
+	 * @ticket 35381
+	 */
+	public function test_count_should_not_pass_through_main_get_terms_filter() {
+		add_filter( 'get_terms', array( __CLASS__, 'maybe_filter_count' ) );
+
+		$found = get_terms( array(
+			'hide_empty' => 0,
+			'fields' => 'count',
+		) );
+
+		remove_filter( 'get_terms', array( __CLASS__, 'maybe_filter_count' ) );
+
+		$this->assertNotEquals( 'foo', $found );
+	}
+
+	public static function maybe_filter_count() {
+		return 'foo';
 	}
 
 	protected function create_hierarchical_terms_and_posts() {

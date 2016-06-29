@@ -43,7 +43,8 @@ add_action( 'admin_head', 'wp_color_scheme_settings' );
 add_action( 'admin_head', 'wp_site_icon'             );
 add_action( 'admin_head', '_ipad_meta'               );
 
-add_action( 'post_edit_form_tag', 'post_form_autocomplete_off' );
+add_action( 'admin_print_scripts-post.php',     'wp_page_reload_on_back_button_js' );
+add_action( 'admin_print_scripts-post-new.php', 'wp_page_reload_on_back_button_js' );
 
 add_action( 'update_option_home',          'update_home_siteurl', 10, 2 );
 add_action( 'update_option_siteurl',       'update_home_siteurl', 10, 2 );
@@ -64,7 +65,6 @@ add_filter( 'whitelist_options', 'option_update_filter' );
 
 // Plugin Install hooks.
 add_action( 'install_plugins_featured',               'install_dashboard' );
-add_action( 'install_plugins_upload',                 'install_plugins_upload' );
 add_action( 'install_plugins_search',                 'display_plugins_table' );
 add_action( 'install_plugins_popular',                'display_plugins_table' );
 add_action( 'install_plugins_recommended',            'display_plugins_table' );
@@ -110,3 +110,6 @@ add_action( '_core_updated_successfully', '_redirect_to_about_wordpress' );
 
 // Upgrade hooks.
 add_action( 'upgrader_process_complete', array( 'Language_Pack_Upgrader', 'async_upgrade' ), 20 );
+add_action( 'upgrader_process_complete', 'wp_version_check', 10, 0 );
+add_action( 'upgrader_process_complete', 'wp_update_plugins', 10, 0 );
+add_action( 'upgrader_process_complete', 'wp_update_themes', 10, 0 );

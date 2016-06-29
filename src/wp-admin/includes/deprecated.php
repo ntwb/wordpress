@@ -1175,7 +1175,7 @@ function wp_update_plugin($plugin, $feedback = '') {
 /**
  * This was once used to kick-off the Theme Updater.
  *
- * Deprecated in favor of instantating a Theme_Upgrader instance directly,
+ * Deprecated in favor of instantiating a Theme_Upgrader instance directly,
  * and calling the 'upgrade' method.
  * Unused since 2.8.0.
  *
@@ -1372,4 +1372,27 @@ function add_utility_page( $page_title, $menu_title, $capability, $menu_slug, $f
 	$_wp_last_utility_menu++;
 
 	return add_menu_page($page_title, $menu_title, $capability, $menu_slug, $function, $icon_url, $_wp_last_utility_menu);
+}
+
+/**
+ * Disables autocomplete on the 'post' form (Add/Edit Post screens) for WebKit browsers,
+ * as they disregard the autocomplete setting on the editor textarea. That can break the editor
+ * when the user navigates to it with the browser's Back button. See #28037
+ *
+ * Replaced with wp_page_reload_on_back_button_js() that also fixes this problem.
+ *
+ * @since 4.0.0
+ * $deprecated 4.6.0
+ *
+ * @global bool $is_safari
+ * @global bool $is_chrome
+ */
+function post_form_autocomplete_off() {
+	global $is_safari, $is_chrome;
+
+	_deprecated_function( __FUNCTION__, '4.6' );
+
+	if ( $is_safari || $is_chrome ) {
+		echo ' autocomplete="off"';
+	}
 }

@@ -2020,7 +2020,7 @@ function sanitize_url( $url, $protocols = null ) {
  * @param string $url The URL to be cleaned.
  * @param array $protocols Optional. An array of acceptable protocols.
  * @param string $context Optional. How the URL will be used. Default is 'display'.
- * @return string The cleaned $url after the 'clean_url' filter is applied.
+ * @return string The cleaned $url after the {@see 'clean_url'} filter is applied.
  */
 function clean_url( $url, $protocols = null, $context = 'display' ) {
 	if ( $context == 'db' )
@@ -2033,7 +2033,7 @@ function clean_url( $url, $protocols = null, $context = 'display' ) {
 /**
  * Escape single quotes, specialchar double quotes, and fix line endings.
  *
- * The filter 'js_escape' is also applied by esc_js()
+ * The filter {@see 'js_escape'} is also applied by esc_js().
  *
  * @since 2.0.4
  * @deprecated 2.8.0 Use esc_js()
@@ -2061,7 +2061,7 @@ function js_escape( $text ) {
  */
 function wp_specialchars( $string, $quote_style = ENT_NOQUOTES, $charset = false, $double_encode = false ) {
 	_deprecated_function( __FUNCTION__, '2.8', 'esc_html()' );
-	if ( func_num_args() > 1 ) { // Maintain backwards compat for people passing additional args
+	if ( func_num_args() > 1 ) { // Maintain back-compat for people passing additional arguments.
 		$args = func_get_args();
 		return call_user_func_array( '_wp_specialchars', $args );
 	} else {
@@ -2085,14 +2085,14 @@ function attribute_escape( $text ) {
 }
 
 /**
- * Register widget for sidebar with backwards compatibility.
+ * Register widget for sidebar with backward compatibility.
  *
  * Allows $name to be an array that accepts either three elements to grab the
  * first element and the third for the name or just uses the first element of
  * the array for the name.
  *
- * Passes to {@link wp_register_sidebar_widget()} after argument list and
- * backwards compatibility is complete.
+ * Passes to wp_register_sidebar_widget() after argument list and backward
+ * compatibility is complete.
  *
  * @since 2.2.0
  * @deprecated 2.8.0 Use wp_register_sidebar_widget()
@@ -2126,7 +2126,7 @@ function register_sidebar_widget($name, $output_callback, $classname = '') {
 }
 
 /**
- * Alias of {@link wp_unregister_sidebar_widget()}.
+ * Serves as an alias of wp_unregister_sidebar_widget().
  *
  * @since 2.2.0
  * @deprecated 2.8.0 Use wp_unregister_sidebar_widget()
@@ -2818,7 +2818,7 @@ function is_blog_user( $blog_id = 0 ) {
  * @deprecated 3.4.0 Use error_log()
  * @see error_log()
  *
- * @link http://www.php.net/manual/en/function.error-log.php
+ * @link https://secure.php.net/manual/en/function.error-log.php
  *
  * @param string $filename File name.
  * @param string $mode     Type of access you required to the stream.
@@ -2836,7 +2836,7 @@ function debug_fopen( $filename, $mode ) {
  * @deprecated 3.4.0 Use error_log()
  * @see error_log()
  *
- * @link http://www.php.net/manual/en/function.error-log.php
+ * @link https://secure.php.net/manual/en/function.error-log.php
  *
  * @param mixed  $fp     Unused.
  * @param string $string Message to log.
@@ -2854,7 +2854,7 @@ function debug_fwrite( $fp, $string ) {
  * @deprecated 3.4.0 Use error_log()
  * @see error_log()
  *
- * @link http://www.php.net/manual/en/function.error-log.php
+ * @link https://secure.php.net/manual/en/function.error-log.php
  *
  * @param mixed $fp Unused.
  */
@@ -2968,7 +2968,7 @@ function clean_pre($matches) {
  * @deprecated 3.4.0 Use add_theme_support()
  * @see add_theme_support()
  *
- * @param callable $wp_head_callback Call on 'wp_head' action.
+ * @param callable $wp_head_callback Call on the {@see 'wp_head'} action.
  * @param callable $admin_head_callback Call on custom header administration screen.
  * @param callable $admin_preview_callback Output a custom header image div on the custom header administration screen. Optional.
  */
@@ -3004,7 +3004,7 @@ function remove_custom_image_header() {
  * @deprecated 3.4.0 Use add_theme_support()
  * @see add_theme_support()
  *
- * @param callable $wp_head_callback Call on 'wp_head' action.
+ * @param callable $wp_head_callback Call on the {@see 'wp_head'} action.
  * @param callable $admin_head_callback Call on custom background administration screen.
  * @param callable $admin_preview_callback Output a custom background image div on the custom background administration screen. Optional.
  */
@@ -3175,8 +3175,12 @@ function wp_load_image( $file ) {
 	if ( ! function_exists('imagecreatefromstring') )
 		return __('The GD image library is not installed.');
 
-	// Set artificially high because GD uses uncompressed images in memory
-	@ini_set( 'memory_limit', apply_filters( 'image_memory_limit', WP_MAX_MEMORY_LIMIT ) );
+	/** This filter is documented in wp-includes/class-wp-image-editor-gd.php */
+	$image_memory_limit = apply_filters( 'image_memory_limit', WP_MAX_MEMORY_LIMIT );
+
+	// Set artificially high because GD uses uncompressed images in memory.
+	@ini_set( 'memory_limit', $image_memory_limit );
+
 	$image = imagecreatefromstring( file_get_contents( $file ) );
 
 	if ( !is_resource( $image ) )
@@ -3325,7 +3329,7 @@ function gd_edit_image_support($mime_type) {
 function wp_convert_bytes_to_hr( $bytes ) {
 	_deprecated_function( __FUNCTION__, '3.6', 'size_format()' );
 
-	$units = array( 0 => 'B', 1 => 'kB', 2 => 'MB', 3 => 'GB', 4 => 'TB' );
+	$units = array( 0 => 'B', 1 => 'KB', 2 => 'MB', 3 => 'GB', 4 => 'TB' );
 	$log   = log( $bytes, KB_IN_BYTES );
 	$power = (int) $log;
 	$size  = pow( KB_IN_BYTES, $log - $power );
@@ -3524,7 +3528,7 @@ function preview_theme_ob_filter_callback( $matches ) {
 /**
  * Formats text for the rich text editor.
  *
- * The filter 'richedit_pre' is applied here. If $text is empty the filter will
+ * The {@see 'richedit_pre'} filter is applied here. If $text is empty the filter will
  * be applied to an empty string.
  *
  * @since 2.0.0
@@ -3538,7 +3542,7 @@ function wp_richedit_pre($text) {
 
 	if ( empty( $text ) ) {
 		/**
-		 * Filter text returned for the rich text editor.
+		 * Filters text returned for the rich text editor.
 		 *
 		 * This filter is first evaluated, and the value returned, if an empty string
 		 * is passed to wp_richedit_pre(). If an empty string is passed, it results
@@ -3567,7 +3571,7 @@ function wp_richedit_pre($text) {
  * Formats text for the HTML editor.
  *
  * Unless $output is empty it will pass through htmlspecialchars before the
- * 'htmledit_pre' filter is applied.
+ * {@see 'htmledit_pre'} filter is applied.
  *
  * @since 2.5.0
  * @deprecated 4.3.0 Use format_for_editor()
@@ -3583,7 +3587,7 @@ function wp_htmledit_pre($output) {
 		$output = htmlspecialchars($output, ENT_NOQUOTES, get_option( 'blog_charset' ) ); // convert only < > &
 
 	/**
-	 * Filter the text before it is formatted for the HTML editor.
+	 * Filters the text before it is formatted for the HTML editor.
 	 *
 	 * @since 2.5.0
 	 * @deprecated 4.3.0
@@ -3738,15 +3742,18 @@ function popuplinks( $text ) {
 }
 
 /**
- * Returns the base URL of the uploads directory.
+ * The Google Video embed handler callback.
  *
- * @since 4.4.0
- * @access private
- * @deprecated 4.5.0
+ * Deprecated function that previously assisted in turning Google Video URLs
+ * into embeds but that service has since been shut down.
  *
- * @return string The base URL.
+ * @since 2.9.0
+ * @deprecated 4.6.0
+ *
+ * @return string An empty string.
  */
-function _wp_upload_dir_baseurl() {
-	$upload_dir = wp_get_upload_dir();
-	return $upload_dir['baseurl'];
+function wp_embed_handler_googlevideo( $matches, $attr, $url, $rawattr ) {
+	_deprecated_function( __FUNCTION__, '4.6.0' );
+
+	return '';
 }

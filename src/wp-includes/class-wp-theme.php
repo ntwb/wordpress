@@ -170,7 +170,7 @@ final class WP_Theme implements ArrayAccess {
 	/**
 	 * Flag for whether the themes cache bucket should be persistently cached.
 	 *
-	 * Default is false. Can be set with the wp_cache_themes_persistently filter.
+	 * Default is false. Can be set with the {@see 'wp_cache_themes_persistently'} filter.
 	 *
 	 * @static
 	 * @access private
@@ -437,7 +437,7 @@ final class WP_Theme implements ArrayAccess {
 	 * translated data. We are doing so now as it is safe to do. However, as
 	 * Name and Title could have been used as the key for get_themes(), both remain
 	 * untranslated for back compatibility. This means that ['Name'] is not ideal,
-	 * and care should be taken to use $theme->display('Name') to get a properly
+	 * and care should be taken to use `$theme::display( 'Name' )` to get a properly
 	 * translated header.
 	 *
 	 * @param mixed $offset
@@ -447,8 +447,10 @@ final class WP_Theme implements ArrayAccess {
 		switch ( $offset ) {
 			case 'Name' :
 			case 'Title' :
-				// See note above about using translated data. get() is not ideal.
-				// It is only for backwards compatibility. Use display().
+				/*
+				 * See note above about using translated data. get() is not ideal.
+				 * It is only for backward compatibility. Use display().
+				 */
 				return $this->get('Name');
 			case 'Author' :
 				return $this->display( 'Author');
@@ -918,7 +920,7 @@ final class WP_Theme implements ArrayAccess {
 	 *
 	 * This is typically the absolute URL to wp-content/themes. This forms the basis
 	 * for all other URLs returned by WP_Theme, so we pass it to the public function
-	 * get_theme_root_uri() and allow it to run the theme_root_uri filter.
+	 * get_theme_root_uri() and allow it to run the {@see 'theme_root_uri'} filter.
 	 *
 	 * @since 3.4.0
 	 * @access public
@@ -1029,7 +1031,7 @@ final class WP_Theme implements ArrayAccess {
 			$page_templates += $this->parent()->get_page_templates( $post );
 
 		/**
-		 * Filter list of page templates for a theme.
+		 * Filters list of page templates for a theme.
 		 *
 		 * @since 3.9.0
 		 * @since 4.4.0 Converted to allow complete control over the `$page_templates` array.
@@ -1190,7 +1192,7 @@ final class WP_Theme implements ArrayAccess {
 	 */
 	public static function get_allowed( $blog_id = null ) {
 		/**
-		 * Filter the array of themes allowed on the network.
+		 * Filters the array of themes allowed on the network.
 		 *
 		 * Site is provided as context so that a list of network allowed themes can
 		 * be filtered further.
@@ -1223,7 +1225,7 @@ final class WP_Theme implements ArrayAccess {
 		}
 
 		/**
-		 * Filter the array of themes allowed on the network.
+		 * Filters the array of themes allowed on the network.
 		 *
 		 * @since MU
 		 *
@@ -1255,7 +1257,7 @@ final class WP_Theme implements ArrayAccess {
 
 		if ( isset( $allowed_themes[ $blog_id ] ) ) {
 			/**
-			 * Filter the array of themes allowed on the site.
+			 * Filters the array of themes allowed on the site.
 			 *
 			 * @since 4.5.0
 			 *
@@ -1313,6 +1315,62 @@ final class WP_Theme implements ArrayAccess {
 
 		/** This filter is documented in wp-includes/class-wp-theme.php */
 		return (array) apply_filters( 'site_allowed_themes', $allowed_themes[ $blog_id ], $blog_id );
+	}
+
+	/**
+	 * Enable a theme for all sites on the current network.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @static
+	 * @access public
+	 *
+	 * @param string|array $stylesheets Stylesheet name or array of stylesheet names.
+	 */
+	public static function network_enable_theme( $stylesheets ) {
+		if ( ! is_multisite() ) {
+			return;
+		}
+
+		if ( ! is_array( $stylesheets ) ) {
+			$stylesheets = array( $stylesheets );
+		}
+
+		$allowed_themes = get_site_option( 'allowedthemes' );
+		foreach ( $stylesheets as $stylesheet ) {
+			$allowed_themes[ $stylesheet ] = true;
+		}
+
+		update_site_option( 'allowedthemes', $allowed_themes );
+	}
+
+	/**
+	 * Disable a theme for all sites on the current network.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @static
+	 * @access public
+	 *
+	 * @param string|array $stylesheets Stylesheet name or array of stylesheet names.
+	 */
+	public static function network_disable_theme( $stylesheets ) {
+		if ( ! is_multisite() ) {
+			return;
+		}
+
+		if ( ! is_array( $stylesheets ) ) {
+			$stylesheets = array( $stylesheets );
+		}
+
+		$allowed_themes = get_site_option( 'allowedthemes' );
+		foreach ( $stylesheets as $stylesheet ) {
+			if ( isset( $allowed_themes[ $stylesheet ] ) ) {
+				unset( $allowed_themes[ $stylesheet ] );
+			}
+		}
+
+		update_site_option( 'allowedthemes', $allowed_themes );
 	}
 
 	/**

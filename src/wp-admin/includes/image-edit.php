@@ -243,7 +243,7 @@ function wp_stream_image( $image, $mime_type, $post_id ) {
 	if ( $image instanceof WP_Image_Editor ) {
 
 		/**
-		 * Filter the WP_Image_Editor instance for the image to be streamed to the browser.
+		 * Filters the WP_Image_Editor instance for the image to be streamed to the browser.
 		 *
 		 * @since 3.5.0
 		 *
@@ -260,7 +260,7 @@ function wp_stream_image( $image, $mime_type, $post_id ) {
 		_deprecated_argument( __FUNCTION__, '3.5', __( '$image needs to be an WP_Image_Editor object' ) );
 
 		/**
-		 * Filter the GD image resource to be streamed to the browser.
+		 * Filters the GD image resource to be streamed to the browser.
 		 *
 		 * @since 2.9.0
 		 * @deprecated 3.5.0 Use image_editor_save_pre instead.
@@ -302,7 +302,7 @@ function wp_save_image_file( $filename, $image, $mime_type, $post_id ) {
 		$image = apply_filters( 'image_editor_save_pre', $image, $post_id );
 
 		/**
-		 * Filter whether to skip saving the image file.
+		 * Filters whether to skip saving the image file.
 		 *
 		 * Returning a non-null value will short-circuit the save method,
 		 * returning that value instead.
@@ -328,7 +328,7 @@ function wp_save_image_file( $filename, $image, $mime_type, $post_id ) {
 		$image = apply_filters( 'image_save_pre', $image, $post_id );
 
 		/**
-		 * Filter whether to skip saving the image file.
+		 * Filters whether to skip saving the image file.
 		 *
 		 * Returning a non-null value will short-circuit the save method,
 		 * returning that value instead.
@@ -458,9 +458,9 @@ function _crop_image_resource($img, $x, $y, $w, $h) {
  *
  * @since 2.9.0
  *
- * @param WP_Image_Editor $image   {@see WP_Image_Editor} instance.
+ * @param WP_Image_Editor $image   WP_Image_Editor instance.
  * @param array           $changes Array of change operations.
- * @return WP_Image_Editor {@see WP_Image_Editor} instance with changes applied.
+ * @return WP_Image_Editor WP_Image_Editor instance with changes applied.
  */
 function image_edit_apply_changes( $image, $changes ) {
 	if ( is_resource( $image ) )
@@ -515,7 +515,7 @@ function image_edit_apply_changes( $image, $changes ) {
 	if ( $image instanceof WP_Image_Editor ) {
 
 		/**
-		 * Filter the WP_Image_Editor instance before applying changes to the image.
+		 * Filters the WP_Image_Editor instance before applying changes to the image.
 		 *
 		 * @since 3.5.0
 		 *
@@ -526,7 +526,7 @@ function image_edit_apply_changes( $image, $changes ) {
 	} elseif ( is_resource( $image ) ) {
 
 		/**
-		 * Filter the GD image resource before applying changes to the image.
+		 * Filters the GD image resource before applying changes to the image.
 		 *
 		 * @since 2.9.0
 		 * @deprecated 3.5.0 Use wp_image_editor_before_change instead.

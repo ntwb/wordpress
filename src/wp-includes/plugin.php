@@ -669,12 +669,12 @@ function remove_all_actions($tag, $priority = false) {
  * @param string $tag         The name of the filter hook.
  * @param array  $args        Array of additional function arguments to be passed to apply_filters().
  * @param string $version     The version of WordPress that deprecated the hook.
- * @param string $replacement Optional. The hook that should have been used.
- * @param string $message     Optional. A message regarding the change.
+ * @param string $replacement Optional. The hook that should have been used. Default false.
+ * @param string $message     Optional. A message regarding the change. Default null.
  */
 function apply_filters_deprecated( $tag, $args, $version, $replacement = false, $message = null ) {
 	if ( ! has_filter( $tag ) ) {
-		return;
+		return $args[0];
 	}
 
 	_deprecated_hook( $tag, $version, $replacement, $message );
@@ -731,6 +731,7 @@ function plugin_basename( $file ) {
 	// $wp_plugin_paths contains normalized paths.
 	$file = wp_normalize_path( $file );
 
+	arsort( $wp_plugin_paths );
 	foreach ( $wp_plugin_paths as $dir => $realdir ) {
 		if ( strpos( $file, $realdir ) === 0 ) {
 			$file = $dir . substr( $file, strlen( $realdir ) );
@@ -752,7 +753,7 @@ function plugin_basename( $file ) {
  *
  * @since 3.9.0
  *
- * @see plugin_basename()
+ * @see wp_normalize_path()
  *
  * @global array $wp_plugin_paths
  *
@@ -884,7 +885,7 @@ function register_deactivation_hook($file, $function) {
  */
 function register_uninstall_hook( $file, $callback ) {
 	if ( is_array( $callback ) && is_object( $callback[0] ) ) {
-		_doing_it_wrong( __FUNCTION__, __( 'Only a static class method or function can be used in an uninstall hook.' ), '3.1' );
+		_doing_it_wrong( __FUNCTION__, __( 'Only a static class method or function can be used in an uninstall hook.' ), '3.1.0' );
 		return;
 	}
 
@@ -1002,7 +1003,7 @@ function _wp_filter_build_unique_id($tag, $function, $priority) {
 }
 
 /**
- * Back up global variables used for actions and filters.
+ * Backs up global variables used for actions and filters.
  *
  * Prevents redefinition of these globals in advanced-cache.php from accidentally
  * destroying existing data.
@@ -1015,24 +1016,29 @@ function _wp_filter_build_unique_id($tag, $function, $priority) {
  * @global array $merged_filters    Merges the filter hooks using this function.
  * @global array $wp_current_filter Stores the list of current filters with the current one last.
  * @staticvar array $backup_globals Backed up globals.
+ *
  * @return array the staticvar from the first time it is set.
  */
-function _backup_plugin_globals(){
+function _backup_plugin_globals( $backup = true ) {
 	global $wp_filter, $wp_actions, $merged_filters, $wp_current_filter;
+
 	static $backup_globals = array();
-	if ( empty( $backup_globals ) ) {
+
+	if ( $backup ) {
 		$backup_globals = array(
 			'backup_wp_filter'         => $wp_filter,
 			'backup_wp_actions'        => $wp_actions,
 			'backup_merged_filters'    => $merged_filters,
 			'backup_wp_current_filter' => $wp_current_filter,
 		);
-	};
+
+		$wp_filter = $wp_actions = array();
+	}
 	return $backup_globals;
 }
 
 /**
- * Safely restore backed up global variables used for actions and filters.
+ * Safely restores backed up global variables used for actions and filters.
  *
  * @since 4.6.0
  * @access private
@@ -1043,22 +1049,49 @@ function _backup_plugin_globals(){
  * @global array $wp_current_filter Stores the list of current filters with the current one last.
  * @staticvar array $backup_globals Backed up globals.
  */
-function _restore_plugin_globals(){
+function _restore_plugin_globals() {
 	global $wp_filter, $wp_actions, $merged_filters, $wp_current_filter;
-	$backup_globals = _backup_plugin_globals();
-	if ( $wp_filter !== $backup_globals['backup_wp_filter'] ){
-		$wp_filter = array_merge_recursive( $wp_filter, $backup_globals['backup_wp_filter'] );
+
+	$backup_globals = _backup_plugin_globals( false );
+
+	if ( empty( $wp_filter ) ) {
+		$wp_filter = $backup_globals['backup_wp_filter'];
+	} else {
+		$added_filters = $wp_filter;
+		$wp_filter = $backup_globals['backup_wp_filter'];
+
+		foreach ( $added_filters as $tag => $callback_groups ) {
+			// Loop through callback groups.
+			foreach ( $callback_groups as $priority => $callbacks ) {
+
+				// Loop through callbacks.
+				foreach ( $callbacks as $cb ) {
+					add_filter( $tag, $cb['function'], $priority, $cb['accepted_args'] );
+				}
+			}
+		}
 	}
 
-	if ( $wp_actions !== $backup_globals['backup_wp_actions'] ){
-		$wp_actions = array_merge_recursive( $wp_actions, $backup_globals['backup_wp_actions'] );
+	if ( empty ( $wp_actions ) ) {
+		$wp_actions = $backup_globals['backup_wp_actions'];
+	} else {
+		$run_actions = $wp_actions;
+		$wp_actions = $backup_globals['backup_wp_actions'];
+
+		foreach( $run_actions as $action => $count ) {
+			if ( ! isset( $wp_actions[ $action ] ) ) {
+				$wp_actions[ $action ] = 0;
+			}
+
+			$wp_actions[ $action ] += $count;
+		}
 	}
 
-	if ( $merged_filters !== $backup_globals['backup_merged_filters'] ){
+	if ( $merged_filters !== $backup_globals['backup_merged_filters'] ) {
 		$merged_filters = array_merge_recursive( $merged_filters, $backup_globals['backup_merged_filters'] );
 	}
 
-	if ( $wp_current_filter !== $backup_globals['backup_wp_current_filter'] ){
+	if ( $wp_current_filter !== $backup_globals['backup_wp_current_filter'] ) {
 		$wp_current_filter = array_merge_recursive( $wp_current_filter, $backup_globals['backup_wp_current_filter'] );
 	}
 }

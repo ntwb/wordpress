@@ -837,6 +837,7 @@ function get_post_type( $post = null ) {
  * Retrieves a post type object by name.
  *
  * @since 3.0.0
+ * @since 4.6.0 Object returned is now an instance of WP_Post_Type.
  *
  * @global array $wp_post_types List of post types.
  *
@@ -899,7 +900,7 @@ function get_post_types( $args = array(), $output = 'names', $operator = 'and' )
  * @since 3.0.0 The `show_ui` argument is now enforced on the new post screen.
  * @since 4.4.0 The `show_ui` argument is now enforced on the post type listing
  *              screen and post editing screen.
- * @since 4.6.0 Converted to use `WP_Post_Type`.
+ * @since 4.6.0 Post type object returned is now an instance of WP_Post_Type.
  *
  * @global array $wp_post_types List of post types.
  *
@@ -1023,7 +1024,7 @@ function register_post_type( $post_type, $args = array() ) {
 	$post_type = sanitize_key( $post_type );
 
 	if ( empty( $post_type ) || strlen( $post_type ) > 20 ) {
-		_doing_it_wrong( __FUNCTION__, __( 'Post type names must be between 1 and 20 characters in length.' ), '4.2' );
+		_doing_it_wrong( __FUNCTION__, __( 'Post type names must be between 1 and 20 characters in length.' ), '4.2.0' );
 		return new WP_Error( 'post_type_length_invalid', __( 'Post type names must be between 1 and 20 characters in length.' ) );
 	}
 
@@ -1041,6 +1042,7 @@ function register_post_type( $post_type, $args = array() ) {
 	 * Fires after a post type is registered.
 	 *
 	 * @since 3.3.0
+	 * @since 4.6.0 Converted the `$post_type` parameter to accept a WP_Post_Type object.
 	 *
 	 * @param string       $post_type        Post type.
 	 * @param WP_Post_Type $post_type_object Arguments used to register the post type.
@@ -1056,7 +1058,6 @@ function register_post_type( $post_type, $args = array() ) {
  * Can not be used to unregister built-in post types.
  *
  * @since 4.5.0
- * @since 4.6.0 Converted to use `WP_Post_Type`.
  *
  * @global array $wp_post_types List of post types.
  *
@@ -1067,7 +1068,7 @@ function unregister_post_type( $post_type ) {
 	global $wp_post_types;
 
 	if ( ! post_type_exists( $post_type ) ) {
-		return new WP_Error( 'invalid_post_type', __( 'Invalid post type' ) );
+		return new WP_Error( 'invalid_post_type', __( 'Invalid post type.' ) );
 	}
 
 	$post_type_object = get_post_type_object( $post_type );
@@ -1265,6 +1266,7 @@ function _post_type_meta_capabilities( $capabilities = null ) {
  *              and `use_featured_image` labels.
  * @since 4.4.0 Added the `insert_into_item`, `uploaded_to_this_item`, `filter_items_list`,
  *              `items_list_navigation`, and `items_list` labels.
+ * @since 4.6.0 Converted the `$post_type` parameter to accept a WP_Post_Type object.
  *
  * @access private
  *
@@ -1522,6 +1524,7 @@ function set_post_type( $post_id = 0, $post_type = 'post' ) {
  *
  * @since 4.4.0
  * @since 4.5.0 Added the ability to pass a post type name in addition to object.
+ * @since 4.6.0 Converted the `$post_type` parameter to accept a WP_Post_Type object.
  *
  * @param string|WP_Post_Type $post_type Post type name or object.
  * @return bool Whether the post type should be considered viewable.
@@ -2777,7 +2780,7 @@ function wp_get_post_terms( $post_id = 0, $taxonomy = 'post_tag', $args = array(
 function wp_get_recent_posts( $args = array(), $output = ARRAY_A ) {
 
 	if ( is_numeric( $args ) ) {
-		_deprecated_argument( __FUNCTION__, '3.1', __( 'Passing an integer number of posts is deprecated. Pass an array of arguments instead.' ) );
+		_deprecated_argument( __FUNCTION__, '3.1.0', __( 'Passing an integer number of posts is deprecated. Pass an array of arguments instead.' ) );
 		$args = array( 'numberposts' => absint( $args ) );
 	}
 
@@ -3253,6 +3256,16 @@ function wp_insert_post( $postarr, $wp_error = false ) {
 			if ( current_user_can( $taxonomy_obj->cap->assign_terms ) ) {
 				wp_set_post_terms( $post_ID, $tags, $taxonomy );
 			}
+		}
+	}
+
+	// Set or remove featured image.
+	if ( isset( $postarr['_thumbnail_id'] ) && ( post_type_supports( $post_type, 'thumbnail' ) || 'revision' === $post_type ) ) {
+		$thumbnail_id = intval( $postarr['_thumbnail_id'] );
+		if ( -1 === $thumbnail_id ) {
+			delete_post_thumbnail( $post_ID );
+		} else {
+			set_post_thumbnail( $post_ID, $thumbnail_id );
 		}
 	}
 
@@ -4302,7 +4315,7 @@ function _page_traverse_name( $page_id, &$children, &$result ){
  * Sub pages will be in the "directory" under the parent page post name.
  *
  * @since 1.5.0
- * @since 4.6.0 The $page parameter is optional.
+ * @since 4.6.0 Converted the `$page` parameter to optional.
  *
  * @param WP_Post|object|int $page Optional. Page ID or WP_Post object. Default is global $post.
  * @return string|false Page URI, false on error.
@@ -4319,7 +4332,7 @@ function get_page_uri( $page = 0 ) {
 
 	foreach ( $page->ancestors as $parent ) {
 		$parent = get_post( $parent );
-		if ( $parent ) {
+		if ( $parent && $parent->post_name ) {
 			$uri = $parent->post_name . '/' . $uri;
 		}
 	}
@@ -4937,6 +4950,37 @@ function wp_get_attachment_url( $post_id = 0 ) {
 }
 
 /**
+ * Retrieves the caption for an attachment.
+ *
+ * @since 4.6.0
+ *
+ * @param int $post_id Optional. Attachment ID. Default is the ID of the global `$post`.
+ * @return string|false False on failure. Attachment caption on success.
+ */
+function wp_get_attachment_caption( $post_id = 0 ) {
+	$post_id = (int) $post_id;
+	if ( ! $post = get_post( $post_id ) ) {
+		return false;
+	}
+
+	if ( 'attachment' !== $post->post_type ) {
+		return false;
+	}
+
+	$caption = $post->post_excerpt;
+
+	/**
+	 * Filters the attachment caption.
+	 *
+	 * @since 4.6.0
+	 *
+	 * @param string $caption Caption for the given attachment.
+	 * @param int    $post_id Attachment ID.
+	 */
+	return apply_filters( 'wp_get_attachment_caption', $caption, $post->ID );
+}
+
+/**
  * Retrieve thumbnail for an attachment.
  *
  * @since 2.1.0
@@ -5007,12 +5051,12 @@ function wp_get_attachment_thumb_url( $post_id = 0 ) {
  *
  * @since 4.2.0
  *
- * @param string      $type    Attachment type. Accepts 'image', 'audio', or 'video'.
- * @param int|WP_Post $post_id Optional. Attachment ID. Default 0.
+ * @param string      $type Attachment type. Accepts 'image', 'audio', or 'video'.
+ * @param int|WP_Post $post Optional. Attachment ID or object. Default is global $post.
  * @return bool True if one of the accepted types, false otherwise.
  */
-function wp_attachment_is( $type, $post_id = 0 ) {
-	if ( ! $post = get_post( $post_id ) ) {
+function wp_attachment_is( $type, $post = null ) {
+	if ( ! $post = get_post( $post ) ) {
 		return false;
 	}
 
@@ -5058,10 +5102,10 @@ function wp_attachment_is( $type, $post_id = 0 ) {
  * @since 4.2.0 Modified into wrapper for wp_attachment_is() and
  *              allowed WP_Post object to be passed.
  *
- * @param int|WP_Post $post Optional. Attachment ID. Default 0.
+ * @param int|WP_Post $post Optional. Attachment ID or object. Default is global $post.
  * @return bool Whether the attachment is an image.
  */
-function wp_attachment_is_image( $post = 0 ) {
+function wp_attachment_is_image( $post = null ) {
 	return wp_attachment_is( 'image', $post );
 }
 

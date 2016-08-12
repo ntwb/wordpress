@@ -332,7 +332,7 @@ class Tests_Actions extends WP_UnitTestCase {
 	 * @ticket 36819
 	 */
 	function test_backup_plugin_globals_returns_filters() {
-		$backup = _backup_plugin_globals();
+		$backup = _backup_plugin_globals( true );
 		$this->assertArrayHasKey( 'backup_wp_filter',         $backup );
 		$this->assertArrayHasKey( 'backup_wp_actions',        $backup );
 		$this->assertArrayHasKey( 'backup_wp_current_filter', $backup );
@@ -343,14 +343,14 @@ class Tests_Actions extends WP_UnitTestCase {
 	 * @ticket 36819
 	 */
 	function test_backup_plugin_globals_returns_filters_from_first_time_called() {
-		$backup = _backup_plugin_globals();
+		$backup = _backup_plugin_globals( true );
 
 		$a = new MockAction();
 		$tag = rand_str();
 
 		add_action($tag, array(&$a, 'action'));
 
-		$new_backup = _backup_plugin_globals();
+		$new_backup = _backup_plugin_globals( false );
 		$this->assertEquals( $backup, $new_backup );
 	}
 
@@ -361,10 +361,10 @@ class Tests_Actions extends WP_UnitTestCase {
 		global $wp_actions;
 		$original_actions = $wp_actions;
 
-		_backup_plugin_globals();
+		_backup_plugin_globals( true );
 
 		$wp_actions = array();
-		
+
 		$this->assertEmpty( $wp_actions );
 		_restore_plugin_globals();
 
@@ -378,17 +378,37 @@ class Tests_Actions extends WP_UnitTestCase {
 		global $wp_filter;
 		$original_filter = $wp_filter;
 
-		$backup = _backup_plugin_globals();
+		$backup = _backup_plugin_globals( true );
 
 		$a = new MockAction();
 		$tag = rand_str();
 		add_action($tag, array(&$a, 'action'));
-		
+
 		$this->assertNotEquals( $GLOBALS['wp_filter'], $original_filter );
 
 		_restore_plugin_globals();
 
 		$this->assertNotEquals( $GLOBALS['wp_filter'], $original_filter );
+	}
+
+	/**
+	 * @ticket 36819
+	 */
+	function test_applied_actions_are_counted_after_restore() {
+		global $wp_actions;
+
+		$action_name = 'this_is_a_fake_action_name';
+		$this->assertArrayNotHasKey( $action_name, $wp_actions );
+
+		do_action( $action_name );
+
+		$this->assertEquals( 1, $wp_actions[ $action_name ] );
+
+		_backup_plugin_globals( true );
+		do_action( $action_name );
+		_restore_plugin_globals();
+
+		$this->assertEquals( 2, $wp_actions[ $action_name ] );
 	}
 
 	function apply_testing_filter() {
@@ -457,49 +477,5 @@ class Tests_Actions extends WP_UnitTestCase {
 	public static function deprecated_action_callback_multiple_params( $p1, $p2 ) {
 		$p1->post_title = 'Bar1';
 		$p2->post_title = 'Bar2';
-	}
-
-	/**
-	 * @ticket 10441
-	 * @expectedDeprecated tests_apply_filters_deprecated
-	 */
-	public function test_apply_filters_deprecated() {
-		$p = 'Foo';
-
-		add_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback' ) );
-		$p = apply_filters_deprecated( 'tests_apply_filters_deprecated', array( $p ), '4.6' );
-		remove_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback' ) );
-
-		$this->assertSame( 'Bar', $p );
-	}
-
-	public static function deprecated_filter_callback( $p ) {
-		$p = 'Bar';
-		return $p;
-	}
-
-	/**
-	 * @ticket 10441
-	 * @expectedDeprecated tests_apply_filters_deprecated
-	 */
-	public function test_apply_filters_deprecated_with_multiple_params() {
-		$p1 = 'Foo1';
-		$p2 = 'Foo2';
-
-		add_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback_multiple_params' ), 10, 2 );
-		$p1 = apply_filters_deprecated( 'tests_apply_filters_deprecated', array( $p1, $p2 ), '4.6' );
-		remove_filter( 'tests_apply_filters_deprecated', array( __CLASS__, 'deprecated_filter_callback_multiple_params' ), 10, 2 );
-
-		$this->assertSame( 'Bar1', $p1 );
-
-		// Not passed by reference, so not modified.
-		$this->assertSame( 'Foo2', $p2 );
-	}
-
-	public static function deprecated_filter_callback_multiple_params( $p1, $p2 ) {
-		$p1 = 'Bar1';
-		$p2 = 'Bar2';
-
-		return $p1;
 	}
 }

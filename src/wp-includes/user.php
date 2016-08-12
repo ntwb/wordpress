@@ -452,7 +452,7 @@ function get_user_option( $option, $user = 0, $deprecated = '' ) {
 	global $wpdb;
 
 	if ( !empty( $deprecated ) )
-		_deprecated_argument( __FUNCTION__, '3.0' );
+		_deprecated_argument( __FUNCTION__, '3.0.0' );
 
 	if ( empty( $user ) )
 		$user = get_current_user_id();
@@ -2333,16 +2333,18 @@ function register_new_user( $user_login, $user_email ) {
 }
 
 /**
- * Initiate email notifications related to the creation of new users.
+ * Initiates email notifications related to the creation of new users.
  *
  * Notifications are sent both to the site admin and to the newly created user.
  *
  * @since 4.4.0
- * @since 4.6.0 The `$notify` parameter accepts 'user' for sending notification only to the user created.
+ * @since 4.6.0 Converted the `$notify` parameter to accept 'user' for sending
+ *              notifications only to the user created.
  *
  * @param int    $user_id ID of the newly created user.
- * @param string $notify  Optional. Type of notification that should happen. Accepts 'admin' or an empty string
- *                        (admin only), 'user', or 'both' (admin and user). Default 'both'.
+ * @param string $notify  Optional. Type of notification that should happen. Accepts 'admin'
+ *                        or an empty string (admin only), 'user', or 'both' (admin and user).
+ *                        Default 'both'.
  */
 function wp_send_new_user_notifications( $user_id, $notify = 'both' ) {
 	wp_new_user_notification( $user_id, null, $notify );

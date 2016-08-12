@@ -182,14 +182,19 @@ function wp_maybe_decline_date( $date ) {
 	 */
 	if ( 'on' === _x( 'off', 'decline months names: on or off' ) ) {
 		// Match a format like 'j F Y' or 'j. F'
-		if ( @preg_match( '#^\d{1,2}\.? \w+#u', $date ) ) {
-			$months = $wp_locale->month;
+		if ( @preg_match( '#^\d{1,2}\.? [^\d ]+#u', $date ) ) {
+			$months          = $wp_locale->month;
+			$months_genitive = $wp_locale->month_genitive;
 
 			foreach ( $months as $key => $month ) {
-				$months[ $key ] = '#\b' . $month . '\b#u';
+				$months[ $key ] = '# ' . $month . '( |$)#u';
 			}
 
-			$date = preg_replace( $months, $wp_locale->month_genitive, $date );
+			foreach ( $months_genitive as $key => $month ) {
+				$months_genitive[ $key ] = ' ' . $month . '$1';
+			}
+
+			$date = preg_replace( $months, $months_genitive, $date );
 		}
 	}
 
@@ -262,6 +267,10 @@ function size_format( $bytes, $decimals = 0 ) {
 		'KB' => KB_IN_BYTES,
 		'B'  => 1,
 	);
+
+	if ( 0 === $bytes ) {
+		return number_format_i18n( 0, $decimals ) . ' B';
+	}
 
 	foreach ( $quant as $unit => $mag ) {
 		if ( doubleval( $bytes ) >= $mag ) {
@@ -637,7 +646,7 @@ function do_enclose( $content, $post_ID ) {
  */
 function wp_get_http_headers( $url, $deprecated = false ) {
 	if ( !empty( $deprecated ) )
-		_deprecated_argument( __FUNCTION__, '2.7' );
+		_deprecated_argument( __FUNCTION__, '2.7.0' );
 
 	$response = wp_safe_remote_head( $url );
 
@@ -1099,7 +1108,6 @@ function wp_get_nocache_headers() {
 	$headers = array(
 		'Expires' => 'Wed, 11 Jan 1984 05:00:00 GMT',
 		'Cache-Control' => 'no-cache, must-revalidate, max-age=0',
-		'Pragma' => 'no-cache',
 	);
 
 	if ( function_exists('apply_filters') ) {
@@ -1115,7 +1123,6 @@ function wp_get_nocache_headers() {
 		 *
 		 *     @type string $Expires       Expires header.
 		 *     @type string $Cache-Control Cache-Control header.
-		 *     @type string $Pragma        Pragma header.
 		 * }
 		 */
 		$headers = (array) apply_filters( 'nocache_headers', $headers );
@@ -2108,7 +2115,7 @@ function wp_unique_filename( $dir, $filename, $unique_filename_callback = null )
  */
 function wp_upload_bits( $name, $deprecated, $bits, $time = null ) {
 	if ( !empty( $deprecated ) )
-		_deprecated_argument( __FUNCTION__, '2.0' );
+		_deprecated_argument( __FUNCTION__, '2.0.0' );
 
 	if ( empty( $name ) )
 		return array( 'error' => __( 'Empty filename' ) );
@@ -2431,7 +2438,7 @@ function wp_get_mime_types() {
 }
 
 /**
- * Retrieve list of common file extensions and their types.
+ * Retrieves the list of common file extensions and their types.
  *
  * @since 4.6.0
  *
@@ -2562,7 +2569,7 @@ function wp_die( $message = '', $title = '', $args = array() ) {
 
 	if ( defined( 'DOING_AJAX' ) && DOING_AJAX ) {
 		/**
-		 * Filters callback for killing WordPress execution for AJAX requests.
+		 * Filters the callback for killing WordPress execution for Ajax requests.
 		 *
 		 * @since 3.4.0
 		 *
@@ -2571,7 +2578,7 @@ function wp_die( $message = '', $title = '', $args = array() ) {
 		$function = apply_filters( 'wp_die_ajax_handler', '_ajax_wp_die_handler' );
 	} elseif ( defined( 'XMLRPC_REQUEST' ) && XMLRPC_REQUEST ) {
 		/**
-		 * Filters callback for killing WordPress execution for XML-RPC requests.
+		 * Filters the callback for killing WordPress execution for XML-RPC requests.
 		 *
 		 * @since 3.4.0
 		 *
@@ -2580,7 +2587,7 @@ function wp_die( $message = '', $title = '', $args = array() ) {
 		$function = apply_filters( 'wp_die_xmlrpc_handler', '_xmlrpc_wp_die_handler' );
 	} else {
 		/**
-		 * Filters callback for killing WordPress execution for all non-AJAX, non-XML-RPC requests.
+		 * Filters the callback for killing WordPress execution for all non-Ajax, non-XML-RPC requests.
 		 *
 		 * @since 3.0.0
 		 *
@@ -2674,7 +2681,7 @@ function _default_wp_die_handler( $message, $title = '', $args = array() ) {
 		body {
 			background: #fff;
 			color: #444;
-			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen-Sans", "Ubuntu", "Cantarell", "Helvetica Neue", sans-serif;
+			font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
 			margin: 2em auto;
 			padding: 1em 2em;
 			max-width: 700px;
@@ -3111,7 +3118,7 @@ function wp_send_json_error( $data = null ) {
 }
 
 /**
- * Check that a JSONP callback is a valid JavaScript callback.
+ * Checks that a JSONP callback is a valid JavaScript callback.
  *
  * Only allows alphanumeric characters and the dot character in callback
  * function names. This helps to mitigate XSS attacks caused by directly
@@ -3840,7 +3847,7 @@ function _deprecated_file( $file, $version, $replacement = null, $message = '' )
  * For example:
  *
  *     if ( ! empty( $deprecated ) ) {
- *         _deprecated_argument( __FUNCTION__, '3.0' );
+ *         _deprecated_argument( __FUNCTION__, '3.0.0' );
  *     }
  *
  *
@@ -3895,10 +3902,10 @@ function _deprecated_argument( $function, $version, $message = null ) {
 /**
  * Marks a deprecated action or filter hook as deprecated and throws a notice.
  *
- * Use the 'deprecated_hook_run' action to get the backtrace describing where the
- * deprecated hook was called.
+ * Use the {@see 'deprecated_hook_run'} action to get the backtrace describing where
+ * the deprecated hook was called.
  *
- * Default behavior is to trigger a user error if WP_DEBUG is true.
+ * Default behavior is to trigger a user error if `WP_DEBUG` is true.
  *
  * This function is called by the do_action_deprecated() and apply_filters_deprecated()
  * functions, and so generally does not need to be called directly.
@@ -3925,7 +3932,7 @@ function _deprecated_hook( $hook, $version, $replacement = null, $message = null
 	do_action( 'deprecated_hook_run', $hook, $replacement, $version, $message );
 
 	/**
-	 * Filter whether to trigger deprecated hook errors.
+	 * Filters whether to trigger deprecated hook errors.
 	 *
 	 * @since 4.6.0
 	 *
@@ -4233,7 +4240,6 @@ function wp_suspend_cache_invalidation( $suspend = true ) {
  * @global object $current_site
  *
  * @param int $site_id Optional. Site ID to test. Defaults to current site.
- *                     Defaults to current site.
  * @return bool True if $site_id is the main site of the network, or if not
  *              running Multisite.
  */
@@ -5349,4 +5355,111 @@ function mysql_to_rfc3339( $date_string ) {
 
 	// Strip timezone information
 	return preg_replace( '/(?:Z|[+-]\d{2}(?::\d{2})?)$/', '', $formatted );
+}
+
+/**
+ * Attempts to raise the PHP memory limit for memory intensive processes.
+ *
+ * Only allows raising the existing limit and prevents lowering it.
+ *
+ * @since 4.6.0
+ *
+ * @param string $context Optional. Context in which the function is called. Accepts either 'admin',
+ *                        'image', or an arbitrary other context. If an arbitrary context is passed,
+ *                        the similarly arbitrary {@see '{$context}_memory_limit'} filter will be
+ *                        invoked. Default 'admin'.
+ * @return bool|int|string The limit that was set or false on failure.
+ */
+function wp_raise_memory_limit( $context = 'admin' ) {
+	// Exit early if the limit cannot be changed.
+	if ( false === wp_is_ini_value_changeable( 'memory_limit' ) ) {
+		return false;
+	}
+
+	$current_limit     = @ini_get( 'memory_limit' );
+	$current_limit_int = wp_convert_hr_to_bytes( $current_limit );
+
+	if ( -1 === $current_limit_int ) {
+		return false;
+	}
+
+	$wp_max_limit     = WP_MAX_MEMORY_LIMIT;
+	$wp_max_limit_int = wp_convert_hr_to_bytes( $wp_max_limit );
+	$filtered_limit   = $wp_max_limit;
+
+	switch ( $context ) {
+		case 'admin':
+			/**
+			 * Filters the maximum memory limit available for administration screens.
+			 *
+			 * This only applies to administrators, who may require more memory for tasks
+			 * like updates. Memory limits when processing images (uploaded or edited by
+			 * users of any role) are handled separately.
+			 *
+			 * The `WP_MAX_MEMORY_LIMIT` constant specifically defines the maximum memory
+			 * limit available when in the administration back end. The default is 256M
+			 * (256 megabytes of memory) or the original `memory_limit` php.ini value if
+			 * this is higher.
+			 *
+			 * @since 3.0.0
+			 * @since 4.6.0 The default now takes the original `memory_limit` into account.
+			 *
+			 * @param int|string $filtered_limit The maximum WordPress memory limit. Accepts an integer
+			 *                                   (bytes), or a shorthand string notation, such as '256M'.
+			 */
+			$filtered_limit = apply_filters( 'admin_memory_limit', $filtered_limit );
+			break;
+
+		case 'image':
+			/**
+			 * Filters the memory limit allocated for image manipulation.
+			 *
+			 * @since 3.5.0
+			 * @since 4.6.0 The default now takes the original `memory_limit` into account.
+			 *
+			 * @param int|string $filtered_limit Maximum memory limit to allocate for images.
+			 *                                   Default `WP_MAX_MEMORY_LIMIT` or the original
+			 *                                   php.ini `memory_limit`, whichever is higher.
+			 *                                   Accepts an integer (bytes), or a shorthand string
+			 *                                   notation, such as '256M'.
+			 */
+			$filtered_limit = apply_filters( 'image_memory_limit', $filtered_limit );
+			break;
+
+		default:
+			/**
+			 * Filters the memory limit allocated for arbitrary contexts.
+			 *
+			 * The dynamic portion of the hook name, `$context`, refers to an arbitrary
+			 * context passed on calling the function. This allows for plugins to define
+			 * their own contexts for raising the memory limit.
+			 *
+			 * @since 4.6.0
+			 *
+			 * @param int|string $filtered_limit Maximum memory limit to allocate for images.
+			 *                                   Default '256M' or the original php.ini `memory_limit`,
+			 *                                   whichever is higher. Accepts an integer (bytes), or a
+			 *                                   shorthand string notation, such as '256M'.
+			 */
+			$filtered_limit = apply_filters( "{$context}_memory_limit", $filtered_limit );
+			break;
+	}
+
+	$filtered_limit_int = wp_convert_hr_to_bytes( $filtered_limit );
+
+	if ( -1 === $filtered_limit_int || ( $filtered_limit_int > $wp_max_limit_int && $filtered_limit_int > $current_limit_int ) ) {
+		if ( false !== @ini_set( 'memory_limit', $filtered_limit ) ) {
+			return $filtered_limit;
+		} else {
+			return false;
+		}
+	} elseif ( -1 === $wp_max_limit_int || $wp_max_limit_int > $current_limit_int ) {
+		if ( false !== @ini_set( 'memory_limit', $wp_max_limit ) ) {
+			return $wp_max_limit;
+		} else {
+			return false;
+		}
+	}
+
+	return false;
 }

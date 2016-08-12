@@ -38,7 +38,7 @@ if ( !function_exists('wp_install') ) :
  */
 function wp_install( $blog_title, $user_name, $user_email, $public, $deprecated = '', $user_password = '', $language = '' ) {
 	if ( !empty( $deprecated ) )
-		_deprecated_argument( __FUNCTION__, '2.6' );
+		_deprecated_argument( __FUNCTION__, '2.6.0' );
 
 	wp_check_mysql_version();
 	wp_cache_flush();
@@ -195,7 +195,7 @@ function wp_install_defaults( $user_id ) {
 	$first_comment_email = 'wapuu@wordpress.example';
 	$first_comment_url = 'https://wordpress.org/';
 	$first_comment = __( 'Hi, this is a comment.
-To moderate comments, just log in. There you will have the option to edit or delete them.
+To get started with moderating, editing, and deleting comments, please visit the Comments screen in the dashboard.
 Commenter avatars come from <a href="https://gravatar.com">Gravatar</a>.' );
 	if ( is_multisite() ) {
 		$first_comment_author = get_site_option( 'first_comment_author', $first_comment_author );
@@ -320,11 +320,12 @@ function wp_install_maybe_enable_pretty_permalinks() {
 	 	 */
 		$wp_rewrite->flush_rules( true );
 
-		// Test against a real WordPress Post, or if none were created, a random 404 page.
-		$test_url = get_permalink( 1 );
+		$test_url = '';
 
-		if ( ! $test_url ) {
-			$test_url = home_url( '/wordpress-check-for-rewrites/' );
+		// Test against a real WordPress Post
+		$first_post = get_page_by_path( sanitize_title( _x( 'hello-world', 'Default post slug' ) ), OBJECT, 'post' );
+		if ( $first_post ) {
+			$test_url = get_permalink( $first_post->ID );
 		}
 
 		/*
@@ -555,7 +556,7 @@ function upgrade_all() {
 	if ( $wp_current_db_version < 36686 )
 		upgrade_450();
 
-	if ( $wp_current_db_version < 37854 )
+	if ( $wp_current_db_version < 37965 )
 		upgrade_460();
 
 	maybe_disable_link_manager();
@@ -1699,11 +1700,30 @@ function upgrade_450() {
  * @ignore
  * @since 4.6.0
  *
- * @global int  $wp_current_db_version Current database version.
- * @global wpdb $wpdb                  WordPress database abstraction object.
+ * @global int $wp_current_db_version Current database version.
  */
 function upgrade_460() {
-	delete_post_meta_by_key( '_post_restored_from' );
+	global $wp_current_db_version;
+
+	// Remove unused post meta.
+	if ( $wp_current_db_version < 37854 ) {
+		delete_post_meta_by_key( '_post_restored_from' );
+	}
+
+	// Remove plugins with callback as an array object/method as the uninstall hook, see #13786.
+	if ( $wp_current_db_version < 37965 ) {
+		$uninstall_plugins = get_option( 'uninstall_plugins', array() );
+
+		if ( ! empty( $uninstall_plugins ) ) {
+			foreach ( $uninstall_plugins as $basename => $callback ) {
+				if ( is_array( $callback ) && is_object( $callback[0] ) ) {
+					unset( $uninstall_plugins[ $basename ] );
+				}
+			}
+
+			update_option( 'uninstall_plugins', $uninstall_plugins );
+		}
+	}
 }
 
 /**
@@ -2066,7 +2086,7 @@ function __get_option($setting) {
 }
 
 /**
- * Filterss for content to remove unnecessary slashes.
+ * Filters for content to remove unnecessary slashes.
  *
  * @since 1.5.0
  *

@@ -183,10 +183,6 @@ function get_blog_details( $fields = null, $get_all = true ) {
 				wp_cache_delete( $blog_id . $all, 'blog-details' );
 				unset($details);
 			}
-		} elseif ( ! $details->blog_id || ! $details->site_id ) {
-			// Clear objects missing critical properties.
-			wp_cache_delete( $blog_id . $all, 'blog-details' );
-			unset($details);
 		} else {
 			return $details;
 		}
@@ -207,17 +203,13 @@ function get_blog_details( $fields = null, $get_all = true ) {
 					wp_cache_delete( $blog_id, 'blog-details' );
 					unset($details);
 				}
-			} elseif ( ! $details->blog_id || ! $details->site_id ) {
-				// Clear objects missing critical properties.
-				wp_cache_delete( $blog_id, 'blog-details' );
-				unset($details);
 			} else {
 				return $details;
 			}
 		}
 	}
 
-	if ( empty( $details ) || ! $details->blog_id || ! $details->site_id ) {
+	if ( empty($details) ) {
 		$details = WP_Site::get_instance( $blog_id );
 		if ( ! $details ) {
 			// Set the full cache.
@@ -455,6 +447,7 @@ function clean_blog_cache( $blog ) {
 	$domain_path_key = md5( $blog->domain . $blog->path );
 
 	wp_cache_delete( $blog_id, 'sites' );
+	wp_cache_delete( $blog_id, 'site-details' );
 	wp_cache_delete( $blog_id , 'blog-details' );
 	wp_cache_delete( $blog_id . 'short' , 'blog-details' );
 	wp_cache_delete(  $domain_path_key, 'blog-lookup' );
@@ -468,8 +461,8 @@ function clean_blog_cache( $blog ) {
 	 *
 	 * @since 4.6.0
 	 *
-	 * @param int     $id Blog ID.
-	 * @param WP_Site $blog
+	 * @param int     $id              Blog ID.
+	 * @param WP_Site $blog            Site object.
 	 * @param string  $domain_path_key md5 hash of domain and path.
 	 */
 	do_action( 'clean_site_cache', $blog_id, $blog, $domain_path_key );
@@ -485,15 +478,12 @@ function clean_blog_cache( $blog ) {
  *
  * @since 4.6.0
  *
- * @global WP_Site $current_blog The current site.
- *
  * @param WP_Site|int|null $site Optional. Site to retrieve. Default is the current site.
  * @return WP_Site|null The site object or null if not found.
  */
-function get_site( &$site = null ) {
-	global $current_blog;
-	if ( empty( $site ) && isset( $current_blog ) ) {
-		$site = $current_blog;
+function get_site( $site = null ) {
+	if ( empty( $site ) ) {
+		$site = get_current_blog_id();
 	}
 
 	if ( $site instanceof WP_Site ) {
@@ -527,7 +517,6 @@ function get_site( &$site = null ) {
  * @access private
  *
  * @see update_site_cache()
- *
  * @global wpdb $wpdb WordPress database abstraction object.
  *
  * @param array $ids ID list.
@@ -548,9 +537,9 @@ function _prime_site_caches( $ids ) {
  *
  * @since 4.6.0
  *
- * @param array $sites Array of site objects, passed by reference.
+ * @param array $sites Array of site objects.
  */
-function update_site_cache( &$sites ) {
+function update_site_cache( $sites ) {
 	if ( ! $sites ) {
 		return;
 	}
@@ -736,7 +725,7 @@ function update_blog_option( $id, $option, $value, $deprecated = null ) {
 	$id = (int) $id;
 
 	if ( null !== $deprecated  )
-		_deprecated_argument( __FUNCTION__, '3.1' );
+		_deprecated_argument( __FUNCTION__, '3.1.0' );
 
 	if ( get_current_blog_id() == $id )
 		return update_option( $option, $value );
@@ -822,7 +811,7 @@ function switch_to_blog( $new_blog, $deprecated = null ) {
 			if ( is_array( $global_groups ) ) {
 				wp_cache_add_global_groups( $global_groups );
 			} else {
-				wp_cache_add_global_groups( array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'networks', 'sites' ) );
+				wp_cache_add_global_groups( array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'networks', 'sites', 'site-details' ) );
 			}
 			wp_cache_add_non_persistent_groups( array( 'counts', 'plugins' ) );
 		}
@@ -893,7 +882,7 @@ function restore_current_blog() {
 			if ( is_array( $global_groups ) ) {
 				wp_cache_add_global_groups( $global_groups );
 			} else {
-				wp_cache_add_global_groups( array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'networks', 'sites' ) );
+				wp_cache_add_global_groups( array( 'users', 'userlogins', 'usermeta', 'user_meta', 'useremail', 'userslugs', 'site-transient', 'site-options', 'site-lookup', 'blog-lookup', 'blog-details', 'rss', 'global-posts', 'blog-id-cache', 'networks', 'sites', 'site-details' ) );
 			}
 			wp_cache_add_non_persistent_groups( array( 'counts', 'plugins' ) );
 		}
@@ -970,7 +959,7 @@ function update_blog_status( $blog_id, $pref, $value, $deprecated = null ) {
 	global $wpdb;
 
 	if ( null !== $deprecated  )
-		_deprecated_argument( __FUNCTION__, '3.1' );
+		_deprecated_argument( __FUNCTION__, '3.1.0' );
 
 	if ( ! in_array( $pref, array( 'site_id', 'domain', 'path', 'registered', 'last_updated', 'public', 'archived', 'mature', 'spam', 'deleted', 'lang_id') ) )
 		return $value;
@@ -1076,11 +1065,11 @@ function get_last_updated( $deprecated = '', $start = 0, $quantity = 40 ) {
  *
  * @since 4.6.0
  *
- * @param string|array $args Optional. Array or string of arguments. See {@see WP_Network_Query::parse_query()}
- *                           for information on accepted arguments. Default empty.
+ * @param string|array $args Optional. Array or string of arguments. See WP_Network_Query::parse_query()
+ *                           for information on accepted arguments. Default empty array.
  * @return int|array List of networks or number of found networks if `$count` argument is true.
  */
-function get_networks( $args = '' ) {
+function get_networks( $args = array() ) {
 	$query = new WP_Network_Query();
 
 	return $query->query( $args );
@@ -1096,10 +1085,10 @@ function get_networks( $args = '' ) {
  *
  * @global WP_Network $current_site
  *
- * @param WP_Network|int|null $network Network to retrieve.
+ * @param WP_Network|int|null $network Optional. Network to retrieve. Default is the current network.
  * @return WP_Network|null The network object or null if not found.
  */
-function get_network( &$network = null ) {
+function get_network( $network = null ) {
 	global $current_site;
 	if ( empty( $network ) && isset( $current_site ) ) {
 		$network = $current_site;

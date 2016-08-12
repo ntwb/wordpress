@@ -768,7 +768,7 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @group 32081
+	 * @ticket 32081
 	 */
 	public function test_meta_query_should_work_with_comment__in() {
 		$comments = self::factory()->comment->create_many( 3 );
@@ -792,7 +792,7 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 	}
 
 	/**
-	 * @group 32081
+	 * @ticket 32081
 	 */
 	public function test_meta_query_should_work_with_comment__not_in() {
 		$comments = self::factory()->comment->create_many( 3 );
@@ -2140,6 +2140,29 @@ class Tests_Comment_Query extends WP_UnitTestCase {
 	 */
 	public function test_should_respect_no_found_rows_false() {
 		$comments = self::factory()->comment->create_many( 3, array( 'comment_post_ID' => self::$post_id ) );
+
+		$q = new WP_Comment_Query( array(
+			'post_id' => self::$post_id,
+			'number' => 2,
+			'no_found_rows' => false,
+		) );
+
+		$this->assertEquals( 3, $q->found_comments );
+		$this->assertEquals( 2, $q->max_num_pages );
+	}
+
+	/**
+	 * @ticket 37184
+	 */
+	public function test_found_rows_should_be_fetched_from_the_cache() {
+		$comments = self::factory()->comment->create_many( 3, array( 'comment_post_ID' => self::$post_id ) );
+
+		// Prime cache.
+		new WP_Comment_Query( array(
+			'post_id' => self::$post_id,
+			'number' => 2,
+			'no_found_rows' => false,
+		) );
 
 		$q = new WP_Comment_Query( array(
 			'post_id' => self::$post_id,

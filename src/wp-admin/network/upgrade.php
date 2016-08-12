@@ -36,7 +36,7 @@ get_current_screen()->set_help_sidebar(
 require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
 if ( ! current_user_can( 'manage_network' ) )
-	wp_die( __( 'You do not have permission to access this page.' ), 403 );
+	wp_die( __( 'Sorry, you are not allowed to access this page.' ), 403 );
 
 echo '<div class="wrap">';
 echo '<h1>' . __( 'Upgrade Network' ) . '</h1>';
@@ -55,7 +55,7 @@ switch ( $action ) {
 			update_site_option( 'wpmu_upgrade_site', $wp_db_version );
 		}
 
-		$blogs = $wpdb->get_results( "SELECT blog_id FROM {$wpdb->blogs} WHERE site_id = '{$wpdb->siteid}' AND spam = '0' AND deleted = '0' AND archived = '0' ORDER BY registered DESC LIMIT {$n}, 5", ARRAY_A );
+		$blogs = $wpdb->get_results( "SELECT blog_id FROM {$wpdb->blogs} WHERE site_id = '{$wpdb->siteid}' AND spam = '0' AND deleted = '0' AND archived = '0' ORDER BY blog_id DESC LIMIT {$n}, 5", ARRAY_A );
 		if ( empty( $blogs ) ) {
 			echo '<p>' . __( 'All done!' ) . '</p>';
 			break;

@@ -24,6 +24,15 @@ class Tests_HTTP_Functions extends WP_UnitTestCase {
 		$this->assertEquals( '200', wp_remote_retrieve_response_code( $response ) );
 	}
 
+	/**
+	 * @depends test_head_request
+	 */
+	function test_returns_array() {
+		$url = 'https://asdftestblog1.files.wordpress.com/2007/09/2007-06-30-dsc_4700-1.jpg';
+		$response = wp_remote_head( $url );
+		$this->assertInternalType( 'array', $response );
+	}
+
 	function test_head_redirect() {
 		// this url will 301 redirect
 		$url = 'https://asdftestblog1.wordpress.com/files/2007/09/2007-06-30-dsc_4700-1.jpg';
@@ -98,4 +107,45 @@ class Tests_HTTP_Functions extends WP_UnitTestCase {
 		$this->assertSame( '', $no_cookie );
 	}
 
+	/**
+	 * @ticket 37437
+	 */
+	function test_get_response_cookies_with_wp_http_cookie_object() {
+		$url = 'http://example.org';
+
+		$response = wp_remote_get( $url, array(
+			'cookies' => array(
+				new WP_Http_Cookie( array( 'name' => 'test', 'value' => 'foo' ) ),
+			),
+		) );
+		$cookies  = wp_remote_retrieve_cookies( $response );
+
+		$this->assertNotEmpty( $cookies );
+
+		$cookie = wp_remote_retrieve_cookie( $response, 'test' );
+		$this->assertInstanceOf( 'WP_Http_Cookie', $cookie );
+		$this->assertSame( 'test', $cookie->name );
+		$this->assertSame( 'foo', $cookie->value );
+	}
+
+	/**
+	 * @ticket 37437
+	 */
+	function test_get_response_cookies_with_name_value_array() {
+		$url = 'http://example.org';
+
+		$response = wp_remote_get( $url, array(
+			'cookies' => array(
+				'test' => 'foo',
+			),
+		) );
+		$cookies  = wp_remote_retrieve_cookies( $response );
+
+		$this->assertNotEmpty( $cookies );
+
+		$cookie = wp_remote_retrieve_cookie( $response, 'test' );
+		$this->assertInstanceOf( 'WP_Http_Cookie', $cookie );
+		$this->assertSame( 'test', $cookie->name );
+		$this->assertSame( 'foo', $cookie->value );
+	}
 }

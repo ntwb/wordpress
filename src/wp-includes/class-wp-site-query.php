@@ -110,8 +110,8 @@ class WP_Site_Query {
 	 *                                           Default false.
 	 *     @type array        $date_query        Date query clauses to limit sites by. See WP_Date_Query.
 	 *                                           Default null.
-	 *     @type string       $fields            Site fields to return. Accepts 'ids' for site IDs only or empty
-	 *                                           for all fields. Default empty.
+	 *     @type string       $fields            Site fields to return. Accepts 'ids' (returns an array of site IDs)
+	 *                                           or empty (returns an array of complete site objects). Default empty.
 	 *     @type int          $ID                A site ID to only return that site. Default empty.
 	 *     @type int          $number            Maximum number of sites to retrieve. Default null (no limit).
 	 *     @type int          $offset            Number of sites to offset the query. Used to build LIMIT clause.
@@ -123,8 +123,8 @@ class WP_Site_Query {
 	 *                                           an empty array, or 'none' to disable `ORDER BY` clause.
 	 *                                           Default 'id'.
 	 *     @type string       $order             How to order retrieved sites. Accepts 'ASC', 'DESC'. Default 'ASC'.
-	 *     @type int          $network_id        Limit results to those affiliated with a given network ID.
-	 *                                           Default current network ID.
+	 *     @type int          $network_id        Limit results to those affiliated with a given network ID. If 0,
+	 *                                           include all networks. Default 0.
 	 *     @type array        $network__in       Array of network IDs to include affiliated sites for. Default empty.
 	 *     @type array        $network__not_in   Array of network IDs to exclude affiliated sites for. Default empty.
 	 *     @type string       $domain            Limit results to those affiliated with a given domain.
@@ -155,8 +155,8 @@ class WP_Site_Query {
 			'number'            => 100,
 			'offset'            => '',
 			'no_found_rows'     => true,
-			'orderby'           => 'ids',
-			'order'             => 'DESC',
+			'orderby'           => 'id',
+			'order'             => 'ASC',
 			'network_id'        => 0,
 			'network__in'       => '',
 			'network__not_in'   => '',
@@ -265,13 +265,15 @@ class WP_Site_Query {
 			$cache_value = array(
 				'site_ids' => $site_ids,
 				'found_sites' => $this->found_sites,
-				'max_num_pages' => $this->max_num_pages,
 			);
 			wp_cache_add( $cache_key, $cache_value, 'sites' );
 		} else {
 			$site_ids = $cache_value['site_ids'];
 			$this->found_sites = $cache_value['found_sites'];
-			$this->max_num_pages = $cache_value['max_num_pages'];
+		}
+
+		if ( $this->found_sites && $this->query_vars['number'] ) {
+			$this->max_num_pages = ceil( $this->found_sites / $this->query_vars['number'] );
 		}
 
 		// If querying for a count only, there's nothing more to do.
@@ -588,7 +590,6 @@ class WP_Site_Query {
 			$found_sites_query = apply_filters( 'found_sites_query', 'SELECT FOUND_ROWS()', $this );
 
 			$this->found_sites = (int) $wpdb->get_var( $found_sites_query );
-			$this->max_num_pages = ceil( $this->found_sites / $this->query_vars['number'] );
 		}
 	}
 

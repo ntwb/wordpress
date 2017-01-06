@@ -57,10 +57,18 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	}
 
 	public static function setUpBeforeClass() {
+		global $wpdb;
+
+		$wpdb->suppress_errors = false;
+		$wpdb->show_errors = true;
+		$wpdb->db_connect();
+		ini_set('display_errors', 1 );
+
 		parent::setUpBeforeClass();
 
 		$c = self::get_called_class();
 		if ( ! method_exists( $c, 'wpSetUpBeforeClass' ) ) {
+			self::commit_transaction();
 			return;
 		}
 
@@ -72,8 +80,12 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	public static function tearDownAfterClass() {
 		parent::tearDownAfterClass();
 
+		_delete_all_data();
+		self::flush_cache();
+
 		$c = self::get_called_class();
 		if ( ! method_exists( $c, 'wpTearDownAfterClass' ) ) {
+			self::commit_transaction();
 			return;
 		}
 
@@ -93,11 +105,8 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 			$this->_backup_hooks();
 		}
 
-		global $wpdb, $wp_rewrite;
-		$wpdb->suppress_errors = false;
-		$wpdb->show_errors = true;
-		$wpdb->db_connect();
-		ini_set('display_errors', 1 );
+		global $wp_rewrite;
+
 		$this->clean_up_global_scope();
 
 		/*
@@ -137,7 +146,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	 * After a test method runs, reset any state in WordPress the test method might have changed.
 	 */
 	function tearDown() {
-		global $wpdb, $wp_query, $wp, $post;
+		global $wpdb, $wp_query, $wp;
 		$wpdb->query( 'ROLLBACK' );
 		if ( is_multisite() ) {
 			while ( ms_is_switched() ) {
@@ -146,7 +155,13 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 		}
 		$wp_query = new WP_Query();
 		$wp = new WP();
-		$post = null;
+
+		// Reset globals related to the post loop and `setup_postdata()`.
+		$post_globals = array( 'post', 'id', 'authordata', 'currentday', 'currentmonth', 'page', 'pages', 'multipage', 'more', 'numpages' );
+		foreach ( $post_globals as $global ) {
+			$GLOBALS[ $global ] = null;
+		}
+
 		remove_theme_support( 'html5' );
 		remove_filter( 'query', array( $this, '_create_temporary_tables' ) );
 		remove_filter( 'query', array( $this, '_drop_temporary_tables' ) );
@@ -158,7 +173,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	function clean_up_global_scope() {
 		$_GET = array();
 		$_POST = array();
-		$this->flush_cache();
+		self::flush_cache();
 	}
 
 	/**
@@ -218,9 +233,13 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	 * @return void
 	 */
 	protected function _backup_hooks() {
-		$globals = array( 'merged_filters', 'wp_actions', 'wp_current_filter', 'wp_filter' );
+		$globals = array( 'wp_actions', 'wp_current_filter' );
 		foreach ( $globals as $key ) {
 			self::$hooks_saved[ $key ] = $GLOBALS[ $key ];
+		}
+		self::$hooks_saved['wp_filter'] = array();
+		foreach ( $GLOBALS['wp_filter'] as $hook_name => $hook_object ) {
+			self::$hooks_saved['wp_filter'][ $hook_name ] = clone $hook_object;
 		}
 	}
 
@@ -235,15 +254,21 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 	 * @return void
 	 */
 	protected function _restore_hooks() {
-		$globals = array( 'merged_filters', 'wp_actions', 'wp_current_filter', 'wp_filter' );
+		$globals = array( 'wp_actions', 'wp_current_filter' );
 		foreach ( $globals as $key ) {
 			if ( isset( self::$hooks_saved[ $key ] ) ) {
 				$GLOBALS[ $key ] = self::$hooks_saved[ $key ];
 			}
 		}
+		if ( isset( self::$hooks_saved['wp_filter'] ) ) {
+			$GLOBALS['wp_filter'] = array();
+			foreach ( self::$hooks_saved['wp_filter'] as $hook_name => $hook_object ) {
+				$GLOBALS['wp_filter'][ $hook_name ] = clone $hook_object;
+			}
+		}
 	}
 
-	function flush_cache() {
+	static function flush_cache() {
 		global $wp_object_cache;
 		$wp_object_cache->group_ops = array();
 		$wp_object_cache->stats = array();
@@ -445,7 +470,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 		$_SERVER['REQUEST_URI'] = $req;
 		unset($_SERVER['PATH_INFO']);
 
-		$this->flush_cache();
+		self::flush_cache();
 		unset($GLOBALS['wp_query'], $GLOBALS['wp_the_query']);
 		$GLOBALS['wp_the_query'] = new WP_Query();
 		$GLOBALS['wp_query'] = $GLOBALS['wp_the_query'];
@@ -572,6 +597,7 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 			'is_day',
 			'is_embed',
 			'is_feed',
+			'is_front_page',
 			'is_home',
 			'is_month',
 			'is_page',
@@ -590,6 +616,10 @@ class WP_UnitTestCase extends PHPUnit_Framework_TestCase {
 			'is_year',
 		);
 		$true = func_get_args();
+
+		foreach ( $true as $true_thing ) {
+			$this->assertContains( $true_thing, $all, "{$true_thing}() is not handled by assertQueryTrue()." );
+		}
 
 		$passed = true;
 		$not_false = $not_true = array(); // properties that were not set to expected values

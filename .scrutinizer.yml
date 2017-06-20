@@ -7,9 +7,4 @@ build:
       - composer require --dev wp-coding-standards/wpcs:dev-develop
   tests:
     override:
-      - phpcs-run
-tools:
-  php_code_sniffer:
-    enabled: true
-    config:
-      standard: "WordPress-Core"
+      - phpcs-run  --standard=WordPress-Core

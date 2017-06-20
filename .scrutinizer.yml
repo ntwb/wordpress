@@ -5,6 +5,9 @@ build:
   dependencies:
     before:
       - composer require --dev wp-coding-standards/wpcs:dev-develop
+  tests:
+    override:
+      - phpcs-run
 tools:
   php_code_sniffer:
     enabled: true

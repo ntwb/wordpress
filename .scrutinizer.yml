@@ -5,6 +5,7 @@ build:
   dependencies:
     before:
       - composer require --dev wp-coding-standards/wpcs:dev-develop
+tools:
   php_code_sniffer:
     enabled: true
     config:

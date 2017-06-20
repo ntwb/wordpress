@@ -3,6 +3,8 @@
 	<description>Apply WordPress Coding Standards to all Core files</description>
 
 	<rule ref="WordPress-Core" />
+	
+	<config name="installed_paths" value="/home/scrutinizer/build/vendor/wp-coding-standards/wpcs/" />
 
 	<arg name="extensions" value="php"/>
 
@@ -45,6 +47,6 @@
 	<exclude-pattern>/src/wp-includes/SimplePie/*</exclude-pattern>
 	<exclude-pattern>/src/wp-includes/Text/*</exclude-pattern>
 
-    <exclude-pattern>/tests/*</exclude-pattern>
-    <exclude-pattern>/tools/*</exclude-pattern>
+	<exclude-pattern>/tests/*</exclude-pattern>
+	<exclude-pattern>/tools/*</exclude-pattern>
 </ruleset>

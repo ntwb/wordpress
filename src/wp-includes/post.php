@@ -815,7 +815,7 @@ function register_post_status( $post_status, $args = array() ) {
 		$args->label = $post_status;
 
 	if ( false === $args->label_count )
-		$args->label_count = array( $args->label, $args->label );
+		$args->label_count = _n_noop( $args->label, $args->label );
 
 	$wp_post_statuses[$post_status] = $args;
 
@@ -2800,10 +2800,12 @@ function wp_untrash_post_comments( $post = null ) {
  *
  * @param int   $post_id Optional. The Post ID. Does not default to the ID of the
  *                       global $post. Default 0.
- * @param array $args    Optional. Category arguments. See wp_get_object_terms(). Default empty.
- * @return array List of categories. If the `$fields` argument passed via `$args` is 'all' or
- *               'all_with_object_id', an array of WP_Term objects will be returned. If `$fields`
- *               is 'ids', an array of category ids. If `$fields` is 'names', an array of category names.
+ * @param array $args    Optional. Category query parameters. Default empty array.
+ *                       See WP_Term_Query::__construct() for supported arguments.
+ * @return array|WP_Error List of categories. If the `$fields` argument passed via `$args` is 'all' or
+ *                        'all_with_object_id', an array of WP_Term objects will be returned. If `$fields`
+ *                        is 'ids', an array of category ids. If `$fields` is 'names', an array of category names.
+ *                        WP_Error object if 'category' taxonomy doesn't exist.
  */
 function wp_get_post_categories( $post_id = 0, $args = array() ) {
 	$post_id = (int) $post_id;
@@ -2826,8 +2828,10 @@ function wp_get_post_categories( $post_id = 0, $args = array() ) {
  *
  * @param int   $post_id Optional. The Post ID. Does not default to the ID of the
  *                       global $post. Default 0.
- * @param array $args Optional. Overwrite the defaults
- * @return array List of post tags.
+ * @param array $args    Optional. Tag query parameters. Default empty array.
+ *                       See WP_Term_Query::__construct() for supported arguments.
+ * @return array|WP_Error Array of WP_Term objects on success or empty array if no tags were found.
+ *                        WP_Error object if 'post_tag' taxonomy doesn't exist.
  */
 function wp_get_post_tags( $post_id = 0, $args = array() ) {
 	return wp_get_post_terms( $post_id, 'post_tag', $args);
@@ -2845,9 +2849,10 @@ function wp_get_post_tags( $post_id = 0, $args = array() ) {
  * @param int    $post_id  Optional. The Post ID. Does not default to the ID of the
  *                         global $post. Default 0.
  * @param string $taxonomy Optional. The taxonomy for which to retrieve terms. Default 'post_tag'.
- * @param array  $args     Optional. wp_get_object_terms() arguments. Default empty array.
- * @return array|WP_Error  List of post terms or empty array if no terms were found. WP_Error object
- *                         if `$taxonomy` doesn't exist.
+ * @param array  $args     Optional. Term query parameters. Default empty array.
+ *                         See WP_Term_Query::__construct() for supported arguments.
+ * @return array|WP_Error  Array of WP_Term objects on success or empty array if no terms were found.
+ *                         WP_Error object if `$taxonomy` doesn't exist.
  */
 function wp_get_post_terms( $post_id = 0, $taxonomy = 'post_tag', $args = array() ) {
 	$post_id = (int) $post_id;
@@ -4471,7 +4476,7 @@ function get_page_uri( $page = 0 ) {
 }
 
 /**
- * Retrieve a list of pages.
+ * Retrieve a list of pages (or hierarchical post type items).
  *
  * @global wpdb $wpdb WordPress database abstraction object.
  *
@@ -5932,7 +5937,9 @@ function _publish_post_hook( $post_id ) {
 		add_post_meta( $post_id, '_pingme', '1' );
 	add_post_meta( $post_id, '_encloseme', '1' );
 
-	wp_schedule_single_event(time(), 'do_pings');
+	if ( ! wp_next_scheduled( 'do_pings' ) ) {
+		wp_schedule_single_event( time(), 'do_pings' );
+	}
 }
 
 /**

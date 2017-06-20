@@ -808,7 +808,7 @@ function wp_user_settings() {
 		return;
 	}
 
-	if ( is_super_admin() && ! is_user_member_of_blog() ) {
+	if ( ! is_user_member_of_blog() ) {
 		return;
 	}
 
@@ -972,7 +972,7 @@ function wp_set_all_user_settings( $user_settings ) {
 		return false;
 	}
 
-	if ( is_super_admin() && ! is_user_member_of_blog() ) {
+	if ( ! is_user_member_of_blog() ) {
 		return;
 	}
 
@@ -1641,7 +1641,7 @@ function get_site_transient( $transient ) {
  * @see set_transient()
  *
  * @param string $transient  Transient name. Expected to not be SQL-escaped. Must be
- *                           40 characters or fewer in length.
+ *                           167 characters or fewer in length.
  * @param mixed  $value      Transient value. Expected to not be SQL-escaped.
  * @param int    $expiration Optional. Time until expiration in seconds. Default 0 (no expiration).
  * @return bool False if value was not set and true if value was set.
@@ -1871,6 +1871,7 @@ function register_initial_settings() {
  *     Data used to describe the setting when registered.
  *
  *     @type string   $type              The type of data associated with this setting.
+ *                                       Valid values are 'string', 'boolean', 'integer', and 'number'.
  *     @type string   $description       A description of the data attached to this setting.
  *     @type callable $sanitize_callback A callback function that sanitizes the option's value.
  *     @type bool     $show_in_rest      Whether data associated with this setting should be included in the REST API.
@@ -1913,12 +1914,22 @@ function register_setting( $option_group, $option_name, $args = array() ) {
 	}
 
 	if ( 'misc' == $option_group ) {
-		_deprecated_argument( __FUNCTION__, '3.0.0', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'misc' ) );
+		_deprecated_argument( __FUNCTION__, '3.0.0',
+			/* translators: %s: misc */
+			sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ),
+				'misc'
+			)
+		);
 		$option_group = 'general';
 	}
 
 	if ( 'privacy' == $option_group ) {
-		_deprecated_argument( __FUNCTION__, '3.5.0', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'privacy' ) );
+		_deprecated_argument( __FUNCTION__, '3.5.0',
+			/* translators: %s: privacy */
+			sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ),
+				'privacy'
+			)
+		);
 		$option_group = 'reading';
 	}
 
@@ -1949,12 +1960,22 @@ function unregister_setting( $option_group, $option_name, $deprecated = '' ) {
 	global $new_whitelist_options, $wp_registered_settings;
 
 	if ( 'misc' == $option_group ) {
-		_deprecated_argument( __FUNCTION__, '3.0.0', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'misc' ) );
+		_deprecated_argument( __FUNCTION__, '3.0.0',
+			/* translators: %s: misc */
+			sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ),
+				'misc'
+			)
+		);
 		$option_group = 'general';
 	}
 
 	if ( 'privacy' == $option_group ) {
-		_deprecated_argument( __FUNCTION__, '3.5.0', sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ), 'privacy' ) );
+		_deprecated_argument( __FUNCTION__, '3.5.0',
+			/* translators: %s: privacy */
+			sprintf( __( 'The "%s" options group has been removed. Use another settings group.' ),
+				'privacy'
+			)
+		);
 		$option_group = 'reading';
 	}
 
@@ -1963,7 +1984,13 @@ function unregister_setting( $option_group, $option_name, $deprecated = '' ) {
 		unset( $new_whitelist_options[ $option_group ][ $pos ] );
 	}
 	if ( '' !== $deprecated ) {
-		_deprecated_argument( __FUNCTION__, '4.7.0', __( '$sanitize_callback is deprecated. The callback from register_setting() is used instead.' ) );
+		_deprecated_argument( __FUNCTION__, '4.7.0',
+			/* translators: 1: $sanitize_callback, 2: register_setting() */
+			sprintf( __( '%1$s is deprecated. The callback from %2$s is used instead.' ),
+				'<code>$sanitize_callback</code>',
+				'<code>register_setting()</code>'
+			)
+		);
 		remove_filter( "sanitize_option_{$option_name}", $deprecated );
 	}
 

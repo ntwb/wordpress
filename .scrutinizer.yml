@@ -15,5 +15,5 @@ tools:
       standard: "WordPress-Core"
   php_analyzer:
     enabled: true  
-      extensions:
-        - php
+    extensions:
+      - php

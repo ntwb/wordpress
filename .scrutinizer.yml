@@ -1,5 +1,7 @@
 build:
+    environment:
+        php:
+            version: 7.0.20
     dependencies:
         before:
             - composer require --dev wp-coding-standards/wpcs:dev-develop
-            

@@ -7,5 +7,5 @@ build:
       - composer require --dev wp-coding-standards/wpcs:dev-develop
   php_code_sniffer:
     enabled: true
-      config:
-        standard: "WordPress-Core"
+    config:
+      standard: "WordPress-Core"

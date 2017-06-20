@@ -13,6 +13,7 @@ tools:
     enabled: true
     config:
       standard: "WordPress-Core"
+  php_cs_fixer: true 
   php_analyzer:
     enabled: true  
     extensions:

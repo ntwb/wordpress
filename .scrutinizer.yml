@@ -23,7 +23,7 @@ filter:
         - "vendor/*," 
         - "build/*,"
         - "node_modules/*,"
-        - "/src/wp-admin/includes/class-ftp*""
+        - "/src/wp-admin/includes/class-ftp*"
         - "/src/wp-admin/includes/class-ftp*"
         - "/src/wp-admin/includes/class-pclzip.php"
         - "/src/wp-admin/includes/deprecated.php"

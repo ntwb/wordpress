@@ -13,3 +13,7 @@ tools:
     enabled: true
     config:
       standard: "WordPress-Core"
+  php_analyzer:
+    enabled: true  
+      extensions:
+        - php

@@ -1,7 +1,7 @@
 build:
   environment:
     php:
-      version: 7.0.20
+      version: 7.0
   dependencies:
     before:
       - composer require --dev wp-coding-standards/wpcs:dev-develop
@@ -17,3 +17,36 @@ tools:
     enabled: true  
     extensions:
       - php
+filter:
+  paths: [src/*]
+  excluded_paths:
+        - "vendor/*," 
+        - "build/*,"
+        - "node_modules/*,"
+        - "/src/wp-admin/includes/class-ftp*""
+        - "/src/wp-admin/includes/class-ftp*"
+        - "/src/wp-admin/includes/class-pclzip.php"
+        - "/src/wp-admin/includes/deprecated.php"
+        - "/src/wp-admin/includes/ms-deprecated.php"
+        - "/src/wp-includes/atomlib.php"
+        - "/src/wp-includes/class-IXR.php"
+        - "/src/wp-includes/class-json.php"
+        - "/src/wp-includes/class-phpass.php"
+        - "/src/wp-includes/class-phpmailer.php"
+        - "/src/wp-includes/class-pop3.php"
+        - "/src/wp-includes/class-requests.php"
+        - "/src/wp-includes/class-simplepie.php"
+        - "/src/wp-includes/class-smtp.php"
+        - "/src/wp-includes/class-snoopy.php"
+        - "/src/wp-includes/deprecated.php"
+        - "/src/wp-includes/ms-deprecated.php"
+        - "/src/wp-includes/pluggable-deprecated.php"
+        - "/src/wp-includes/rss.php"
+        - "/src/wp-includes/ID3/*"
+        - "/src/wp-includes/IXR/*"
+        - "/src/wp-includes/random_compat/*"
+        - "/src/wp-includes/Requests/*"
+        - "/src/wp-includes/SimplePie/*"
+        - "/src/wp-includes/Text/*"
+        - "/tests/*"
+        - "/tools/*"

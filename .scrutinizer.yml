@@ -1,0 +1,5 @@
+build:
+    dependencies:
+        before:
+            - composer require --dev wp-coding-standards/wpcs:dev-develop
+            

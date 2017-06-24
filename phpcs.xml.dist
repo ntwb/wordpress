@@ -17,36 +17,36 @@
 		<exclude-pattern>*</exclude-pattern>
 	</rule>
 
-	<exclude-pattern>/build/*</exclude-pattern>
-	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>build/*</exclude-pattern>
+	<exclude-pattern>node_modules/*</exclude-pattern>
 
-	<exclude-pattern>/src/wp-admin/includes/class-ftp*</exclude-pattern>
-	<exclude-pattern>/src/wp-admin/includes/class-pclzip.php</exclude-pattern>
-	<exclude-pattern>/src/wp-admin/includes/deprecated.php</exclude-pattern>
-	<exclude-pattern>/src/wp-admin/includes/ms-deprecated.php</exclude-pattern>
+	<exclude-pattern>src/wp-admin/includes/class-ftp*</exclude-pattern>
+	<exclude-pattern>src/wp-admin/includes/class-pclzip.php</exclude-pattern>
+	<exclude-pattern>src/wp-admin/includes/deprecated.php</exclude-pattern>
+	<exclude-pattern>src/wp-admin/includes/ms-deprecated.php</exclude-pattern>
 
-	<exclude-pattern>/src/wp-includes/atomlib.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-IXR.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-json.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-phpass.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-phpmailer.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-pop3.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-requests.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-simplepie.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-smtp.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/class-snoopy.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/deprecated.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/ms-deprecated.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/pluggable-deprecated.php</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/rss.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/atomlib.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-IXR.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-json.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-phpass.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-phpmailer.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-pop3.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-requests.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-simplepie.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-smtp.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/class-snoopy.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/deprecated.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/ms-deprecated.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/pluggable-deprecated.php</exclude-pattern>
+	<exclude-pattern>src/wp-includes/rss.php</exclude-pattern>
 
-	<exclude-pattern>/src/wp-includes/ID3/*</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/IXR/*</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/random_compat/*</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/Requests/*</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/SimplePie/*</exclude-pattern>
-	<exclude-pattern>/src/wp-includes/Text/*</exclude-pattern>
+	<exclude-pattern>src/wp-includes/ID3/*</exclude-pattern>
+	<exclude-pattern>src/wp-includes/IXR/*</exclude-pattern>
+	<exclude-pattern>src/wp-includes/random_compat/*</exclude-pattern>
+	<exclude-pattern>src/wp-includes/Requests/*</exclude-pattern>
+	<exclude-pattern>src/wp-includes/SimplePie/*</exclude-pattern>
+	<exclude-pattern>src/wp-includes/Text/*</exclude-pattern>
 
-	<exclude-pattern>/tests/*</exclude-pattern>
-	<exclude-pattern>/tools/*</exclude-pattern>
+	<exclude-pattern>tests/*</exclude-pattern>
+	<exclude-pattern>tools/*</exclude-pattern>
 </ruleset>

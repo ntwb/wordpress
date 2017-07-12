@@ -10,8 +10,6 @@
  * The custom header image class.
  *
  * @since 2.1.0
- * @package WordPress
- * @subpackage Administration
  */
 class Custom_Image_Header {
 
@@ -1321,7 +1319,12 @@ wp_nonce_field( 'custom-header-options', '_wpnonce-custom-header-options' ); ?>
 	 * @param WP_Customize_Manager $wp_customize Customize manager.
 	 */
 	public function customize_set_last_used( $wp_customize ) {
-		$data = $wp_customize->get_setting( 'header_image_data' )->post_value();
+
+		$header_image_data_setting = $wp_customize->get_setting( 'header_image_data' );
+		if ( ! $header_image_data_setting ) {
+			return;
+		}
+		$data = $header_image_data_setting->post_value();
 
 		if ( ! isset( $data['attachment_id'] ) ) {
 			return;

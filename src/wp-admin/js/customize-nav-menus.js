@@ -2229,8 +2229,7 @@
 				}
 			} );
 
-			control.container.find( '.menu-delete-item' ).on( 'click', function( event ) {
-				event.stopPropagation();
+			control.container.find( '.menu-delete-item .button-link-delete' ).on( 'click', function( event ) {
 				event.preventDefault();
 				control.setting.set( false );
 			});
@@ -2852,7 +2851,7 @@
 		var insertedMenuIdMapping = {}, insertedMenuItemIdMapping = {};
 
 		_( data.nav_menu_updates ).each(function( update ) {
-			var oldCustomizeId, newCustomizeId, customizeId, oldSetting, newSetting, setting, settingValue, oldSection, newSection, wasSaved, widgetTemplate, navMenuCount;
+			var oldCustomizeId, newCustomizeId, customizeId, oldSetting, newSetting, setting, settingValue, oldSection, newSection, wasSaved, widgetTemplate, navMenuCount, shouldExpandNewSection;
 			if ( 'inserted' === update.status ) {
 				if ( ! update.previous_term_id ) {
 					throw new Error( 'Expected previous_term_id' );
@@ -2884,7 +2883,8 @@
 					previewer: api.previewer
 				} );
 
-				if ( oldSection.expanded() ) {
+				shouldExpandNewSection = oldSection.expanded();
+				if ( shouldExpandNewSection ) {
 					oldSection.collapse();
 				}
 
@@ -2959,8 +2959,7 @@
 					}
 				} );
 
-				if ( oldSection.expanded.get() ) {
-					// @todo This doesn't seem to be working.
+				if ( shouldExpandNewSection ) {
 					newSection.expand();
 				}
 			} else if ( 'updated' === update.status ) {

@@ -264,7 +264,7 @@ function wp_cache_add_non_persistent_groups( $groups ) {
  * @global WP_Object_Cache $wp_object_cache Object cache global instance.
  */
 function wp_cache_reset() {
-	_deprecated_function( __FUNCTION__, '3.5.0' );
+	_deprecated_function( __FUNCTION__, '3.5.0', 'WP_Object_Cache::reset()' );
 
 	global $wp_object_cache;
 
@@ -283,8 +283,6 @@ function wp_cache_reset() {
  * in the wp-content folder which is looked at in wp-settings. If that file
  * exists, then this file will not be included.
  *
- * @package WordPress
- * @subpackage Cache
  * @since 2.0.0
  */
 class WP_Object_Cache {

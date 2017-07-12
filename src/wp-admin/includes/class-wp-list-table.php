@@ -656,7 +656,7 @@ class WP_List_Table {
 
 		// No comments at all.
 		if ( ! $approved_comments && ! $pending_comments ) {
-			printf( '<span aria-hidden="true">—</span><span class="screen-reader-text">%s</span>',
+			printf( '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">%s</span>',
 				__( 'No comments' )
 			);
 		// Approved comments have different display depending on some conditions.
@@ -845,7 +845,7 @@ class WP_List_Table {
 
 		$pagination_links_class = 'pagination-links';
 		if ( ! empty( $infinite_scroll ) ) {
-			$pagination_links_class = ' hide-if-js';
+			$pagination_links_class .= ' hide-if-js';
 		}
 		$output .= "\n<span class='$pagination_links_class'>" . join( "\n", $page_links ) . '</span>';
 

@@ -17,6 +17,11 @@
  * set for a longer period depending on if the 'remember' credential is set to
  * true.
  *
+ * Note: wp_signon() doesn't handle setting the current user. This means that if the
+ * function is called before the {@see 'init'} hook is fired, is_user_logged_in() will
+ * evaluate as false until that point. If is_user_logged_in() is needed in conjunction
+ * with wp_signon(), wp_set_current_user() should be called explicitly.
+ *
  * @since 2.5.0
  *
  * @global string $auth_secure_cookie
@@ -1637,6 +1642,34 @@ function wp_insert_user( $userdata ) {
 	$compacted = compact( 'user_pass', 'user_email', 'user_url', 'user_nicename', 'display_name', 'user_registered' );
 	$data = wp_unslash( $compacted );
 
+	if ( ! $update ) {
+		$data = $data + compact( 'user_login' );
+	}
+
+	/**
+	 * Filters user data before the record is created or updated.
+	 *
+	 * It only includes data in the wp_users table wp_user, not any user metadata.
+	 *
+	 * @since 4.9.0
+	 *
+	 * @param array    $data {
+	 *     Values and keys for the user.
+	 *
+	 *     @type string $user_login      The user's login. Only included if $update == false
+	 *     @type string $user_pass       The user's password.
+	 *     @type string $user_email      The user's email.
+	 *     @type string $user_url        The user's url.
+	 *     @type string $user_nicename   The user's nice name. Defaults to a URL-safe version of user's login
+	 *     @type string $display_name    The user's display name.
+	 *     @type string $user_registered MySQL timestamp describing the moment when the user registered. Defaults to
+	 *                                   the current UTC timestamp.
+	 * }
+	 * @param bool     $update Whether the user is being updated rather than created.
+	 * @param int|null $id     ID of the user to be updated, or NULL if the user is being created.
+	 */
+	$data = apply_filters( 'wp_pre_insert_user_data', $data, $update, $update ? (int) $ID : null );
+
 	if ( $update ) {
 		if ( $user_email !== $old_user_data->user_email ) {
 			$data['user_activation_key'] = '';
@@ -1644,7 +1677,7 @@ function wp_insert_user( $userdata ) {
 		$wpdb->update( $wpdb->users, $data, compact( 'ID' ) );
 		$user_id = (int) $ID;
 	} else {
-		$wpdb->insert( $wpdb->users, $data + compact( 'user_login' ) );
+		$wpdb->insert( $wpdb->users, $data );
 		$user_id = (int) $wpdb->insert_id;
 	}
 

@@ -247,9 +247,9 @@ function get_permalink( $post = 0, $leavename = false ) {
  *
  * @global WP_Rewrite $wp_rewrite
  *
- * @param int $id         Optional. Post ID. Default uses the global `$post`.
- * @param bool $leavename Optional, defaults to false. Whether to keep post name. Default false.
- * @param bool $sample    Optional, defaults to false. Is it a sample permalink. Default false.
+ * @param int|WP_Post $id        Optional. Post ID or post object. Default is the global `$post`.
+ * @param bool        $leavename Optional, defaults to false. Whether to keep post name. Default false.
+ * @param bool        $sample    Optional, defaults to false. Is it a sample permalink. Default false.
  * @return string|WP_Error The post permalink.
  */
 function get_post_permalink( $id = 0, $leavename = false, $sample = false ) {
@@ -264,12 +264,12 @@ function get_post_permalink( $id = 0, $leavename = false, $sample = false ) {
 
 	$slug = $post->post_name;
 
-	$draft_or_pending = get_post_status( $id ) && in_array( get_post_status( $id ), array( 'draft', 'pending', 'auto-draft', 'future' ) );
+	$draft_or_pending = get_post_status( $post ) && in_array( get_post_status( $post ), array( 'draft', 'pending', 'auto-draft', 'future' ) );
 
 	$post_type = get_post_type_object($post->post_type);
 
 	if ( $post_type->hierarchical ) {
-		$slug = get_page_uri( $id );
+		$slug = get_page_uri( $post );
 	}
 
 	if ( !empty($post_link) && ( !$draft_or_pending || $sample ) ) {
@@ -1262,8 +1262,8 @@ function get_preview_post_link( $post = null, $query_args = array(), $preview_li
  *
  * @since 2.3.0
  *
- * @param int    $id      Optional. Post ID. Default is the ID of the global `$post`.
- * @param string $context Optional. How to output the '&' character. Default '&amp;'.
+ * @param int|WP_Post $id      Optional. Post ID or post object. Default is the global `$post`.
+ * @param string      $context Optional. How to output the '&' character. Default '&amp;'.
  * @return string|null The edit post link for the given post. null if the post type is invalid or does
  *                     not allow an editing UI.
  */
@@ -1310,11 +1310,11 @@ function get_edit_post_link( $id = 0, $context = 'display' ) {
  * @since 1.0.0
  * @since 4.4.0 The `$class` argument was added.
  *
- * @param string $text   Optional. Anchor text. If null, default is 'Edit This'. Default null.
- * @param string $before Optional. Display before edit link. Default empty.
- * @param string $after  Optional. Display after edit link. Default empty.
- * @param int    $id     Optional. Post ID. Default is the ID of the global `$post`.
- * @param string $class  Optional. Add custom class to link. Default 'post-edit-link'.
+ * @param string      $text   Optional. Anchor text. If null, default is 'Edit This'. Default null.
+ * @param string      $before Optional. Display before edit link. Default empty.
+ * @param string      $after  Optional. Display after edit link. Default empty.
+ * @param int|WP_Post $id     Optional. Post ID or post object. Default is the global `$post`.
+ * @param string      $class  Optional. Add custom class to link. Default 'post-edit-link'.
  */
 function edit_post_link( $text = null, $before = '', $after = '', $id = 0, $class = 'post-edit-link' ) {
 	if ( ! $post = get_post( $id ) ) {
@@ -1350,9 +1350,9 @@ function edit_post_link( $text = null, $before = '', $after = '', $id = 0, $clas
  *
  * @since 2.9.0
  *
- * @param int    $id           Optional. Post ID. Default is the ID of the global `$post`.
- * @param string $deprecated   Not used.
- * @param bool   $force_delete Optional. Whether to bypass trash and force deletion. Default false.
+ * @param int|WP_Post $id           Optional. Post ID or post object. Default is the global `$post`.
+ * @param string      $deprecated   Not used.
+ * @param bool        $force_delete Optional. Whether to bypass trash and force deletion. Default false.
  * @return string|void The delete post link URL for the given post.
  */
 function get_delete_post_link( $id = 0, $deprecated = '', $force_delete = false ) {
@@ -1932,7 +1932,7 @@ function get_boundary_post( $in_same_term = false, $excluded_terms = '', $start 
  * @since 3.7.0
  *
  * @param string       $format         Optional. Link anchor format. Default '&laquo; %link'.
- * @param string       $link           Optional. Link permalink format. Default '%title%'.
+ * @param string       $link           Optional. Link permalink format. Default '%title'.
  * @param bool         $in_same_term   Optional. Whether link should be in a same taxonomy term. Default false.
  * @param array|string $excluded_terms Optional. Array or comma-separated list of excluded term IDs. Default empty.
  * @param string       $taxonomy       Optional. Taxonomy, if $in_same_term is true. Default 'category'.

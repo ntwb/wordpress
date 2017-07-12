@@ -23,10 +23,6 @@ function get_header( $name = null ) {
 	/**
 	 * Fires before the header template file is loaded.
 	 *
-	 * The hook allows a specific header template file to be used in place of the
-	 * default header template file. If your file is called header-new.php,
-	 * you would specify the filename in the hook as get_header( 'new' ).
-	 *
 	 * @since 2.1.0
 	 * @since 2.8.0 $name parameter added.
 	 *
@@ -61,10 +57,6 @@ function get_header( $name = null ) {
 function get_footer( $name = null ) {
 	/**
 	 * Fires before the footer template file is loaded.
-	 *
-	 * The hook allows a specific footer template file to be used in place of the
-	 * default footer template file. If your file is called footer-new.php,
-	 * you would specify the filename in the hook as get_footer( 'new' ).
 	 *
 	 * @since 2.1.0
 	 * @since 2.8.0 $name parameter added.
@@ -101,10 +93,6 @@ function get_sidebar( $name = null ) {
 	/**
 	 * Fires before the sidebar template file is loaded.
 	 *
-	 * The hook allows a specific sidebar template file to be used in place of the
-	 * default sidebar template file. If your file is called sidebar-new.php,
-	 * you would specify the filename in the hook as get_sidebar( 'new' ).
-	 *
 	 * @since 2.2.0
 	 * @since 2.8.0 $name parameter added.
 	 *
@@ -123,10 +111,10 @@ function get_sidebar( $name = null ) {
 }
 
 /**
- * Load a template part into a template
+ * Loads a template part into a template.
  *
- * Makes it easy for a theme to reuse sections of code in a easy to overload way
- * for child themes.
+ * Provides a simple mechanism for child themes to overload reusable sections of code
+ * in the theme.
  *
  * Includes the named template part for a theme or if a name is specified then a
  * specialised part will be included. If the theme contains no {slug}.php file
@@ -1552,10 +1540,11 @@ function the_archive_description( $before = '', $after = '' ) {
 }
 
 /**
- * Retrieve category, tag, term, or author description.
+ * Retrieves the description for an author, post type, or term archive.
  *
  * @since 4.1.0
  * @since 4.7.0 Added support for author archives.
+ * @since 4.9.0 Added support for post type archives.
  *
  * @see term_description()
  *
@@ -1564,6 +1553,21 @@ function the_archive_description( $before = '', $after = '' ) {
 function get_the_archive_description() {
 	if ( is_author() ) {
 		$description = get_the_author_meta( 'description' );
+	} elseif ( is_post_type_archive() ) {
+		$post_type = get_query_var( 'post_type' );
+
+		if ( is_array( $post_type ) ) {
+			$post_type = reset( $post_type );
+		}
+
+		$post_type_obj = get_post_type_object( $post_type );
+
+		// Check if a description is set.
+		if ( isset( $post_type_obj->description ) ) {
+			$description = $post_type_obj->description;
+		} else {
+			$description = '';
+		}
 	} else {
 		$description = term_description();
 	}
@@ -2313,10 +2317,10 @@ function get_the_modified_date( $d = '', $post = null ) {
 	 * @since 2.1.0
 	 * @since 4.6.0 Added the `$post` parameter.
 	 *
-	 * @param string  $the_time The formatted date.
-	 * @param string  $d        PHP date format. Defaults to value specified in
-	 *                          'date_format' option.
-	 * @param WP_Post $post     WP_Post object.
+	 * @param string|bool  $the_time The formatted date or false if no post is found.
+	 * @param string       $d        PHP date format. Defaults to value specified in
+	 *                               'date_format' option.
+	 * @param WP_Post|null $post     WP_Post object or null if no post is found.
 	 */
 	return apply_filters( 'get_the_modified_date', $the_time, $d, $post );
 }
@@ -2468,11 +2472,11 @@ function get_the_modified_time( $d = '', $post = null ) {
 	 * @since 2.0.0
 	 * @since 4.6.0 Added the `$post` parameter.
 	 *
-	 * @param string $the_time The formatted time.
-	 * @param string $d        Format to use for retrieving the time the post was
-	 *                         written. Accepts 'G', 'U', or php date format. Defaults
-	 *                         to value specified in 'time_format' option.
-	 * @param WP_Post $post    WP_Post object.
+	 * @param string|bool  $the_time The formatted time or false if no post is found.
+	 * @param string       $d        Format to use for retrieving the time the post was
+	 *                               written. Accepts 'G', 'U', or php date format. Defaults
+	 *                               to value specified in 'time_format' option.
+	 * @param WP_Post|null $post     WP_Post object or null if no post is found.
 	 */
 	return apply_filters( 'get_the_modified_time', $the_time, $d, $post );
 }

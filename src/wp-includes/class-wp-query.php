@@ -202,7 +202,7 @@ class WP_Query {
 	public $max_num_comment_pages = 0;
 
 	/**
-	 * Set if query is single post.
+	 * Signifies whether the current query is for a single post.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -211,7 +211,7 @@ class WP_Query {
 	public $is_single = false;
 
 	/**
-	 * Set if query is preview of blog.
+	 * Signifies whether the current query is for a preview.
 	 *
 	 * @since 2.0.0
 	 * @access public
@@ -220,7 +220,7 @@ class WP_Query {
 	public $is_preview = false;
 
 	/**
-	 * Set if query returns a page.
+	 * Signifies whether the current query is for a page.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -229,7 +229,7 @@ class WP_Query {
 	public $is_page = false;
 
 	/**
-	 * Set if query is an archive list.
+	 * Signifies whether the current query is for an archive.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -238,7 +238,7 @@ class WP_Query {
 	public $is_archive = false;
 
 	/**
-	 * Set if query is part of a date.
+	 * Signifies whether the current query is for a date archive.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -247,7 +247,7 @@ class WP_Query {
 	public $is_date = false;
 
 	/**
-	 * Set if query contains a year.
+	 * Signifies whether the current query is for a year archive.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -256,7 +256,7 @@ class WP_Query {
 	public $is_year = false;
 
 	/**
-	 * Set if query contains a month.
+	 * Signifies whether the current query is for a month archive.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -265,7 +265,7 @@ class WP_Query {
 	public $is_month = false;
 
 	/**
-	 * Set if query contains a day.
+	 * Signifies whether the current query is for a day archive.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -274,7 +274,7 @@ class WP_Query {
 	public $is_day = false;
 
 	/**
-	 * Set if query contains time.
+	 * Signifies whether the current query is for a specific time.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -283,7 +283,7 @@ class WP_Query {
 	public $is_time = false;
 
 	/**
-	 * Set if query contains an author.
+	 * Signifies whether the current query is for an author archive.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -292,7 +292,7 @@ class WP_Query {
 	public $is_author = false;
 
 	/**
-	 * Set if query contains category.
+	 * Signifies whether the current query is for a category archive.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -301,7 +301,7 @@ class WP_Query {
 	public $is_category = false;
 
 	/**
-	 * Set if query contains tag.
+	 * Signifies whether the current query is for a tag archive.
 	 *
 	 * @since 2.3.0
 	 * @access public
@@ -310,7 +310,7 @@ class WP_Query {
 	public $is_tag = false;
 
 	/**
-	 * Set if query contains taxonomy.
+	 * Signifies whether the current query is for a taxonomy archive.
 	 *
 	 * @since 2.5.0
 	 * @access public
@@ -319,7 +319,7 @@ class WP_Query {
 	public $is_tax = false;
 
 	/**
-	 * Set if query was part of a search result.
+	 * Signifies whether the current query is for a search.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -328,7 +328,7 @@ class WP_Query {
 	public $is_search = false;
 
 	/**
-	 * Set if query is feed display.
+	 * Signifies whether the current query is for a feed.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -337,7 +337,7 @@ class WP_Query {
 	public $is_feed = false;
 
 	/**
-	 * Set if query is comment feed display.
+	 * Signifies whether the current query is for a comment feed.
 	 *
 	 * @since 2.2.0
 	 * @access public
@@ -346,7 +346,7 @@ class WP_Query {
 	public $is_comment_feed = false;
 
 	/**
-	 * Set if query is trackback.
+	 * Signifies whether the current query is for trackback endpoint call.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -355,7 +355,7 @@ class WP_Query {
 	public $is_trackback = false;
 
 	/**
-	 * Set if query is blog homepage.
+	 * Signifies whether the current query is for the site homepage.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -364,7 +364,7 @@ class WP_Query {
 	public $is_home = false;
 
 	/**
-	 * Set if query couldn't found anything.
+	 * Signifies whether the current query couldn't find anything.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -373,7 +373,7 @@ class WP_Query {
 	public $is_404 = false;
 
 	/**
-	 * Set if query is embed.
+	 * Signifies whether the current query is for an embed.
 	 *
 	 * @since 4.4.0
 	 * @access public
@@ -382,7 +382,7 @@ class WP_Query {
 	public $is_embed = false;
 
 	/**
-	 * Set if query is paged
+	 * Signifies whether the current query is for a paged result and not for the first page.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -391,7 +391,7 @@ class WP_Query {
 	public $is_paged = false;
 
 	/**
-	 * Set if query is part of administration page.
+	 * Signifies whether the current query is for an administrative interface page.
 	 *
 	 * @since 1.5.0
 	 * @access public
@@ -400,7 +400,7 @@ class WP_Query {
 	public $is_admin = false;
 
 	/**
-	 * Set if query is an attachment.
+	 * Signifies whether the current query is for an attachment page.
 	 *
 	 * @since 2.0.0
 	 * @access public
@@ -409,7 +409,8 @@ class WP_Query {
 	public $is_attachment = false;
 
 	/**
-	 * Set if is single, is a page, or is an attachment.
+	 * Signifies whether the current query is for an existing single post of any post type
+	 * (post, attachment, page, custom post types).
 	 *
 	 * @since 2.1.0
 	 * @access public
@@ -418,7 +419,7 @@ class WP_Query {
 	public $is_singular = false;
 
 	/**
-	 * Set if query is for robots.
+	 * Signifies whether the current query is for the robots.txt file.
 	 *
 	 * @since 2.1.0
 	 * @access public
@@ -427,7 +428,7 @@ class WP_Query {
 	public $is_robots = false;
 
 	/**
-	 * Set if query contains posts.
+	 * Signifies whether the current query is for the page_for_posts page.
 	 *
 	 * Basically, the homepage if the option isn't set for the static homepage.
 	 *
@@ -438,7 +439,7 @@ class WP_Query {
 	public $is_posts_page = false;
 
 	/**
-	 * Set if query is for a post type archive.
+	 * Signifies whether the current query is for a post type archive.
 	 *
 	 * @since 3.1.0
 	 * @access public
@@ -640,6 +641,7 @@ class WP_Query {
 	 *              Introduced the `$comment_status` and `$ping_status` parameters.
 	 *              Introduced `RAND(x)` syntax for `$orderby`, which allows an integer seed value to random sorts.
 	 * @since 4.6.0 Added 'post_name__in' support for `$orderby`. Introduced the `$lazy_load_term_meta` argument.
+	 * @since 4.9.0 Introduced the `$comment_count` parameter.
 	 * @access public
 	 *
 	 * @param string|array $query {
@@ -656,6 +658,10 @@ class WP_Query {
 	 *     @type array        $category__in            An array of category IDs (OR in, no children).
 	 *     @type array        $category__not_in        An array of category IDs (NOT in).
 	 *     @type string       $category_name           Use category slug (not name, this or any children).
+	 *     @type array|int    $comment_count           Filter results by comment count. Provide an integer to match
+	 *                                                 comment count exactly. Provide an array with integer 'value'
+	 *                                                 and 'compare' operator ('=', '!=', '>', '>=', '<', '<=' ) to
+	 *                                                 compare against comment_count in a specific way.
 	 *     @type string       $comment_status          Comment status.
 	 *     @type int          $comments_per_page       The number of comments to return per page.
 	 *                                                 Default 'comments_per_page' option.
@@ -1440,7 +1446,12 @@ class WP_Query {
 	}
 
 	/**
-	 * Generate SQL for the ORDER BY condition based on passed search terms.
+	 * Generates SQL for the ORDER BY condition based on passed search terms.
+	 *
+	 * @since 3.7.0
+	 * @access protected
+	 *
+	 * @global wpdb $wpdb WordPress database abstraction object.
 	 *
 	 * @param array $q Query variables.
 	 * @return string ORDER BY clause.
@@ -2132,6 +2143,30 @@ class WP_Query {
 			if ( $q['author'] )
 				$q['author'] = $q['author']->ID;
 			$whichauthor .= " AND ({$wpdb->posts}.post_author = " . absint($q['author']) . ')';
+		}
+
+		// Matching by comment count.
+		if ( isset( $q['comment_count'] ) ) {
+			// Numeric comment count is converted to array format.
+			if ( is_numeric( $q['comment_count'] ) ) {
+				$q['comment_count'] = array(
+					'value' => intval( $q['comment_count'] ),
+				);
+			}
+
+			if ( isset( $q['comment_count']['value'] ) ) {
+				$q['comment_count'] = array_merge( array(
+					'compare' => '=',
+				), $q['comment_count'] );
+
+				// Fallback for invalid compare operators is '='.
+				$compare_operators = array( '=', '!=', '>', '>=', '<', '<=' );
+				if ( ! in_array( $q['comment_count']['compare'], $compare_operators, true ) ) {
+					$q['comment_count']['compare'] = '=';
+				}
+
+				$where .= $wpdb->prepare( " AND {$wpdb->posts}.comment_count {$q['comment_count']['compare']} %d", $q['comment_count']['value'] );
+			}
 		}
 
 		// MIME-Type stuff for attachment browsing
@@ -3144,6 +3179,15 @@ class WP_Query {
 			do_action_ref_array( 'loop_end', array( &$this ) );
 			// Do some cleaning up after the loop
 			$this->rewind_posts();
+		} elseif ( 0 === $this->post_count ) {
+			/**
+			 * Fires if no results are found in a post query.
+			 *
+			 * @since 4.9.0
+			 *
+			 * @param WP_Query $this The WP_Query instance.
+			 */
+			do_action( 'loop_no_results', $this );
 		}
 
 		$this->in_the_loop = false;

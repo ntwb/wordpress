@@ -281,7 +281,18 @@ class WP_Users_List_Table extends WP_List_Table {
 		 * @param string $which The location of the extra table nav markup: 'top' or 'bottom'.
 		 */
 		do_action( 'restrict_manage_users', $which );
-		echo '</div>';
+	?>
+		</div>
+	<?php
+		/**
+		 * Fires immediately following the closing "actions" div in the tablenav for the users
+		 * list table.
+		 *
+		 * @since 4.9.0
+		 *
+		 * @param string $which The location of the extra table nav markup: 'top' or 'bottom'.
+		 */
+		do_action( 'manage_users_extra_tablenav', $which );
 	}
 
 	/**
@@ -414,6 +425,17 @@ class WP_Users_List_Table extends WP_List_Table {
 			if ( is_multisite() && get_current_user_id() != $user_object->ID && current_user_can( 'remove_user', $user_object->ID ) )
 				$actions['remove'] = "<a class='submitdelete' href='" . wp_nonce_url( $url."action=remove&amp;user=$user_object->ID", 'bulk-users' ) . "'>" . __( 'Remove' ) . "</a>";
 
+			// Add a link to the user's author archive, if not empty.
+			if ( $author_posts_url = get_author_posts_url( $user_object->ID ) ) {
+				$actions['view'] = sprintf(
+					'<a href="%s" aria-label="%s">%s</a>',
+					esc_url( $author_posts_url ),
+					/* translators: %s: author's display name */
+					esc_attr( sprintf( __( 'View posts by %s' ), $user_object->display_name ) ),
+					__( 'View' )
+				);
+			}
+
 			/**
 			 * Filters the action links displayed under each user in the Users list table.
 			 *
@@ -471,7 +493,11 @@ class WP_Users_List_Table extends WP_List_Table {
 						$r .= "$avatar $edit";
 						break;
 					case 'name':
-						$r .= "$user_object->first_name $user_object->last_name";
+						if ( $user_object->first_name && $user_object->last_name ) {
+							$r .= "$user_object->first_name $user_object->last_name";
+						} else {
+							$r .= '<span aria-hidden="true">&#8212;</span><span class="screen-reader-text">' . _x( 'Unknown', 'name' ) . '</span>';
+						}
 						break;
 					case 'email':
 						$r .= "<a href='" . esc_url( "mailto:$email" ) . "'>$email</a>";

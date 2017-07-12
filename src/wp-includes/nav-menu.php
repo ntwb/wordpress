@@ -12,7 +12,7 @@
  *
  * @since 3.0.0
  *
- * @param int|string|WP_Term $menu Menu ID, slug, or name - or the menu object.
+ * @param int|string|WP_Term $menu Menu ID, slug, name, or object.
  * @return WP_Term|false False if $menu param isn't supplied or term does not exist, menu object if successful.
  */
 function wp_get_nav_menu_object( $menu ) {
@@ -43,8 +43,8 @@ function wp_get_nav_menu_object( $menu ) {
 	 *
 	 * @since 4.3.0
 	 *
-	 * @param object|false $menu_obj Term from nav_menu taxonomy, or false if nothing had been found.
-	 * @param string       $menu     The menu ID, slug, or name passed to wp_get_nav_menu_object().
+	 * @param WP_Term|false      $menu_obj Term from nav_menu taxonomy, or false if nothing had been found.
+	 * @param int|string|WP_Term $menu     The menu ID, slug, name, or object passed to wp_get_nav_menu_object().
 	 */
 	return apply_filters( 'wp_get_nav_menu_object', $menu_obj, $menu );
 }
@@ -56,7 +56,7 @@ function wp_get_nav_menu_object( $menu ) {
  *
  * @since 3.0.0
  *
- * @param int|string $menu The menu to check (ID, slug, or name).
+ * @param int|string|WP_Term $menu Menu ID, slug, name, or object of menu to check.
  * @return bool Whether the menu exists.
  */
 function is_nav_menu( $menu ) {
@@ -216,7 +216,7 @@ function wp_create_nav_menu( $menu_name ) {
  *
  * @since 3.0.0
  *
- * @param string $menu Menu ID, slug, or name.
+ * @param int|string|WP_Term $menu Menu ID, slug, name, or object.
  * @return bool|WP_Error True on success, false or WP_Error object on failure.
  */
 function wp_delete_nav_menu( $menu ) {
@@ -574,15 +574,35 @@ function _is_valid_nav_menu_item( $item ) {
 }
 
 /**
- * Return all menu items of a navigation menu.
+ * Retrieves all menu items of a navigation menu.
+ *
+ * Note: Most arguments passed to the `$args` parameter – save for 'output_key' – are
+ * specifically for retrieving nav_menu_item posts from get_posts() and may only
+ * indirectly affect the ultimate ordering and content of the resulting nav menu
+ * items that get returned from this function.
  *
  * @since 3.0.0
  *
  * @global string $_menu_item_sort_prop
  * @staticvar array $fetched
  *
- * @param string $menu Menu name, ID, or slug.
- * @param array  $args Optional. Arguments to pass to get_posts().
+ * @param int|string|WP_Term $menu Menu ID, slug, name, or object.
+ * @param array              $args {
+ *     Optional. Arguments to pass to get_posts().
+ *
+ *     @type string $order       How to order nav menu items as queried with get_posts(). Will be ignored
+ *                               if 'output' is ARRAY_A. Default 'ASC'.
+ *     @type string $orderby     Field to order menu items by as retrieved from get_posts(). Supply an orderby
+ *                               field via 'output_key' to affect the output order of nav menu items.
+ *                               Default 'menu_order'.
+ *     @type string $post_type   Menu items post type. Default 'nav_menu_item'.
+ *     @type string $post_status Menu items post status. Default 'publish'.
+ *     @type string $output      How to order outputted menu items. Default ARRAY_A.
+ *     @type string $output_key  Key to use for ordering the actual menu items that get returned. Note that
+ *                               that is not a get_posts() argument and will only affect output of menu items
+ *                               processed in this function. Default 'menu_order'.
+ *     @type bool   $nopaging    Whether to retrieve all menu items (true) or paginate (false). Default true.
+ * }
  * @return false|array $items Array of menu items, otherwise false.
  */
 function wp_get_nav_menu_items( $menu, $args = array() ) {

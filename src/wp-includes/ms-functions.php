@@ -1152,13 +1152,13 @@ function wpmu_create_user( $user_name, $password, $email ) {
  *                        'spam', 'deleted', or 'lang_id') the given site status(es) will be
  *                        updated. Otherwise, keys and values will be used to set options for
  *                        the new site. Default empty array.
- * @param int    $site_id Optional. Only relevant on multi-network installs.
- * @return int|WP_Error Returns WP_Error object on failure, int $blog_id on success
+ * @param int    $site_id Optional. Network ID. Only relevant on multi-network installs.
+ * @return int|WP_Error Returns WP_Error object on failure, the new site ID on success.
  */
 function wpmu_create_blog( $domain, $path, $title, $user_id, $meta = array(), $site_id = 1 ) {
 	$defaults = array(
 		'public' => 0,
-		'WPLANG' => get_site_option( 'WPLANG' ),
+		'WPLANG' => get_network_option( $site_id, 'WPLANG' ),
 	);
 	$meta = wp_parse_args( $meta, $defaults );
 
@@ -1208,11 +1208,11 @@ function wpmu_create_blog( $domain, $path, $title, $user_id, $meta = array(), $s
 	 *
 	 * @since MU
 	 *
-	 * @param int    $blog_id Blog ID.
+	 * @param int    $blog_id Site ID.
 	 * @param int    $user_id User ID.
 	 * @param string $domain  Site domain.
 	 * @param string $path    Site path.
-	 * @param int    $site_id Site ID. Only relevant on multi-network installs.
+	 * @param int    $site_id Network ID. Only relevant on multi-network installs.
 	 * @param array  $meta    Meta data. Used to set initial site options.
 	 */
 	do_action( 'wpmu_new_blog', $blog_id, $user_id, $domain, $path, $site_id, $meta );
@@ -2556,4 +2556,89 @@ function get_subdirectory_reserved_names() {
 	 * @param array $subdirectory_reserved_names Array of reserved names.
 	 */
 	return apply_filters( 'subdirectory_reserved_names', $names );
+}
+
+/**
+ * Send an email to the old network admin email address when the network admin email address changes.
+ *
+ * @since 4.9.0
+ *
+ * @param string $option_name The relevant database option name.
+ * @param string $new_email   The new network admin email address.
+ * @param string $old_email   The old network admin email address.
+ * @param int    $network_id  ID of the network.
+ */
+function wp_network_admin_email_change_notification( $option_name, $new_email, $old_email, $network_id ) {
+	/**
+	 * Filters whether to send the network admin email change notification email.
+	 *
+	 * @since 4.9.0
+	 *
+	 * @param bool   $send       Whether to send the email notification.
+	 * @param string $old_email  The old network admin email address.
+	 * @param string $new_email  The new network admin email address.
+	 * @param int    $network_id ID of the network.
+	 */
+	$send = apply_filters( 'send_network_admin_email_change_email', true, $old_email, $new_email, $network_id );
+
+	if ( ! $send ) {
+		return;
+	}
+
+	/* translators: Do not translate OLD_EMAIL, NEW_EMAIL, SITENAME, SITEURL: those are placeholders. */
+	$email_change_text = __( 'Hi,
+
+This notice confirms that the network admin email address was changed on ###SITENAME###.
+
+The new network admin email address is ###NEW_EMAIL###.
+
+This email has been sent to ###OLD_EMAIL###
+
+Regards,
+All at ###SITENAME###
+###SITEURL###' );
+
+	$email_change_email = array(
+		'to'      => $old_email,
+		/* translators: Network admin email change notification email subject. %s: Network title */
+		'subject' => __( '[%s] Notice of Network Admin Email Change' ),
+		'message' => $email_change_text,
+		'headers' => '',
+	);
+	// get network name
+	$network_name = wp_specialchars_decode( get_site_option( 'site_name' ), ENT_QUOTES );
+
+	/**
+	 * Filters the contents of the email notification sent when the network admin email address is changed.
+	 *
+	 * @since 4.9.0
+	 *
+	 * @param array $email_change_email {
+	 *            Used to build wp_mail().
+	 *
+	 *            @type string $to      The intended recipient.
+	 *            @type string $subject The subject of the email.
+	 *            @type string $message The content of the email.
+	 *                The following strings have a special meaning and will get replaced dynamically:
+	 *                - ###OLD_EMAIL### The old network admin email address.
+	 *                - ###NEW_EMAIL### The new network admin email address.
+	 *                - ###SITENAME###  The name of the network.
+	 *                - ###SITEURL###   The URL to the site.
+	 *            @type string $headers Headers.
+	 *        }
+	 * @param string $old_email  The old network admin email address.
+	 * @param string $new_email  The new network admin email address.
+	 * @param int    $network_id ID of the network.
+	 */
+	$email_change_email = apply_filters( 'network_admin_email_change_email', $email_change_email, $old_email, $new_email, $network_id );
+
+	$email_change_email['message'] = str_replace( '###OLD_EMAIL###', $old_email,    $email_change_email['message'] );
+	$email_change_email['message'] = str_replace( '###NEW_EMAIL###', $new_email,    $email_change_email['message'] );
+	$email_change_email['message'] = str_replace( '###SITENAME###',  $network_name, $email_change_email['message'] );
+	$email_change_email['message'] = str_replace( '###SITEURL###',   home_url(),    $email_change_email['message'] );
+
+	wp_mail( $email_change_email['to'], sprintf(
+		$email_change_email['subject'],
+		$network_name
+	), $email_change_email['message'], $email_change_email['headers'] );
 }

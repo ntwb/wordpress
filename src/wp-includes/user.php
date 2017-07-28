@@ -694,6 +694,8 @@ function get_blogs_of_user( $user_id, $all = false ) {
  *
  * @since MU 1.1
  *
+ * @global wpdb $wpdb WordPress database abstraction object.
+ *
  * @param int $user_id Optional. The unique ID of the user. Defaults to the current user.
  * @param int $blog_id Optional. ID of the blog to check. Defaults to the current site.
  * @return bool
@@ -836,18 +838,23 @@ function update_user_meta($user_id, $meta_key, $meta_value, $prev_value = '') {
  *
  * @since 3.0.0
  * @since 4.4.0 The number of users with no role is now included in the `none` element.
+ * @since 4.9.0 The `$site_id` parameter was added to support multisite.
  *
  * @global wpdb $wpdb WordPress database abstraction object.
  *
- * @param string $strategy 'time' or 'memory'
+ * @param string   $strategy Optional. The computational strategy to use when counting the users.
+ *                           Accepts either 'time' or 'memory'. Default 'time'.
+ * @param int|null $site_id  Optional. The site ID to count users for. Defaults to the current site.
  * @return array Includes a grand total and an array of counts indexed by role strings.
  */
-function count_users($strategy = 'time') {
+function count_users( $strategy = 'time', $site_id = null ) {
 	global $wpdb;
 
 	// Initialize
-	$id = get_current_blog_id();
-	$blog_prefix = $wpdb->get_blog_prefix($id);
+	if ( ! $site_id ) {
+		$site_id = get_current_blog_id();
+	}
+	$blog_prefix = $wpdb->get_blog_prefix( $site_id );
 	$result = array();
 
 	if ( 'time' == $strategy ) {
@@ -916,10 +923,6 @@ function count_users($strategy = 'time') {
 
 		$result['total_users'] = count( $users_of_blog );
 		$result['avail_roles'] =& $avail_roles;
-	}
-
-	if ( is_multisite() ) {
-		$result['avail_roles']['none'] = 0;
 	}
 
 	return $result;
@@ -1317,9 +1320,20 @@ function clean_user_cache( $user ) {
  */
 function username_exists( $username ) {
 	if ( $user = get_user_by( 'login', $username ) ) {
-		return $user->ID;
+		$user_id = $user->ID;
+	} else {
+		$user_id = false;
 	}
-	return false;
+
+	/**
+	 * Filters whether the given username exists or not.
+	 *
+	 * @since 4.9.0
+	 *
+	 * @param int|false $user_id  The user's ID on success, and false on failure.
+	 * @param string    $username Username to check.
+	 */
+	return apply_filters( 'username_exists', $user_id, $username );
 }
 
 /**
@@ -1885,7 +1899,7 @@ All at ###SITENAME###
 			 *                The following strings have a special meaning and will get replaced dynamically:
 			 *                - ###USERNAME###    The current user's username.
 			 *                - ###ADMIN_EMAIL### The admin email in case this was unexpected.
-			 *                - ###EMAIL###       The old email.
+			 *                - ###EMAIL###       The user's email address.
 			 *                - ###SITENAME###    The name of the site.
 			 *                - ###SITEURL###     The URL to the site.
 			 *            @type string $headers Headers. Add headers in a newline (\r\n) separated string.
@@ -1906,10 +1920,10 @@ All at ###SITENAME###
 		}
 
 		if ( ! empty( $send_email_change_email ) ) {
-			/* translators: Do not translate USERNAME, ADMIN_EMAIL, EMAIL, SITENAME, SITEURL: those are placeholders. */
+			/* translators: Do not translate USERNAME, ADMIN_EMAIL, NEW_EMAIL, EMAIL, SITENAME, SITEURL: those are placeholders. */
 			$email_change_text = __( 'Hi ###USERNAME###,
 
-This notice confirms that your email was changed on ###SITENAME###.
+This notice confirms that your email address on ###SITENAME### was changed to ###NEW_EMAIL###.
 
 If you did not change your email, please contact the Site Administrator at
 ###ADMIN_EMAIL###
@@ -1941,7 +1955,8 @@ All at ###SITENAME###
 			 *                The following strings have a special meaning and will get replaced dynamically:
 			 *                - ###USERNAME###    The current user's username.
 			 *                - ###ADMIN_EMAIL### The admin email in case this was unexpected.
-			 *                - ###EMAIL###       The old email.
+			 *                - ###NEW_EMAIL###   The new email address.
+			 *                - ###EMAIL###       The old email address.
 			 *                - ###SITENAME###    The name of the site.
 			 *                - ###SITEURL###     The URL to the site.
 			 *            @type string $headers Headers.
@@ -1953,6 +1968,7 @@ All at ###SITENAME###
 
 			$email_change_email['message'] = str_replace( '###USERNAME###', $user['user_login'], $email_change_email['message'] );
 			$email_change_email['message'] = str_replace( '###ADMIN_EMAIL###', get_option( 'admin_email' ), $email_change_email['message'] );
+			$email_change_email['message'] = str_replace( '###NEW_EMAIL###', $userdata['user_email'], $email_change_email['message'] );
 			$email_change_email['message'] = str_replace( '###EMAIL###', $user['user_email'], $email_change_email['message'] );
 			$email_change_email['message'] = str_replace( '###SITENAME###', $blog_name, $email_change_email['message'] );
 			$email_change_email['message'] = str_replace( '###SITEURL###', home_url(), $email_change_email['message'] );
@@ -2481,20 +2497,20 @@ function wp_destroy_all_sessions() {
 /**
  * Get the user IDs of all users with no role on this site.
  *
- * This function returns an empty array when used on Multisite.
- *
  * @since 4.4.0
+ * @since 4.9.0 The `$site_id` parameter was added to support multisite.
  *
+ * @param int|null $site_id Optional. The site ID to get users with no role for. Defaults to the current site.
  * @return array Array of user IDs.
  */
-function wp_get_users_with_no_role() {
+function wp_get_users_with_no_role( $site_id = null ) {
 	global $wpdb;
 
-	if ( is_multisite() ) {
-		return array();
+	if ( ! $site_id ) {
+		$site_id = get_current_blog_id();
 	}
 
-	$prefix = $wpdb->get_blog_prefix();
+	$prefix = $wpdb->get_blog_prefix( $site_id );
 	$regex  = implode( '|', array_keys( wp_roles()->get_names() ) );
 	$regex  = preg_replace( '/[^a-zA-Z_\|-]/', '', $regex );
 	$users  = $wpdb->get_col( $wpdb->prepare( "
@@ -2575,4 +2591,120 @@ function _wp_get_current_user() {
 	wp_set_current_user( $user_id );
 
 	return $current_user;
+}
+
+/**
+ * Sends an email when an email address change is requested.
+ *
+ * @since 3.0.0
+ * @since 4.9.0 This function was moved from wp-admin/includes/ms.php so it's no longer Multisite specific.
+ *
+ * @global WP_Error $errors WP_Error object.
+ * @global wpdb     $wpdb   WordPress database object.
+ */
+function send_confirmation_on_profile_email() {
+	global $errors, $wpdb;
+
+	$current_user = wp_get_current_user();
+	if ( ! is_object( $errors ) ) {
+		$errors = new WP_Error();
+	}
+
+	if ( $current_user->ID != $_POST['user_id'] ) {
+		return false;
+	}
+
+	if ( $current_user->user_email != $_POST['email'] ) {
+		if ( ! is_email( $_POST['email'] ) ) {
+			$errors->add( 'user_email', __( "<strong>ERROR</strong>: The email address isn&#8217;t correct." ), array(
+				'form-field' => 'email',
+			) );
+
+			return;
+		}
+
+		if ( $wpdb->get_var( $wpdb->prepare( "SELECT user_email FROM {$wpdb->users} WHERE user_email=%s", $_POST['email'] ) ) ) {
+			$errors->add( 'user_email', __( "<strong>ERROR</strong>: The email address is already used." ), array(
+				'form-field' => 'email',
+			) );
+			delete_user_meta( $current_user->ID, '_new_email' );
+
+			return;
+		}
+
+		$hash           = md5( $_POST['email'] . time() . mt_rand() );
+		$new_user_email = array(
+			'hash'     => $hash,
+			'newemail' => $_POST['email'],
+		);
+		update_user_meta( $current_user->ID, '_new_email', $new_user_email );
+
+		if ( is_multisite() ) {
+			$sitename = get_site_option( 'site_name' );
+		} else {
+			$sitename = get_option( 'blogname' );
+		}
+
+		/* translators: Do not translate USERNAME, ADMIN_URL, EMAIL, SITENAME, SITEURL: those are placeholders. */
+		$email_text = __( 'Howdy ###USERNAME###,
+
+You recently requested to have the email address on your account changed.
+
+If this is correct, please click on the following link to change it:
+###ADMIN_URL###
+
+You can safely ignore and delete this email if you do not want to
+take this action.
+
+This email has been sent to ###EMAIL###
+
+Regards,
+All at ###SITENAME###
+###SITEURL###' );
+
+		/**
+		 * Filters the email text sent when a user changes emails.
+		 *
+		 * The following strings have a special meaning and will get replaced dynamically:
+		 * ###USERNAME###  The current user's username.
+		 * ###ADMIN_URL### The link to click on to confirm the email change.
+		 * ###EMAIL###     The new email.
+		 * ###SITENAME###  The name of the site.
+		 * ###SITEURL###   The URL to the site.
+		 *
+		 * @since MU
+		 * @since 4.9.0 This filter is no longer Multisite specific.
+		 *
+		 * @param string $email_text     Text in the email.
+		 * @param string $new_user_email New user email that the current user has changed to.
+		 */
+		$content = apply_filters( 'new_user_email_content', $email_text, $new_user_email );
+
+		$content = str_replace( '###USERNAME###', $current_user->user_login, $content );
+		$content = str_replace( '###ADMIN_URL###', esc_url( admin_url( 'profile.php?newuseremail=' . $hash ) ), $content );
+		$content = str_replace( '###EMAIL###', $_POST['email'], $content );
+		$content = str_replace( '###SITENAME###', wp_specialchars_decode( $sitename, ENT_QUOTES ), $content );
+		$content = str_replace( '###SITEURL###', network_home_url(), $content );
+
+		wp_mail( $_POST['email'], sprintf( __( '[%s] New Email Address' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ), $content );
+
+		$_POST['email'] = $current_user->user_email;
+	}
+}
+
+/**
+ * Adds an admin notice alerting the user to check for confirmation email
+ * after email address change.
+ *
+ * @since 3.0.0
+ * @since 4.9.0 This function was moved from wp-admin/includes/ms.php so it's no longer Multisite specific.
+ *
+ * @global string $pagenow
+ */
+function new_user_email_admin_notice() {
+	global $pagenow;
+	if ( 'profile.php' === $pagenow && isset( $_GET['updated'] ) && $email = get_user_meta( get_current_user_id(), '_new_email', true ) ) {
+		/* translators: %s: New email address */
+		echo '<div class="notice notice-info"><p>' . sprintf( __( 'Your email address has not been updated yet. Please check your inbox at %s for a confirmation email.' ), '<code>' . esc_html( $email['newemail'] ) . '</code>' ) . '</p></div>';
+	}
 }

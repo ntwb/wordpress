@@ -21,7 +21,6 @@ class WP_Plugins_List_Table extends WP_List_Table {
 	 * Constructor.
 	 *
 	 * @since 3.1.0
-	 * @access public
 	 *
 	 * @see WP_List_Table::__construct() for more information on default arguments.
 	 *
@@ -346,7 +345,6 @@ class WP_Plugins_List_Table extends WP_List_Table {
 	 * Displays the search box.
 	 *
 	 * @since 4.6.0
-	 * @access public
 	 *
 	 * @param string $text     The 'submit' button label.
 	 * @param string $input_id ID attribute value for the search input field.
@@ -556,7 +554,6 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			'deactivate' => '',
 			'activate' => '',
 			'details' => '',
-			'edit' => '',
 			'delete' => '',
 		);
 
@@ -637,10 +634,6 @@ class WP_Plugins_List_Table extends WP_List_Table {
 
 			 } // end if $screen->in_admin( 'network' )
 
-			if ( ( ! is_multisite() || $screen->in_admin( 'network' ) ) && current_user_can( 'edit_plugins' ) && is_writable( WP_PLUGIN_DIR . '/' . $plugin_file ) ) {
-				/* translators: %s: plugin name */
-				$actions['edit'] = '<a href="plugin-editor.php?file=' . $plugin_file . '" class="edit" aria-label="' . esc_attr( sprintf( __( 'Edit %s' ), $plugin_data['Name'] ) ) . '">' . __( 'Edit' ) . '</a>';
-			}
 		} // end if $context
 
 		$actions = array_filter( $actions );
@@ -651,7 +644,7 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			 * Filters the action links displayed for each plugin in the Network Admin Plugins list table.
 			 *
 			 * The default action links for the Network plugins list table include
-			 * 'Network Activate', 'Network Deactivate', 'Edit', and 'Delete'.
+			 * 'Network Activate', 'Network Deactivate', and 'Delete'.
 			 *
 			 * @since 3.1.0
 			 *
@@ -687,8 +680,8 @@ class WP_Plugins_List_Table extends WP_List_Table {
 			 * Filters the action links displayed for each plugin in the Plugins list table.
 			 *
 			 * The default action links for the site plugins list table include
-			 * 'Activate', 'Deactivate', and 'Edit', for a network site, and
-			 * 'Activate', 'Deactivate', 'Edit', and 'Delete' for a single site.
+			 * 'Activate', and 'Deactivate', for a network site, and
+			 * 'Activate', 'Deactivate', and 'Delete' for a single site.
 			 *
 			 * @since 2.5.0
 			 * @since 2.6.0 The `$context` parameter was added.
@@ -869,7 +862,6 @@ class WP_Plugins_List_Table extends WP_List_Table {
 	 * Gets the name of the primary column for this specific list table.
 	 *
 	 * @since 4.3.0
-	 * @access protected
 	 *
 	 * @return string Unalterable name for the primary column, in this case, 'name'.
 	 */

@@ -35,7 +35,7 @@ function wp_get_themes( $args = array() ) {
 
 	$theme_directories = search_theme_directories();
 
-	if ( count( $wp_theme_directories ) > 1 ) {
+	if ( is_array( $wp_theme_directories ) && count( $wp_theme_directories ) > 1 ) {
 		// Make sure the current theme wins out, in case search_theme_directories() picks the wrong
 		// one in the case of a conflict. (Normally, last registered theme root wins.)
 		$current_theme = get_stylesheet();
@@ -627,8 +627,9 @@ function get_theme_root_uri( $stylesheet_or_template = false, $theme_root = fals
 function get_raw_theme_root( $stylesheet_or_template, $skip_cache = false ) {
 	global $wp_theme_directories;
 
-	if ( count($wp_theme_directories) <= 1 )
+	if ( ! is_array( $wp_theme_directories ) || count( $wp_theme_directories ) <= 1 ) {
 		return '/themes';
+	}
 
 	$theme_root = false;
 
@@ -1540,7 +1541,6 @@ function background_color() {
  * Default custom background callback.
  *
  * @since 3.0.0
- * @access protected
  */
 function _custom_background_cb() {
 	// $background is the saved custom image, or the default image.
@@ -1620,7 +1620,6 @@ body.custom-background { <?php echo trim( $style ); ?> }
  * Render the Custom CSS style element.
  *
  * @since 4.7.0
- * @access public
  */
 function wp_custom_css_cb() {
 	$styles = wp_get_custom_css();
@@ -1635,7 +1634,6 @@ function wp_custom_css_cb() {
  * Fetch the `custom_css` post for a given theme.
  *
  * @since 4.7.0
- * @access public
  *
  * @param string $stylesheet Optional. A theme object stylesheet name. Defaults to the current theme.
  * @return WP_Post|null The custom_css post or null if none exists.
@@ -1687,7 +1685,6 @@ function wp_get_custom_css_post( $stylesheet = '' ) {
  * Fetch the saved Custom CSS content for rendering.
  *
  * @since 4.7.0
- * @access public
  *
  * @param string $stylesheet Optional. A theme object stylesheet name. Defaults to the current theme.
  * @return string The Custom CSS Post content.
@@ -1723,7 +1720,6 @@ function wp_get_custom_css( $stylesheet = '' ) {
  * Inserts a `custom_css` post when one doesn't yet exist.
  *
  * @since 4.7.0
- * @access public
  *
  * @param string $css CSS, stored in `post_content`.
  * @param array  $args {
@@ -1948,15 +1944,19 @@ function get_theme_starter_content() {
 			'text_business_info' => array( 'text', array(
 				'title' => _x( 'Find Us', 'Theme starter content' ),
 				'text' => join( '', array(
-					'<p><strong>' . _x( 'Address', 'Theme starter content' ) . '</strong><br />',
-					_x( '123 Main Street', 'Theme starter content' ) . '<br />' . _x( 'New York, NY 10001', 'Theme starter content' ) . '</p>',
-					'<p><strong>' . _x( 'Hours', 'Theme starter content' ) . '</strong><br />',
-					_x( 'Monday&mdash;Friday: 9:00AM&ndash;5:00PM', 'Theme starter content' ) . '<br />' . _x( 'Saturday &amp; Sunday: 11:00AM&ndash;3:00PM', 'Theme starter content' ) . '</p>'
+					'<strong>' . _x( 'Address', 'Theme starter content' ) . "</strong>\n",
+					_x( '123 Main Street', 'Theme starter content' ) . "\n" . _x( 'New York, NY 10001', 'Theme starter content' ) . "\n\n",
+					'<strong>' . _x( 'Hours', 'Theme starter content' ) . "</strong>\n",
+					_x( 'Monday&mdash;Friday: 9:00AM&ndash;5:00PM', 'Theme starter content' ) . "\n" . _x( 'Saturday &amp; Sunday: 11:00AM&ndash;3:00PM', 'Theme starter content' )
 				) ),
+				'filter' => true,
+				'visual' => true,
 			) ),
 			'text_about' => array( 'text', array(
 				'title' => _x( 'About This Site', 'Theme starter content' ),
 				'text' => _x( 'This may be a good place to introduce yourself and your site or include some credits.', 'Theme starter content' ),
+				'filter' => true,
+				'visual' => true,
 			) ),
 			'archives' => array( 'archives', array(
 				'title' => _x( 'Archives', 'Theme starter content' ),

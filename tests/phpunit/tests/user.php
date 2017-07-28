@@ -1204,4 +1204,115 @@ class Tests_User extends WP_UnitTestCase {
 	function action_check_passwords_blank_pw( $user_login, &$pass1 ) {
 		$pass1 = '';
 	}
+
+	/**
+	 * @ticket 16470
+	 */
+	function test_send_confirmation_on_profile_email() {
+		reset_phpmailer_instance();
+		$was_confirmation_email_sent = false;
+
+		$user = $this->factory()->user->create_and_get( array(
+			'user_email' => 'before@example.com',
+		) );
+
+		$_POST['email']   = 'after@example.com';
+		$_POST['user_id'] = $user->ID;
+
+		wp_set_current_user( $user->ID );
+
+		do_action( 'personal_options_update' );
+
+		if ( ! empty( $GLOBALS['phpmailer']->mock_sent ) ) {
+			$was_confirmation_email_sent = ( isset( $GLOBALS['phpmailer']->mock_sent[0] ) && 'after@example.com' == $GLOBALS['phpmailer']->mock_sent[0]['to'][0][0] );
+		}
+
+		// A confirmation email is sent.
+		$this->assertTrue( $was_confirmation_email_sent );
+
+		// The new email address gets put into user_meta.
+		$new_email_meta = get_user_meta( $user->ID, '_new_email', true );
+		$this->assertEquals( 'after@example.com', $new_email_meta['newemail'] );
+
+		// The email address of the user doesn't change. $_POST['email'] should be the email address pre-update.
+		$this->assertEquals( $_POST['email'], $user->user_email );
+	}
+
+	/**
+	 * @ticket 16470
+	 */
+	function test_remove_send_confirmation_on_profile_email() {
+		remove_action( 'personal_options_update', 'send_confirmation_on_profile_email' );
+
+		reset_phpmailer_instance();
+		$was_confirmation_email_sent = false;
+
+		$user = $this->factory()->user->create_and_get( array(
+			'user_email' => 'before@example.com',
+		) );
+
+		$_POST['email']   = 'after@example.com';
+		$_POST['user_id'] = $user->ID;
+
+		wp_set_current_user( $user->ID );
+
+		do_action( 'personal_options_update' );
+
+		if ( ! empty( $GLOBALS['phpmailer']->mock_sent ) ) {
+			$was_confirmation_email_sent = ( isset( $GLOBALS['phpmailer']->mock_sent[0] ) && 'after@example.com' == $GLOBALS['phpmailer']->mock_sent[0]['to'][0][0] );
+		}
+
+		// No confirmation email is sent.
+		$this->assertFalse( $was_confirmation_email_sent );
+
+		// No usermeta is created.
+		$new_email_meta = get_user_meta( $user->ID, '_new_email', true );
+		$this->assertEmpty( $new_email_meta );
+
+		// $_POST['email'] should be the email address posted from the form.
+		$this->assertEquals( $_POST['email'], 'after@example.com' );
+	}
+
+	/**
+	 * Ensure user email address change confirmation emails do not contain encoded HTML entities
+	 *
+	 * @ticket 16470
+	 * @ticket 40015
+	 */
+	function test_send_confirmation_on_profile_email_html_entities_decoded() {
+		$user_id = self::factory()->user->create( array(
+			'role'       => 'subscriber',
+			'user_email' => 'old-email@test.dev',
+		) );
+		wp_set_current_user( $user_id );
+
+		reset_phpmailer_instance();
+
+		// Give the site and blog a name containing HTML entities
+		update_site_option( 'site_name', '&#039;Test&#039; site&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;' );
+		update_option( 'blogname', '&#039;Test&#039; blog&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;' );
+
+		// Set $_POST['email'] with new e-mail and $_POST['user_id'] with user's ID.
+		$_POST['user_id'] = $user_id;
+		$_POST['email']   = 'new-email@test.dev';
+
+		send_confirmation_on_profile_email( );
+
+		$mailer = tests_retrieve_phpmailer_instance();
+
+		$recipient = $mailer->get_recipient( 'to' );
+		$email     = $mailer->get_sent();
+
+		// Assert recipient is correct
+		$this->assertSame( 'new-email@test.dev', $recipient->address, 'User email change confirmation recipient not as expected' );
+
+		// Assert that HTML entites have been decoded in body and subject
+		if ( is_multisite() ) {
+			$this->assertContains( '\'Test\' site\'s "name" has <html entities> &', $email->body, 'Email body does not contain the decoded HTML entities' );
+			$this->assertNotContains( '&#039;Test&#039; site&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;', $email->body, 'Email body does contains HTML entities' );
+		}
+
+		$this->assertContains( '\'Test\' blog\'s "name" has <html entities> &', $email->subject, 'Email subject does not contain the decoded HTML entities' );
+		$this->assertNotContains( '&#039;Test&#039; blog&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;', $email->subject, 'Email subject does contains HTML entities' );
+	}
 }

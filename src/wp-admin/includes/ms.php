@@ -336,109 +336,6 @@ All at ###SITENAME###
 }
 
 /**
- * Sends an email when an email address change is requested.
- *
- * @since 3.0.0
- *
- * @global WP_Error $errors WP_Error object.
- * @global wpdb     $wpdb   WordPress database object.
- */
-function send_confirmation_on_profile_email() {
-	global $errors, $wpdb;
-	$current_user = wp_get_current_user();
-	if ( ! is_object($errors) )
-		$errors = new WP_Error();
-
-	if ( $current_user->ID != $_POST['user_id'] )
-		return false;
-
-	if ( $current_user->user_email != $_POST['email'] ) {
-		if ( !is_email( $_POST['email'] ) ) {
-			$errors->add( 'user_email', __( "<strong>ERROR</strong>: The email address isn&#8217;t correct." ), array( 'form-field' => 'email' ) );
-			return;
-		}
-
-		if ( $wpdb->get_var( $wpdb->prepare( "SELECT user_email FROM {$wpdb->users} WHERE user_email=%s", $_POST['email'] ) ) ) {
-			$errors->add( 'user_email', __( "<strong>ERROR</strong>: The email address is already used." ), array( 'form-field' => 'email' ) );
-			delete_user_meta( $current_user->ID, '_new_email' );
-			return;
-		}
-
-		$hash = md5( $_POST['email'] . time() . mt_rand() );
-		$new_user_email = array(
-			'hash' => $hash,
-			'newemail' => $_POST['email']
-		);
-		update_user_meta( $current_user->ID, '_new_email', $new_user_email );
-
-		$switched_locale = switch_to_locale( get_user_locale() );
-
-		/* translators: Do not translate USERNAME, ADMIN_URL, EMAIL, SITENAME, SITEURL: those are placeholders. */
-		$email_text = __( 'Howdy ###USERNAME###,
-
-You recently requested to have the email address on your account changed.
-
-If this is correct, please click on the following link to change it:
-###ADMIN_URL###
-
-You can safely ignore and delete this email if you do not want to
-take this action.
-
-This email has been sent to ###EMAIL###
-
-Regards,
-All at ###SITENAME###
-###SITEURL###' );
-
-		/**
-		 * Filters the email text sent when a user changes emails.
-		 *
-		 * The following strings have a special meaning and will get replaced dynamically:
-		 * ###USERNAME###  The current user's username.
-		 * ###ADMIN_URL### The link to click on to confirm the email change.
-		 * ###EMAIL###     The new email.
-		 * ###SITENAME###  The name of the site.
-		 * ###SITEURL###   The URL to the site.
-		 *
-		 * @since MU
-		 *
-		 * @param string $email_text     Text in the email.
-		 * @param string $new_user_email New user email that the current user has changed to.
-		 */
-		$content = apply_filters( 'new_user_email_content', $email_text, $new_user_email );
-
-		$content = str_replace( '###USERNAME###', $current_user->user_login, $content );
-		$content = str_replace( '###ADMIN_URL###', esc_url( self_admin_url( 'profile.php?newuseremail=' . $hash ) ), $content );
-		$content = str_replace( '###EMAIL###', $_POST['email'], $content);
-		$content = str_replace( '###SITENAME###', wp_specialchars_decode( get_site_option( 'site_name' ), ENT_QUOTES ), $content );
-		$content = str_replace( '###SITEURL###', network_home_url(), $content );
-
-		wp_mail( $_POST['email'], sprintf( __( '[%s] New Email Address' ), wp_specialchars_decode( get_option( 'blogname' ), ENT_QUOTES ) ), $content );
-		$_POST['email'] = $current_user->user_email;
-
-		if ( $switched_locale ) {
-			restore_previous_locale();
-		}
-	}
-}
-
-/**
- * Adds an admin notice alerting the user to check for confirmation email
- * after email address change.
- *
- * @since 3.0.0
- *
- * @global string $pagenow
- */
-function new_user_email_admin_notice() {
-	global $pagenow;
-	if ( 'profile.php' === $pagenow && isset( $_GET['updated'] ) && $email = get_user_meta( get_current_user_id(), '_new_email', true ) ) {
-		/* translators: %s: New email address */
-		echo '<div class="notice notice-info"><p>' . sprintf( __( 'Your email address has not been updated yet. Please check your inbox at %s for a confirmation email.' ), '<code>' . esc_html( $email['newemail'] ) . '</code>' ) . '</p></div>';
-	}
-}
-
-/**
  * Check whether a site has used its allotted upload space.
  *
  * @since MU
@@ -1139,4 +1036,37 @@ function network_edit_site_nav( $args = array() ) {
 	echo '<h2 class="nav-tab-wrapper wp-clearfix">';
 	echo implode( '', $screen_links );
 	echo '</h2>';
+}
+
+/**
+ * Returns the arguments for the help tab on the Edit Site screens.
+ *
+ * @since 4.9.0
+ *
+ * @return array Help tab arguments.
+ */
+function get_site_screen_help_tab_args() {
+	return array(
+		'id'      => 'overview',
+		'title'   => __('Overview'),
+		'content' =>
+			'<p>' . __('The menu is for editing information specific to individual sites, particularly if the admin area of a site is unavailable.') . '</p>' .
+			'<p>' . __('<strong>Info</strong> &mdash; The site URL is rarely edited as this can cause the site to not work properly. The Registered date and Last Updated date are displayed. Network admins can mark a site as archived, spam, deleted and mature, to remove from public listings or disable.') . '</p>' .
+			'<p>' . __('<strong>Users</strong> &mdash; This displays the users associated with this site. You can also change their role, reset their password, or remove them from the site. Removing the user from the site does not remove the user from the network.') . '</p>' .
+			'<p>' . sprintf( __('<strong>Themes</strong> &mdash; This area shows themes that are not already enabled across the network. Enabling a theme in this menu makes it accessible to this site. It does not activate the theme, but allows it to show in the site&#8217;s Appearance menu. To enable a theme for the entire network, see the <a href="%s">Network Themes</a> screen.' ), network_admin_url( 'themes.php' ) ) . '</p>' .
+			'<p>' . __('<strong>Settings</strong> &mdash; This page shows a list of all settings associated with this site. Some are created by WordPress and others are created by plugins you activate. Note that some fields are grayed out and say Serialized Data. You cannot modify these values due to the way the setting is stored in the database.') . '</p>'
+	);
+}
+
+/**
+ * Returns the content for the help sidebar on the Edit Site screens.
+ *
+ * @since 4.9.0
+ *
+ * @return string Help sidebar content.
+ */
+function get_site_screen_help_sidebar_content() {
+	return '<p><strong>' . __('For more information:') . '</strong></p>' .
+		'<p>' . __('<a href="https://codex.wordpress.org/Network_Admin_Sites_Screen">Documentation on Site Management</a>') . '</p>' .
+		'<p>' . __('<a href="https://wordpress.org/support/forum/multisite/">Support Forums</a>') . '</p>';
 }

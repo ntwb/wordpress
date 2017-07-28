@@ -453,22 +453,21 @@ class Tests_Multisite_User extends WP_UnitTestCase {
 		// Assert that HTML entites have been decode in body and subject
 		$this->assertContains( '\'Test\' site\'s "name" has <html entities> &', $email->body, 'Email body does not contain the decoded HTML entities' );
 		$this->assertNotContains( '&#039;Test&#039; site&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;', 'Email body does contains HTML entities' );
-		$this->assertContains( '\'Test\' blog\'s "name" has <html entities> &', $email->subject, 'Email body does not contain the decoded HTML entities' );
+		$this->assertContains( '\'Test\' blog\'s "name" has <html entities> &', $email->subject, 'Email subject does not contain the decoded HTML entities' );
 		$this->assertNotContains( '&#039;Test&#039; blog&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;', $email->subject, $email->subject, 'Email subject does contains HTML entities' );
 	}
 
 	/**
-	 * A notification e-mail should not be sent if the new admin e-mail:
-	 * - Matches thee existing admin email, or
-	 * - is not a valid e-mail, or
+	 * A confirmation email should not be sent if the new admin email:
+	 * - Matches the existing admin email, or
+	 * - is not a valid email
 	 *
-	 * @dataProvider data_user_admin_email_notification_emails
+	 * @dataProvider data_user_admin_email_confirmation_emails
 	 */
-	function test_ms_new_admin_email_notification_not_sent_when_email_invalid( $email, $message ) {
+	function test_ms_new_admin_email_confirmation_not_sent_when_email_invalid( $email, $message ) {
 		reset_phpmailer_instance();
 
-		update_option( 'admin_email', 'existing-email@test.dev' );
-		update_option_new_admin_email( 'existing-email@test.dev', $email );
+		update_option_new_admin_email( get_option( 'admin_email' ), $email );
 
 		$mailer = tests_retrieve_phpmailer_instance();
 
@@ -476,67 +475,26 @@ class Tests_Multisite_User extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Data provider for test_ms_new_admin_email_notification_not_sent_when_email_invalid().
+	 * Data provider for test_ms_new_admin_email_confirmation_not_sent_when_email_invalid().
 	 *
 	 * @return array {
 	 *     @type array {
-	 *         @type string $email   The new e-mail for admin_email
+	 *         @type string $email   The new email for admin_email
 	 *         @type string $message An error message to display if the test fails
 	 *     }
 	 * }
 	 */
-	function data_user_admin_email_notification_emails() {
+	function data_user_admin_email_confirmation_emails() {
 		return array(
 			array(
-				'existing-email@test.dev',
-				'A notification e-mail should not be sent if the current admin e-mail matches the new e-mail',
+				get_option( 'admin_email' ),
+				'A confirmation email should not be sent if the current admin email matches the new email',
 			),
 			array(
 				'not an email',
-				'A notification e-mail should not be sent if it is not a valid e-mail',
+				'A confirmation email should not be sent if it is not a valid email',
 			)
 		);
-	}
-
-	/**
-	 * Ensure email change confirmation emails do not contain encoded HTML entities
-	 * @ticket 40015
-	 */
-	function test_ms_send_confirmation_on_profile_email_html_entities_decoded() {
-
-		$old_current = get_current_user_id();
-		$user_id = self::factory()->user->create( array(
-			'role'       => 'subscriber',
-			'user_email' => 'old-email@test.dev',
-		) );
-		wp_set_current_user( $user_id );
-
-		reset_phpmailer_instance();
-
-		// Give the site and blog a name containing HTML entities
-		update_site_option( 'site_name', '&#039;Test&#039; site&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;' );
-		update_option( 'blogname', '&#039;Test&#039; blog&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;' );
-
-		// Set $_POST['email'] with new e-mail and $_POST['id'] with user's ID.
-		$_POST['user_id'] = $user_id;
-		$_POST['email'] = 'new-email@test.dev';
-		send_confirmation_on_profile_email( );
-
-		$mailer = tests_retrieve_phpmailer_instance();
-
-		$recipient = $mailer->get_recipient( 'to' );
-		$email = $mailer->get_sent();
-
-		// Assert reciepient is correct
-		$this->assertSame( 'new-email@test.dev', $recipient->address, 'Admin email change notification recipient not as expected' );
-
-		// Assert that HTML entites have been decode in body and subject
-		$this->assertContains( '\'Test\' site\'s "name" has <html entities> &', $email->body, 'Email body does not contain the decoded HTML entities' );
-		$this->assertNotContains( '&#039;Test&#039; site&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;', $email->body, 'Email body does contains HTML entities' );
-		$this->assertContains( '\'Test\' blog\'s "name" has <html entities> &', $email->subject, 'Email body does not contain the decoded HTML entities' );
-		$this->assertNotContains( '&#039;Test&#039; blog&#039;s &quot;name&quot; has &lt;html entities&gt; &amp;', $email->subject, 'Email subject does contains HTML entities' );
-
-		wp_set_current_user( $old_current );
 	}
 
 	/**

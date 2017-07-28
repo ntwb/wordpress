@@ -34,7 +34,6 @@ class Custom_Image_Header {
 	 *
 	 * @var array
 	 * @since 3.0.0
-	 * @access private
 	 */
 	public $default_headers = array();
 
@@ -42,7 +41,6 @@ class Custom_Image_Header {
 	 * Used to trigger a success message when settings updated and set to true.
 	 *
 	 * @since 3.0.0
-	 * @access private
 	 * @var bool
 	 */
 	private $updated;

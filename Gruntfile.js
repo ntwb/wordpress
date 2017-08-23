@@ -454,6 +454,10 @@ module.exports = function(grunt) {
 				cmd: 'phpunit',
 				args: ['--verbose', '-c', 'tests/phpunit/multisite.xml']
 			},
+			'ms-files': {
+				cmd: 'phpunit',
+				args: ['--verbose', '-c', 'tests/phpunit/multisite.xml', '--group', 'ms-files']
+			},
 			'external-http': {
 				cmd: 'phpunit',
 				args: ['--verbose', '-c', 'phpunit.xml.dist', '--group', 'external-http']

@@ -423,7 +423,7 @@ function count_many_users_posts( $users, $post_type = 'post', $public_only = fal
 /**
  * Get the current user's ID
  *
- * @since MU
+ * @since MU (3.0.0)
  *
  * @return int The current user's ID, or 0 if no user is logged in.
  */
@@ -679,7 +679,7 @@ function get_blogs_of_user( $user_id, $all = false ) {
 	/**
 	 * Filters the list of sites a user belongs to.
 	 *
-	 * @since MU
+	 * @since MU (3.0.0)
 	 *
 	 * @param array $sites   An array of site objects belonging to the user.
 	 * @param int   $user_id User ID.
@@ -692,7 +692,7 @@ function get_blogs_of_user( $user_id, $all = false ) {
 /**
  * Find out whether a user is a member of a given blog.
  *
- * @since MU 1.1
+ * @since MU (3.0.0) 1.1
  *
  * @global wpdb $wpdb WordPress database abstraction object.
  *
@@ -756,17 +756,14 @@ function is_user_member_of_blog( $user_id = 0, $blog_id = 0 ) {
 }
 
 /**
- * Add meta data field to a user.
- *
- * Post meta data is called "Custom Fields" on the Administration Screens.
+ * Adds meta data to a user.
  *
  * @since 3.0.0
- * @link https://codex.wordpress.org/Function_Reference/add_user_meta
  *
  * @param int    $user_id    User ID.
  * @param string $meta_key   Metadata name.
  * @param mixed  $meta_value Metadata value.
- * @param bool   $unique     Optional, default is false. Whether the same key should not be added.
+ * @param bool   $unique     Optional. Whether the same key should not be added. Default false.
  * @return int|false Meta ID on success, false on failure.
  */
 function add_user_meta($user_id, $meta_key, $meta_value, $unique = false) {
@@ -939,13 +936,13 @@ function count_users( $strategy = 'time', $site_id = null ) {
  *
  * @since 2.0.4
  *
- * @global string $user_login    The user username for logging in
- * @global object $userdata      User data.
- * @global int    $user_level    The level of the user
- * @global int    $user_ID       The ID of the user
- * @global string $user_email    The email address of the user
- * @global string $user_url      The url in the user's profile
- * @global string $user_identity The display name of the user
+ * @global string  $user_login    The user username for logging in
+ * @global WP_User $userdata      User data.
+ * @global int     $user_level    The level of the user
+ * @global int     $user_ID       The ID of the user
+ * @global string  $user_email    The email address of the user
+ * @global string  $user_url      The url in the user's profile
+ * @global string  $user_identity The display name of the user
  *
  * @param int $for_user_id Optional. User ID to set up global data.
  */
@@ -1261,7 +1258,7 @@ function sanitize_user_field($field, $value, $user_id, $context) {
  *
  * @since 3.0.0
  *
- * @param object|WP_User $user User object to be cached
+ * @param WP_User $user User object to be cached
  * @return bool|null Returns false on failure.
  */
 function update_user_caches( $user ) {
@@ -1386,7 +1383,7 @@ function validate_username( $username ) {
  *
  * @since 2.0.0
  * @since 3.6.0 The `aim`, `jabber`, and `yim` fields were removed as default user contact
- *              methods for new installs. See wp_get_user_contact_methods().
+ *              methods for new installations. See wp_get_user_contact_methods().
  * @since 4.7.0 The user's locale can be passed to `$userdata`.
  *
  * @global wpdb $wpdb WordPress database abstraction object.
@@ -1749,8 +1746,8 @@ function wp_insert_user( $userdata ) {
 		 *
 		 * @since 2.0.0
 		 *
-		 * @param int    $user_id       User ID.
-		 * @param object $old_user_data Object containing user's data prior to update.
+		 * @param int     $user_id       User ID.
+		 * @param WP_User $old_user_data Object containing user's data prior to update.
 		 */
 		do_action( 'profile_update', $user_id, $old_user_data );
 	} else {
@@ -1780,7 +1777,7 @@ function wp_insert_user( $userdata ) {
  *
  * @see wp_insert_user() For what fields can be set in $userdata.
  *
- * @param mixed $userdata An array of user data or a user object of type stdClass or WP_User.
+ * @param object|WP_User $userdata An array of user data or a user object of type stdClass or WP_User.
  * @return int|WP_Error The updated user's ID or a WP_Error object if the user could not be updated.
  */
 function wp_update_user($userdata) {
@@ -2285,7 +2282,7 @@ function check_password_reset_key($key, $login) {
  *
  * @since 2.5.0
  *
- * @param object $user     The user
+ * @param WP_User $user     The user
  * @param string $new_pass New password for the user in plaintext
  */
 function reset_password( $user, $new_pass ) {
@@ -2307,8 +2304,8 @@ function reset_password( $user, $new_pass ) {
 	 *
 	 * @since 4.4.0
 	 *
-	 * @param object $user     The user.
-	 * @param string $new_pass New user password.
+	 * @param WP_User $user     The user.
+	 * @param string  $new_pass New user password.
 	 */
 	do_action( 'after_password_reset', $user, $new_pass );
 }
@@ -2594,7 +2591,7 @@ function _wp_get_current_user() {
 }
 
 /**
- * Sends an email when an email address change is requested.
+ * Send a confirmation request email when a change of user email address is attempted.
  *
  * @since 3.0.0
  * @since 4.9.0 This function was moved from wp-admin/includes/ms.php so it's no longer Multisite specific.
@@ -2663,7 +2660,7 @@ All at ###SITENAME###
 ###SITEURL###' );
 
 		/**
-		 * Filters the email text sent when a user changes emails.
+		 * Filters the text of the email sent when a change of user email address is attempted.
 		 *
 		 * The following strings have a special meaning and will get replaced dynamically:
 		 * ###USERNAME###  The current user's username.
@@ -2672,11 +2669,16 @@ All at ###SITENAME###
 		 * ###SITENAME###  The name of the site.
 		 * ###SITEURL###   The URL to the site.
 		 *
-		 * @since MU
+		 * @since MU (3.0.0)
 		 * @since 4.9.0 This filter is no longer Multisite specific.
 		 *
 		 * @param string $email_text     Text in the email.
-		 * @param string $new_user_email New user email that the current user has changed to.
+		 * @param array  $new_user_email {
+		 *     Data relating to the new user email address.
+		 *
+		 *     @type string $hash     The secure hash used in the confirmation link URL.
+		 *     @type string $newemail The proposed new email address.
+		 * }
 		 */
 		$content = apply_filters( 'new_user_email_content', $email_text, $new_user_email );
 
@@ -2693,7 +2695,7 @@ All at ###SITENAME###
 }
 
 /**
- * Adds an admin notice alerting the user to check for confirmation email
+ * Adds an admin notice alerting the user to check for confirmation request email
  * after email address change.
  *
  * @since 3.0.0

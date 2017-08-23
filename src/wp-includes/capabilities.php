@@ -392,8 +392,25 @@ function map_meta_cap( $cap, $user_id ) {
 			$caps[] = $cap;
 		}
 		break;
+	case 'install_languages':
+	case 'update_languages':
+		if ( ! function_exists( 'wp_can_install_language_pack' ) ) {
+			require_once( ABSPATH . 'wp-admin/includes/translation-install.php' );
+		}
+
+		if ( ! wp_can_install_language_pack() ) {
+			$caps[] = 'do_not_allow';
+		} elseif ( is_multisite() && ! is_super_admin( $user_id ) ) {
+			$caps[] = 'do_not_allow';
+		} else {
+			$caps[] = 'install_languages';
+		}
+		break;
 	case 'activate_plugins':
-		$caps[] = $cap;
+	case 'deactivate_plugins':
+	case 'activate_plugin':
+	case 'deactivate_plugin':
+		$caps[] = 'activate_plugins';
 		if ( is_multisite() ) {
 			// update_, install_, and delete_ are handled above with is_super_admin().
 			$menu_perms = get_site_option( 'menu_items', array() );
@@ -825,4 +842,23 @@ function revoke_super_admin( $user_id ) {
 		}
 	}
 	return false;
+}
+
+/**
+ * Filters the user capabilities to grant the 'install_languages' capability as necessary.
+ *
+ * A user must have at least one out of the 'update_core', 'install_plugins', and
+ * 'install_themes' capabilities to qualify for 'install_languages'.
+ *
+ * @since 4.9.0
+ *
+ * @param array $allcaps An array of all the user's capabilities.
+ * @return array Filtered array of the user's capabilities.
+ */
+function wp_maybe_grant_install_languages_cap( $allcaps ) {
+	if ( ! empty( $allcaps['update_core'] ) || ! empty( $allcaps['install_plugins'] ) || ! empty( $allcaps['install_themes'] ) ) {
+		$allcaps['install_languages'] = true;
+	}
+
+	return $allcaps;
 }

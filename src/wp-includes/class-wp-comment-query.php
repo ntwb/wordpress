@@ -140,6 +140,7 @@ class WP_Comment_Query {
 	 *              `$hierarchical`, and `$update_comment_post_cache` were added.
 	 * @since 4.5.0 Introduced the `$author_url` argument.
 	 * @since 4.6.0 Introduced the `$cache_domain` argument.
+	 * @since 4.9.0 Introduced the `$paged` argument.
 	 *
 	 * @param string|array $query {
 	 *     Optional. Array or query string of comment query parameters. Default empty.
@@ -170,6 +171,8 @@ class WP_Comment_Query {
 	 *                                                   See WP_Meta_Query. Default empty.
 	 *     @type int          $number                    Maximum number of comments to retrieve.
 	 *                                                   Default empty (no limit).
+	 *     @type int          $paged                     When used with $number, defines the page of results to return.
+	 *                                                   When used with $offset, $offset takes precedence. Default 1.
 	 *     @type int          $offset                    Number of comments to offset the query. Used to build
 	 *                                                   LIMIT clause. Default 0.
 	 *     @type bool         $no_found_rows             Whether to disable the `SQL_CALC_FOUND_ROWS` query.
@@ -263,6 +266,7 @@ class WP_Comment_Query {
 			'no_found_rows' => true,
 			'orderby' => '',
 			'order' => 'DESC',
+			'paged' => 1,
 			'parent' => '',
 			'parent__in' => '',
 			'parent__not_in' => '',
@@ -375,10 +379,15 @@ class WP_Comment_Query {
 			$this->meta_query_clauses = $this->meta_query->get_sql( 'comment', $wpdb->comments, 'comment_ID', $this );
 		}
 
-		// $args can include anything. Only use the args defined in the query_var_defaults to compute the key.
-		$key = md5( serialize( wp_array_slice_assoc( $this->query_vars, array_keys( $this->query_var_defaults ) ) ) );
-		$last_changed = wp_cache_get_last_changed( 'comment' );
+		/*
+		 * Only use the args defined in the query_var_defaults to compute the key,
+		 * but ignore 'fields', which does not affect query results.
+		 */
+		$_args = wp_array_slice_assoc( $this->query_vars, array_keys( $this->query_var_defaults ) );
+		unset( $_args['fields'] );
 
+		$key = md5( serialize( $_args ) );
+		$last_changed = wp_cache_get_last_changed( 'comment' );
 
 		$cache_key   = "get_comments:$key:$last_changed";
 		$cache_value = wp_cache_get( $cache_key, 'comment' );
@@ -440,8 +449,8 @@ class WP_Comment_Query {
 		 *
 		 * @since 3.1.0
 		 *
-		 * @param array            $results  An array of comments.
-		 * @param WP_Comment_Query &$this    Current instance of WP_Comment_Query, passed by reference.
+		 * @param array            $_comments An array of comments.
+		 * @param WP_Comment_Query &$this     Current instance of WP_Comment_Query, passed by reference.
 		 */
 		$_comments = apply_filters_ref_array( 'the_comments', array( $_comments, &$this ) );
 
@@ -623,12 +632,13 @@ class WP_Comment_Query {
 
 		$number = absint( $this->query_vars['number'] );
 		$offset = absint( $this->query_vars['offset'] );
+		$paged = absint( $this->query_vars['paged'] );
 
 		if ( ! empty( $number ) ) {
 			if ( $offset ) {
 				$limits = 'LIMIT ' . $offset . ',' . $number;
 			} else {
-				$limits = 'LIMIT ' . $number;
+				$limits = 'LIMIT ' . ( $number * ( $paged - 1 ) ) . ',' . $number;
 			}
 		}
 

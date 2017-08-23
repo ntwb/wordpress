@@ -691,6 +691,7 @@ function switch_theme( $stylesheet ) {
 	}
 
 	$nav_menu_locations = get_theme_mod( 'nav_menu_locations' );
+	add_option( 'theme_switch_menu_locations', $nav_menu_locations );
 
 	if ( func_num_args() > 1 ) {
 		$stylesheet = func_get_arg( 1 );
@@ -730,13 +731,6 @@ function switch_theme( $stylesheet ) {
 		 */
 		if ( 'wp_ajax_customize_save' === current_action() ) {
 			remove_theme_mod( 'sidebars_widgets' );
-		}
-
-		if ( ! empty( $nav_menu_locations ) ) {
-			$nav_mods = get_theme_mod( 'nav_menu_locations' );
-			if ( empty( $nav_mods ) ) {
-				set_theme_mod( 'nav_menu_locations', $nav_menu_locations );
-			}
 		}
 	}
 
@@ -2749,7 +2743,7 @@ function check_theme_switched() {
 			do_action( 'after_switch_theme', $old_theme->get( 'Name' ), $old_theme );
 		} else {
 			/** This action is documented in wp-includes/theme.php */
-			do_action( 'after_switch_theme', $stylesheet );
+			do_action( 'after_switch_theme', $stylesheet, $old_theme );
 		}
 		flush_rewrite_rules();
 
@@ -2816,12 +2810,34 @@ function _wp_customize_include() {
 		$messenger_channel = sanitize_key( $input_vars['customize_messenger_channel'] );
 	}
 
+	/*
+	 * Note that settings must be previewed even outside the customizer preview
+	 * and also in the customizer pane itself. This is to enable loading an existing
+	 * changeset into the customizer. Previewing the settings only has to be prevented
+	 * here in the case of a customize_save action because this will cause WP to think
+	 * there is nothing changed that needs to be saved.
+	 */
+	$is_customize_save_action = (
+		wp_doing_ajax()
+		&&
+		isset( $_REQUEST['action'] )
+		&&
+		'customize_save' === wp_unslash( $_REQUEST['action'] )
+	);
+	$settings_previewed = ! $is_customize_save_action;
+
 	require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
-	$GLOBALS['wp_customize'] = new WP_Customize_Manager( compact( 'changeset_uuid', 'theme', 'messenger_channel' ) );
+	$GLOBALS['wp_customize'] = new WP_Customize_Manager( compact( 'changeset_uuid', 'theme', 'messenger_channel', 'settings_previewed' ) );
 }
 
 /**
- * Publish a snapshot's changes.
+ * Publishes a snapshot's changes.
+ *
+ * @since 4.7.0
+ * @access private
+ *
+ * @global wpdb                 $wpdb         WordPress database abstraction object.
+ * @global WP_Customize_Manager $wp_customize Customizer instance.
  *
  * @param string  $new_status     New post status.
  * @param string  $old_status     Old post status.
@@ -2843,7 +2859,10 @@ function _wp_customize_publish_changeset( $new_status, $old_status, $changeset_p
 
 	if ( empty( $wp_customize ) ) {
 		require_once ABSPATH . WPINC . '/class-wp-customize-manager.php';
-		$wp_customize = new WP_Customize_Manager( array( 'changeset_uuid' => $changeset_post->post_name ) );
+		$wp_customize = new WP_Customize_Manager( array(
+			'changeset_uuid' => $changeset_post->post_name,
+			'settings_previewed' => false,
+		) );
 	}
 
 	if ( ! did_action( 'customize_register' ) ) {

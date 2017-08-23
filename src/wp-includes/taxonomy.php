@@ -284,10 +284,10 @@ function is_taxonomy_hierarchical($taxonomy) {
  *
  * Note: Do not use before the {@see 'init'} hook.
  *
- * A simple function for creating or modifying a taxonomy object based on the
- * parameters given. The function will accept an array (third optional
- * parameter), along with strings for the taxonomy name and another string for
- * the object type.
+ * A simple function for creating or modifying a taxonomy object based on
+ * the parameters given. If modifying an existing taxonomy object, note
+ * that the `$object_type` value from the original registration will be
+ * overwritten.
  *
  * @since 2.3.0
  * @since 4.2.0 Introduced `show_in_quick_edit` argument.
@@ -921,7 +921,7 @@ function get_term_by( $field, $value, $taxonomy = '', $output = OBJECT, $filter 
  *
  * @since 2.3.0
  *
- * @param string $term_id  ID of Term to get children.
+ * @param int    $term_id  ID of Term to get children.
  * @param string $taxonomy Taxonomy Name.
  * @return array|WP_Error List of Term IDs. WP_Error returned if `$taxonomy` does not exist.
  */
@@ -3931,6 +3931,16 @@ function get_term_link( $term, $taxonomy = '' ) {
 	$taxonomy = $term->taxonomy;
 
 	$termlink = $wp_rewrite->get_extra_permastruct($taxonomy);
+
+	/**
+	 * Filters the permalink structure for a terms before token replacement occurs.
+	 *
+	 * @since 4.9.0
+	 *
+	 * @param string  $termlink The permalink structure for the term's taxonomy.
+	 * @param WP_Term $term     The term object.
+	 */
+	$termlink = apply_filters( 'pre_term_link', $termlink, $term );
 
 	$slug = $term->slug;
 	$t = get_taxonomy($taxonomy);

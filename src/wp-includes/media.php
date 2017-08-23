@@ -2313,10 +2313,12 @@ function wp_audio_shortcode( $attr, $content = '' ) {
 	 * Filters the class attribute for the audio shortcode output container.
 	 *
 	 * @since 3.6.0
+	 * @since 4.9.0 The `$atts` parameter was added.
 	 *
 	 * @param string $class CSS class or list of space-separated classes.
+	 * @param array  $atts  Array of audio shortcode attributes.
 	 */
-	$atts['class'] = apply_filters( 'wp_audio_shortcode_class', $atts['class'] );
+	$atts['class'] = apply_filters( 'wp_audio_shortcode_class', $atts['class'], $atts );
 
 	$html_atts = array(
 		'class'    => $atts['class'],
@@ -2443,7 +2445,7 @@ function wp_video_shortcode( $attr, $content = '' ) {
 	 * @see wp_video_shortcode()
 	 *
 	 * @param string $html     Empty variable to be replaced with shortcode markup.
-	 * @param array  $attr     Attributes of the video shortcode.
+	 * @param array  $attr     Attributes of the shortcode. @see wp_video_shortcode()
 	 * @param string $content  Video shortcode content.
 	 * @param int    $instance Unique numeric ID of this video shortcode instance.
 	 */
@@ -2502,7 +2504,7 @@ function wp_video_shortcode( $attr, $content = '' ) {
 		}
 
 		if ( $is_vimeo ) {
-			wp_enqueue_script( 'froogaloop' );
+		    wp_enqueue_script( 'mediaelement-vimeo' );
 		}
 
 		$primary = true;
@@ -2544,6 +2546,7 @@ function wp_video_shortcode( $attr, $content = '' ) {
 	if ( 'mediaelement' === $library && did_action( 'init' ) ) {
 		wp_enqueue_style( 'wp-mediaelement' );
 		wp_enqueue_script( 'wp-mediaelement' );
+		wp_enqueue_script( 'mediaelement-vimeo' );
 	}
 
 	// Mediaelement has issues with some URL formats for Vimeo and YouTube, so
@@ -2568,10 +2571,12 @@ function wp_video_shortcode( $attr, $content = '' ) {
 	 * Filters the class attribute for the video shortcode output container.
 	 *
 	 * @since 3.6.0
+	 * @since 4.9.0 The `$atts` parameter was added.
 	 *
 	 * @param string $class CSS class or list of space-separated classes.
+	 * @param array  $atts  Array of video shortcode attributes.
 	 */
-	$atts['class'] = apply_filters( 'wp_video_shortcode_class', $atts['class'] );
+	$atts['class'] = apply_filters( 'wp_video_shortcode_class', $atts['class'], $atts );
 
 	$html_atts = array(
 		'class'    => $atts['class'],
@@ -3436,7 +3441,6 @@ function wp_enqueue_media( $args = array() ) {
 		'captions'  => ! apply_filters( 'disable_captions', '' ),
 		'nonce'     => array(
 			'sendToEditor' => wp_create_nonce( 'media-send-to-editor' ),
-			'wpRestApi'    => wp_create_nonce( 'wp_rest' ),
 		),
 		'post'    => array(
 			'id' => 0,
@@ -3945,7 +3949,7 @@ function attachment_url_to_postid( $url ) {
  */
 function wpview_media_sandbox_styles() {
  	$version = 'ver=' . get_bloginfo( 'version' );
- 	$mediaelement = includes_url( "js/mediaelement/mediaelementplayer.min.css?$version" );
+ 	$mediaelement = includes_url( "js/mediaelement/mediaelementplayer-legacy.min.css?$version" );
  	$wpmediaelement = includes_url( "js/mediaelement/wp-mediaelement.css?$version" );
 
 	return array( $mediaelement, $wpmediaelement );

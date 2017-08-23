@@ -133,6 +133,14 @@ function wp_default_scripts( &$scripts ) {
 		'broken' => __('An unidentified error has occurred.')
 	) );
 
+	$scripts->add( 'wp-api-request', "/wp-includes/js/api-request$suffix.js", array( 'jquery' ), false, 1 );
+	// `wpApiSettings` is also used by `wp-api`, which depends on this script.
+	did_action( 'init' ) && $scripts->localize( 'wp-api-request', 'wpApiSettings', array(
+		'root'          => esc_url_raw( get_rest_url() ),
+		'nonce'         => ( wp_installing() && ! is_multisite() ) ? '' : wp_create_nonce( 'wp_rest' ),
+		'versionString' => 'wp/v2/',
+	) );
+
 	$scripts->add( 'wp-pointer', "/wp-includes/js/wp-pointer$suffix.js", array( 'jquery-ui-widget', 'jquery-ui-position' ), '20111129a', 1 );
 	did_action( 'init' ) && $scripts->localize( 'wp-pointer', 'wpPointerL10n', array(
 		'dismiss' => __('Dismiss'),
@@ -240,7 +248,7 @@ function wp_default_scripts( &$scripts ) {
 	) );
 
 	// deprecated, not used in core, most functionality is included in jQuery 1.3
-	$scripts->add( 'jquery-form', "/wp-includes/js/jquery/jquery.form$suffix.js", array('jquery'), '3.37.0', 1 );
+	$scripts->add( 'jquery-form', "/wp-includes/js/jquery/jquery.form$suffix.js", array('jquery'), '4.2.1', 1 );
 
 	// jQuery plugins
 	$scripts->add( 'jquery-color', "/wp-includes/js/jquery/jquery.color.min.js", array('jquery'), '2.1.1', 1 );
@@ -346,38 +354,104 @@ function wp_default_scripts( &$scripts ) {
 
 	$scripts->add( 'imgareaselect', "/wp-includes/js/imgareaselect/jquery.imgareaselect$suffix.js", array('jquery'), false, 1 );
 
-	$scripts->add( 'mediaelement', "/wp-includes/js/mediaelement/mediaelement-and-player.min.js", array('jquery'), '2.22.0', 1 );
+	$scripts->add( 'mediaelement', "/wp-includes/js/mediaelement/mediaelement-and-player.min.js", array('jquery'), '4.2.5', 1 );
 	did_action( 'init' ) && $scripts->localize( 'mediaelement', 'mejsL10n', array(
 		'language' => get_bloginfo( 'language' ),
 		'strings'  => array(
-			'Close'                   => __( 'Close' ),
-			'Fullscreen'              => __( 'Fullscreen' ),
-			'Turn off Fullscreen'     => __( 'Turn off Fullscreen' ),
-			'Go Fullscreen'           => __( 'Go Fullscreen' ),
-			'Download File'           => __( 'Download File' ),
-			'Download Video'          => __( 'Download Video' ),
-			'Play'                    => __( 'Play' ),
-			'Pause'                   => __( 'Pause' ),
-			'Captions/Subtitles'      => __( 'Captions/Subtitles' ),
-			'None'                    => _x( 'None', 'no captions/subtitles' ),
-			'Time Slider'             => __( 'Time Slider' ),
-			/* translators: %1: number of seconds (30 by default) */
-			'Skip back %1 seconds'    => __( 'Skip back %1 seconds' ),
-			'Video Player'            => __( 'Video Player' ),
-			'Audio Player'            => __( 'Audio Player' ),
-			'Volume Slider'           => __( 'Volume Slider' ),
-			'Mute Toggle'             => __( 'Mute Toggle' ),
-			'Unmute'                  => __( 'Unmute' ),
-			'Mute'                    => __( 'Mute' ),
-			'Use Up/Down Arrow keys to increase or decrease volume.' => __( 'Use Up/Down Arrow keys to increase or decrease volume.' ),
-			'Use Left/Right Arrow keys to advance one second, Up/Down arrows to advance ten seconds.' => __( 'Use Left/Right Arrow keys to advance one second, Up/Down arrows to advance ten seconds.' ),
-		),
-	) );
+			'mejs.install-flash'       => __( 'You are using a browser that does not have Flash player enabled or installed. Please turn on your Flash player plugin or download the latest version from https://get.adobe.com/flashplayer/' ),
+			'mejs.fullscreen-off'      => __( 'Turn off Fullscreen' ),
+			'mejs.fullscreen-on'       => __( 'Go Fullscreen' ),
+			'mejs.download-video'      => __( 'Download Video' ),
+			'mejs.fullscreen'          => __( 'Fullscreen' ),
+			'mejs.time-jump-forward'   => array( __( 'Jump forward 1 second' ), __( 'Jump forward %1 seconds' ) ),
+			'mejs.loop'                => __( 'Toggle Loop' ),
+			'mejs.play'                => __( 'Play' ),
+			'mejs.pause'               => __( 'Pause' ),
+			'mejs.close'               => __( 'Close' ),
+			'mejs.time-slider'         => __( 'Time Slider' ),
+			'mejs.time-help-text'      => __( 'Use Left/Right Arrow keys to advance one second, Up/Down arrows to advance ten seconds.' ),
+			'mejs.time-skip-back'      => array( __( 'Skip back 1 second' ), __( 'Skip back %1 seconds' ) ),
+			'mejs.captions-subtitles'  => __( 'Captions/Subtitles' ),
+			'mejs.captions-chapters'   => __( 'Chapters' ),
+			'mejs.none'                => __( 'None' ),
+			'mejs.mute-toggle'         => __( 'Mute Toggle' ),
+			'mejs.volume-help-text'    => __( 'Use Up/Down Arrow keys to increase or decrease volume.' ),
+			'mejs.unmute'              => __( 'Unmute' ),
+			'mejs.mute'                => __( 'Mute' ),
+			'mejs.volume-slider'       => __( 'Volume Slider' ),
+			'mejs.video-player'        => __( 'Video Player' ),
+			'mejs.audio-player'        => __( 'Audio Player' ),
+			'mejs.ad-skip'             => __( 'Skip ad' ),
+			'mejs.ad-skip-info'        => array( __( 'Skip in 1 second' ), __( 'Skip in %1 seconds' ) ),
+			'mejs.source-chooser'      => __( 'Source Chooser' ),
+			'mejs.stop'                => __( 'Stop' ),
+			'mejs.speed-rate'          => __( 'Speed Rate' ),
+			'mejs.live-broadcast'      => __( 'Live Broadcast' ),
+			'mejs.afrikaans'           => __( 'Afrikaans' ),
+			'mejs.albanian'            => __( 'Albanian' ),
+			'mejs.arabic'              => __( 'Arabic' ),
+			'mejs.belarusian'          => __( 'Belarusian' ),
+			'mejs.bulgarian'           => __( 'Bulgarian' ),
+			'mejs.catalan'             => __( 'Catalan' ),
+			'mejs.chinese'             => __( 'Chinese' ),
+			'mejs.chinese-simplified'  => __( 'Chinese (Simplified)' ),
+			'mejs.chinese-traditional' => __( 'Chinese (Traditional)' ),
+			'mejs.croatian'            => __( 'Croatian' ),
+			'mejs.czech'               => __( 'Czech' ),
+			'mejs.danish'              => __( 'Danish' ),
+			'mejs.dutch'               => __( 'Dutch' ),
+			'mejs.english'             => __( 'English' ),
+			'mejs.estonian'            => __( 'Estonian' ),
+			'mejs.filipino'            => __( 'Filipino' ),
+			'mejs.finnish'             => __( 'Finnish' ),
+			'mejs.french'              => __( 'French' ),
+			'mejs.galician'            => __( 'Galician' ),
+			'mejs.german'              => __( 'German' ),
+			'mejs.greek'               => __( 'Greek' ),
+			'mejs.haitian-creole'      => __( 'Haitian Creole' ),
+			'mejs.hebrew'              => __( 'Hebrew' ),
+			'mejs.hindi'               => __( 'Hindi' ),
+			'mejs.hungarian'           => __( 'Hungarian' ),
+			'mejs.icelandic'           => __( 'Icelandic' ),
+			'mejs.indonesian'          => __( 'Indonesian' ),
+			'mejs.irish'               => __( 'Irish' ),
+			'mejs.italian'             => __( 'Italian' ),
+			'mejs.japanese'            => __( 'Japanese' ),
+			'mejs.korean'              => __( 'Korean' ),
+			'mejs.latvian'             => __( 'Latvian' ),
+			'mejs.lithuanian'          => __( 'Lithuanian' ),
+			'mejs.macedonian'          => __( 'Macedonian' ),
+			'mejs.malay'               => __( 'Malay' ),
+			'mejs.maltese'             => __( 'Maltese' ),
+			'mejs.norwegian'           => __( 'Norwegian' ),
+			'mejs.persian'             => __( 'Persian' ),
+			'mejs.polish'              => __( 'Polish' ),
+			'mejs.portuguese'          => __( 'Portuguese' ),
+			'mejs.romanian'            => __( 'Romanian' ),
+			'mejs.russian'             => __( 'Russian' ),
+			'mejs.serbian'             => __( 'Serbian' ),
+			'mejs.slovak'              => __( 'Slovak' ),
+			'mejs.slovenian'           => __( 'Slovenian' ),
+			'mejs.spanish'             => __( 'Spanish' ),
+			'mejs.swahili'             => __( 'Swahili' ),
+			'mejs.swedish'             => __( 'Swedish' ),
+			'mejs.tagalog'             => __( 'Tagalog' ),
+			'mejs.thai'                => __( 'Thai' ),
+			'mejs.turkish'             => __( 'Turkish' ),
+			'mejs.ukrainian'           => __( 'Ukrainian' ),
+			'mejs.vietnamese'          => __( 'Vietnamese' ),
+			'mejs.welsh'               => __( 'Welsh' ),
+			'mejs.yiddish'             => __( 'Yiddish' ),
+			),
+		) );
 
 
+	$scripts->add( 'mediaelement-vimeo', "/wp-includes/js/mediaelement/renderers/vimeo.min.js", array('mediaelement'), '4.2.5', 1 );
 	$scripts->add( 'wp-mediaelement', "/wp-includes/js/mediaelement/wp-mediaelement$suffix.js", array('mediaelement'), false, 1 );
 	$mejs_settings = array(
-		'pluginPath' => includes_url( 'js/mediaelement/', 'relative' ),
+		'pluginPath'    => includes_url( 'js/mediaelement/', 'relative' ),
+		'classPrefix'   => 'mejs-',
+		'stretching'    => 'responsive',
 	);
 	did_action( 'init' ) && $scripts->localize( 'mediaelement', '_wpmejsSettings',
 		/**
@@ -390,7 +464,6 @@ function wp_default_scripts( &$scripts ) {
 		apply_filters( 'mejs_settings', $mejs_settings )
 	);
 
-	$scripts->add( 'froogaloop',  "/wp-includes/js/mediaelement/froogaloop.min.js", array(), '2.0' );
 	$scripts->add( 'wp-playlist', "/wp-includes/js/mediaelement/wp-playlist$suffix.js", array( 'wp-util', 'backbone', 'mediaelement' ), false, 1 );
 
 	$scripts->add( 'zxcvbn-async', "/wp-includes/js/zxcvbn-async$suffix.js", array(), '1.0' );
@@ -501,17 +574,12 @@ function wp_default_scripts( &$scripts ) {
 
 	// To enqueue media-views or media-editor, call wp_enqueue_media().
 	// Both rely on numerous settings, styles, and templates to operate correctly.
-	$scripts->add( 'media-views',  "/wp-includes/js/media-views$suffix.js",  array( 'utils', 'media-models', 'wp-plupload', 'jquery-ui-sortable', 'wp-mediaelement' ), false, 1 );
+	$scripts->add( 'media-views',  "/wp-includes/js/media-views$suffix.js",  array( 'utils', 'media-models', 'wp-plupload', 'jquery-ui-sortable', 'wp-mediaelement', 'wp-api-request' ), false, 1 );
 	$scripts->add( 'media-editor', "/wp-includes/js/media-editor$suffix.js", array( 'shortcode', 'media-views' ), false, 1 );
 	$scripts->add( 'media-audiovideo', "/wp-includes/js/media-audiovideo$suffix.js", array( 'media-editor' ), false, 1 );
 	$scripts->add( 'mce-view', "/wp-includes/js/mce-view$suffix.js", array( 'shortcode', 'jquery', 'media-views', 'media-audiovideo' ), false, 1 );
 
-	$scripts->add( 'wp-api', "/wp-includes/js/wp-api$suffix.js", array( 'jquery', 'backbone', 'underscore' ), false, 1 );
-	did_action( 'init' ) && $scripts->localize( 'wp-api', 'wpApiSettings', array(
-		'root'          => esc_url_raw( get_rest_url() ),
-		'nonce'         => ( wp_installing() && ! is_multisite() ) ? '' : wp_create_nonce( 'wp_rest' ),
-		'versionString' => 'wp/v2/',
-	) );
+	$scripts->add( 'wp-api', "/wp-includes/js/wp-api$suffix.js", array( 'jquery', 'backbone', 'underscore', 'wp-api-request' ), false, 1 );
 
 	if ( is_admin() ) {
 		$scripts->add( 'admin-tags', "/wp-admin/js/tags$suffix.js", array( 'jquery', 'wp-ajax-response' ), false, 1 );
@@ -604,12 +672,12 @@ function wp_default_scripts( &$scripts ) {
 		$scripts->add( 'admin-gallery', "/wp-admin/js/gallery$suffix.js", array( 'jquery-ui-sortable' ) );
 
 		$scripts->add( 'admin-widgets', "/wp-admin/js/widgets$suffix.js", array( 'jquery-ui-sortable', 'jquery-ui-draggable', 'jquery-ui-droppable' ), false, 1 );
-		$scripts->add( 'media-widgets', "/wp-admin/js/widgets/media-widgets$suffix.js", array( 'jquery', 'media-models', 'media-views' ) );
+		$scripts->add( 'media-widgets', "/wp-admin/js/widgets/media-widgets$suffix.js", array( 'jquery', 'media-models', 'media-views', 'wp-api-request' ) );
 		$scripts->add_inline_script( 'media-widgets', 'wp.mediaWidgets.init();', 'after' );
 
 		$scripts->add( 'media-audio-widget', "/wp-admin/js/widgets/media-audio-widget$suffix.js", array( 'media-widgets', 'media-audiovideo' ) );
 		$scripts->add( 'media-image-widget', "/wp-admin/js/widgets/media-image-widget$suffix.js", array( 'media-widgets' ) );
-		$scripts->add( 'media-video-widget', "/wp-admin/js/widgets/media-video-widget$suffix.js", array( 'media-widgets', 'media-audiovideo' ) );
+		$scripts->add( 'media-video-widget', "/wp-admin/js/widgets/media-video-widget$suffix.js", array( 'media-widgets', 'media-audiovideo', 'wp-api-request' ) );
 		$scripts->add( 'text-widgets', "/wp-admin/js/widgets/text-widgets$suffix.js", array( 'jquery', 'backbone', 'editor', 'wp-util', 'wp-a11y' ) );
 		$scripts->add_inline_script( 'text-widgets', 'wp.textWidgets.init();', 'after' );
 
@@ -675,7 +743,7 @@ function wp_default_scripts( &$scripts ) {
 				'installing'                 => __( 'Installing...' ),
 				'pluginInstalled'            => _x( 'Installed!', 'plugin' ),
 				'themeInstalled'             => _x( 'Installed!', 'theme' ),
-				'installFailedShort'         => __( 'Install Failed!' ),
+				'installFailedShort'         => __( 'Installation Failed!' ),
 				/* translators: %s: Error string for a failed installation */
 				'installFailed'              => __( 'Installation failed: %s' ),
 				/* translators: %s: Plugin name and version */
@@ -881,7 +949,7 @@ function wp_default_styles( &$styles ) {
 	// External libraries and friends
 	$styles->add( 'imgareaselect',       '/wp-includes/js/imgareaselect/imgareaselect.css', array(), '0.9.8' );
 	$styles->add( 'wp-jquery-ui-dialog', "/wp-includes/css/jquery-ui-dialog$suffix.css", array( 'dashicons' ) );
-	$styles->add( 'mediaelement',        "/wp-includes/js/mediaelement/mediaelementplayer.min.css", array(), '2.22.0' );
+	$styles->add( 'mediaelement',        "/wp-includes/js/mediaelement/mediaelementplayer-legacy.min.css", array(), '4.2.5' );
 	$styles->add( 'wp-mediaelement',     "/wp-includes/js/mediaelement/wp-mediaelement$suffix.css", array( 'mediaelement' ) );
 	$styles->add( 'thickbox',            '/wp-includes/js/thickbox/thickbox.css', array( 'dashicons' ) );
 

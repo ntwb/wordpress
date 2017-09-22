@@ -1,6 +1,194 @@
-/* global _wpCustomizeHeader, _wpCustomizeBackground, _wpMediaViewsL10n, MediaElementPlayer */
+/* global _wpCustomizeHeader, _wpCustomizeBackground, _wpMediaViewsL10n, MediaElementPlayer, console */
 (function( exports, $ ){
 	var Container, focus, normalizedTransitionendEventName, api = wp.customize;
+
+	/**
+	 * A collection of observable notifications.
+	 *
+	 * @since 4.9.0
+	 * @class
+	 * @augments wp.customize.Values
+	 */
+	api.Notifications = api.Values.extend({
+
+		/**
+		 * Whether the alternative style should be used.
+		 *
+		 * @since 4.9.0
+		 * @type {boolean}
+		 */
+		alt: false,
+
+		/**
+		 * The default constructor for items of the collection.
+		 *
+		 * @since 4.9.0
+		 * @type {object}
+		 */
+		defaultConstructor: api.Notification,
+
+		/**
+		 * Initialize notifications area.
+		 *
+		 * @since 4.9.0
+		 * @constructor
+		 * @param {object}  options - Options.
+		 * @param {jQuery}  [options.container] - Container element for notifications. This can be injected later.
+		 * @param {boolean} [options.alt] - Whether alternative style should be used when rendering notifications.
+		 * @returns {void}
+		 * @this {wp.customize.Notifications}
+		 */
+		initialize: function( options ) {
+			var collection = this;
+
+			api.Values.prototype.initialize.call( collection, options );
+
+			// Keep track of the order in which the notifications were added for sorting purposes.
+			collection._addedIncrement = 0;
+			collection._addedOrder = {};
+
+			// Trigger change event when notification is added or removed.
+			collection.bind( 'add', function( notification ) {
+				collection.trigger( 'change', notification );
+			});
+			collection.bind( 'removed', function( notification ) {
+				collection.trigger( 'change', notification );
+			});
+		},
+
+		/**
+		 * Get the number of notifications added.
+		 *
+		 * @since 4.9.0
+		 * @return {number} Count of notifications.
+		 */
+		count: function() {
+			return _.size( this._value );
+		},
+
+		/**
+		 * Add notification to the collection.
+		 *
+		 * @since 4.9.0
+		 * @param {string} code - Notification code.
+		 * @param {object} params - Notification params.
+		 * @return {api.Notification} Added instance (or existing instance if it was already added).
+		 */
+		add: function( code, params ) {
+			var collection = this;
+			if ( ! collection.has( code ) ) {
+				collection._addedIncrement += 1;
+				collection._addedOrder[ code ] = collection._addedIncrement;
+			}
+			return api.Values.prototype.add.call( this, code, params );
+		},
+
+		/**
+		 * Add notification to the collection.
+		 *
+		 * @since 4.9.0
+		 * @param {string} code - Notification code to remove.
+		 * @return {api.Notification} Added instance (or existing instance if it was already added).
+		 */
+		remove: function( code ) {
+			var collection = this;
+			delete collection._addedOrder[ code ];
+			return api.Values.prototype.remove.call( this, code );
+		},
+
+		/**
+		 * Get list of notifications.
+		 *
+		 * Notifications may be sorted by type followed by added time.
+		 *
+		 * @since 4.9.0
+		 * @param {object}  args - Args.
+		 * @param {boolean} [args.sort=false] - Whether to return the notifications sorted.
+		 * @return {Array.<wp.customize.Notification>} Notifications.
+		 * @this {wp.customize.Notifications}
+		 */
+		get: function( args ) {
+			var collection = this, notifications, errorTypePriorities, params;
+			notifications = _.values( collection._value );
+
+			params = _.extend(
+				{ sort: false },
+				args
+			);
+
+			if ( params.sort ) {
+				errorTypePriorities = { error: 4, warning: 3, success: 2, info: 1 };
+				notifications.sort( function( a, b ) {
+					var aPriority = 0, bPriority = 0;
+					if ( ! _.isUndefined( errorTypePriorities[ a.type ] ) ) {
+						aPriority = errorTypePriorities[ a.type ];
+					}
+					if ( ! _.isUndefined( errorTypePriorities[ b.type ] ) ) {
+						bPriority = errorTypePriorities[ b.type ];
+					}
+					if ( aPriority !== bPriority ) {
+						return bPriority - aPriority; // Show errors first.
+					}
+					return collection._addedOrder[ b.code ] - collection._addedOrder[ a.code ]; // Show newer notifications higher.
+				});
+			}
+
+			return notifications;
+		},
+
+		/**
+		 * Render notifications area.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 * @this {wp.customize.Notifications}
+		 */
+		render: function() {
+			var collection = this,
+				notifications,
+				previousNotificationsByCode = {},
+				listElement;
+
+			// Short-circuit if there are no container to render into.
+			if ( ! collection.container || ! collection.container.length ) {
+				return;
+			}
+
+			notifications = collection.get( { sort: true } );
+			collection.container.toggle( 0 !== notifications.length );
+
+			// Short-circuit if there are no changes to the notifications.
+			if ( collection.container.is( collection.previousContainer ) && _.isEqual( notifications, collection.previousNotifications ) ) {
+				return;
+			}
+
+			// Make sure list is part of the container.
+			listElement = collection.container.children( 'ul' ).first();
+			if ( ! listElement.length ) {
+				listElement = $( '<ul></ul>' );
+				collection.container.append( listElement );
+			}
+
+			// Remove all notifications prior to re-rendering.
+			listElement.find( '> [data-code]' ).remove();
+
+			_.each( collection.previousNotifications, function( notification ) {
+				previousNotificationsByCode[ notification.code ] = notification;
+			});
+
+			// Add all notifications in the sorted order.
+			_.each( notifications, function( notification ) {
+				if ( wp.a11y && ( ! previousNotificationsByCode[ notification.code ] || ! _.isEqual( notification.message, previousNotificationsByCode[ notification.code ].message ) ) ) {
+					wp.a11y.speak( notification.message, 'assertive' );
+				}
+				listElement.append( $( notification.render() ) ); // @todo Consider slideDown() as enhancement.
+			});
+
+			collection.previousNotifications = notifications;
+			collection.previousContainer = collection.container;
+			collection.trigger( 'rendered' );
+		}
+	});
 
 	/**
 	 * A Customizer Setting.
@@ -439,6 +627,7 @@
 			);
 
 			$.extend( container, options );
+			container.notifications = new api.Notifications();
 			container.templateSelector = 'customize-' + container.containerType + '-' + container.params.type;
 			container.container = $( container.params.content );
 			if ( 0 === container.container.length ) {
@@ -470,6 +659,7 @@
 			});
 
 			container.deferred.embedded.done( function () {
+				container.setupNotifications();
 				container.attachEvents();
 			});
 
@@ -478,6 +668,39 @@
 			container.priority.set( container.params.priority );
 			container.active.set( container.params.active );
 			container.expanded.set( false );
+		},
+
+		/**
+		 * Get the element that will contain the notifications.
+		 *
+		 * @since 4.9.0
+		 * @returns {jQuery} Notification container element.
+		 * @this {wp.customize.Control}
+		 */
+		getNotificationsContainerElement: function() {
+			var container = this;
+			return container.contentContainer.find( '.customize-control-notifications-container:first' );
+		},
+
+		/**
+		 * Set up notifications.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 */
+		setupNotifications: function() {
+			var container = this, renderNotifications;
+			container.notifications.container = container.getNotificationsContainerElement();
+
+			// Render notifications when they change and when the construct is expanded.
+			renderNotifications = function() {
+				if ( container.expanded.get() ) {
+					container.notifications.render();
+				}
+			};
+			container.expanded.bind( renderNotifications );
+			renderNotifications();
+			container.notifications.bind( 'change', _.debounce( renderNotifications ) );
 		},
 
 		/**
@@ -1163,6 +1386,15 @@
 		 */
 		attachEvents: function () {
 			var section = this;
+
+			// Expand/Collapse accordion sections on click.
+			section.container.find( '.customize-section-back' ).on( 'click keydown', function( event ) {
+				if ( api.utils.isKeydownButNotEnterEvent( event ) ) {
+					return;
+				}
+				event.preventDefault(); // Keep this AFTER the key filter above
+				section.collapse();
+			});
 
 			// Expand/Collapse section/panel.
 			section.container.find( '.change-theme, .customize-theme' ).on( 'click keydown', function( event ) {
@@ -1874,7 +2106,9 @@
 			control.priority = new api.Value();
 			control.active = new api.Value();
 			control.activeArgumentsQueue = [];
-			control.notifications = new api.Values({ defaultConstructor: api.Notification });
+			control.notifications = new api.Notifications({
+				alt: control.altNotice
+			});
 
 			control.elements = [];
 
@@ -1964,21 +2198,7 @@
 
 			// After the control is embedded on the page, invoke the "ready" method.
 			control.deferred.embedded.done( function () {
-				/*
-				 * Note that this debounced/deferred rendering is needed for two reasons:
-				 * 1) The 'remove' event is triggered just _before_ the notification is actually removed.
-				 * 2) Improve performance when adding/removing multiple notifications at a time.
-				 */
-				var debouncedRenderNotifications = _.debounce( function renderNotifications() {
-					control.renderNotifications();
-				} );
-				control.notifications.bind( 'add', function( notification ) {
-					wp.a11y.speak( notification.message, 'assertive' );
-					debouncedRenderNotifications();
-				} );
-				control.notifications.bind( 'remove', debouncedRenderNotifications );
-				control.renderNotifications();
-
+				control.setupNotifications();
 				control.ready();
 			});
 		},
@@ -2076,17 +2296,64 @@
 		},
 
 		/**
+		 * Set up notifications.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 */
+		setupNotifications: function() {
+			var control = this, renderNotificationsIfVisible, onSectionAssigned;
+
+			control.notifications.container = control.getNotificationsContainerElement();
+
+			renderNotificationsIfVisible = function() {
+				var sectionId = control.section();
+				if ( ! sectionId || ( api.section.has( sectionId ) && api.section( sectionId ).expanded() ) ) {
+					control.notifications.render();
+				}
+			};
+
+			control.notifications.bind( 'rendered', function() {
+				var notifications = control.notifications.get();
+				control.container.toggleClass( 'has-notifications', 0 !== notifications.length );
+				control.container.toggleClass( 'has-error', 0 !== _.where( notifications, { type: 'error' } ).length );
+			} );
+
+			onSectionAssigned = function( newSectionId, oldSectionId ) {
+				if ( oldSectionId && api.section.has( oldSectionId ) ) {
+					api.section( oldSectionId ).expanded.unbind( renderNotificationsIfVisible );
+				}
+				if ( newSectionId ) {
+					api.section( newSectionId, function( section ) {
+						section.expanded.bind( renderNotificationsIfVisible );
+						renderNotificationsIfVisible();
+					});
+				}
+			};
+
+			control.section.bind( onSectionAssigned );
+			onSectionAssigned( control.section.get() );
+			control.notifications.bind( 'change', _.debounce( renderNotificationsIfVisible ) );
+		},
+
+		/**
 		 * Render notifications.
 		 *
 		 * Renders the `control.notifications` into the control's container.
 		 * Control subclasses may override this method to do their own handling
 		 * of rendering notifications.
 		 *
+		 * @deprecated in favor of `control.notifications.render()`
 		 * @since 4.6.0
 		 * @this {wp.customize.Control}
 		 */
 		renderNotifications: function() {
 			var control = this, container, notifications, hasError = false;
+
+			if ( 'undefined' !== typeof console && console.warn ) {
+				console.warn( '[DEPRECATED] wp.customize.Control.prototype.renderNotifications() is deprecated in favor of instantating a wp.customize.Notifications and calling its render() method.' );
+			}
+
 			container = control.getNotificationsContainerElement();
 			if ( ! container || ! container.length ) {
 				return;
@@ -3410,6 +3677,250 @@
 		}
 	});
 
+	/**
+	 * Class wp.customize.CodeEditorControl
+	 *
+	 * @since 4.9.0
+	 *
+	 * @constructor
+	 * @augments wp.customize.Control
+	 * @augments wp.customize.Class
+	 */
+	api.CodeEditorControl = api.Control.extend({
+
+		/**
+		 * Initialize the editor when the containing section is ready and expanded.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 */
+		ready: function() {
+			var control = this;
+			if ( ! control.section() ) {
+				control.initEditor();
+				return;
+			}
+
+			// Wait to initialize editor until section is embedded and expanded.
+			api.section( control.section(), function( section ) {
+				section.deferred.embedded.done( function() {
+					var onceExpanded;
+					if ( section.expanded() ) {
+						control.initEditor();
+					} else {
+						onceExpanded = function( isExpanded ) {
+							if ( isExpanded ) {
+								control.initEditor();
+								section.expanded.unbind( onceExpanded );
+							}
+						};
+						section.expanded.bind( onceExpanded );
+					}
+				} );
+			} );
+		},
+
+		/**
+		 * Initialize editor.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 */
+		initEditor: function() {
+			var control = this, element;
+
+			element = new api.Element( control.container.find( 'textarea' ) );
+			control.elements.push( element );
+			element.sync( control.setting );
+			element.set( control.setting() );
+
+			if ( control.params.editor_settings ) {
+				control.initSyntaxHighlightingEditor( control.params.editor_settings );
+			} else {
+				control.initPlainTextareaEditor();
+			}
+		},
+
+		/**
+		 * Make sure editor gets focused when control is focused.
+		 *
+		 * @since 4.9.0
+		 * @param {Object}   [params] - Focus params.
+		 * @param {Function} [params.completeCallback] - Function to call when expansion is complete.
+		 * @returns {void}
+		 */
+		focus: function( params ) {
+			var control = this, extendedParams = _.extend( {}, params ), originalCompleteCallback;
+			originalCompleteCallback = extendedParams.completeCallback;
+			extendedParams.completeCallback = function() {
+				if ( originalCompleteCallback ) {
+					originalCompleteCallback();
+				}
+				if ( control.editor ) {
+					control.editor.codemirror.focus();
+				}
+			};
+			api.Control.prototype.focus.call( control, extendedParams );
+		},
+
+		/**
+		 * Initialize syntax-highlighting editor.
+		 *
+		 * @since 4.9.0
+		 * @param {object} codeEditorSettings - Code editor settings.
+		 * @returns {void}
+		 */
+		initSyntaxHighlightingEditor: function( codeEditorSettings ) {
+			var control = this, $textarea = control.container.find( 'textarea' ), settings, suspendEditorUpdate = false;
+
+			settings = _.extend( {}, codeEditorSettings, {
+				onTabNext: _.bind( control.onTabNext, control ),
+				onTabPrevious: _.bind( control.onTabPrevious, control ),
+				onUpdateErrorNotice: _.bind( control.onUpdateErrorNotice, control )
+			});
+
+			control.editor = wp.codeEditor.initialize( $textarea, settings );
+
+			// Refresh when receiving focus.
+			control.editor.codemirror.on( 'focus', function( codemirror ) {
+				codemirror.refresh();
+			});
+
+			/*
+			 * When the CodeMirror instance changes, mirror to the textarea,
+			 * where we have our "true" change event handler bound.
+			 */
+			control.editor.codemirror.on( 'change', function( codemirror ) {
+				suspendEditorUpdate = true;
+				$textarea.val( codemirror.getValue() ).trigger( 'change' );
+				suspendEditorUpdate = false;
+			});
+
+			// Update CodeMirror when the setting is changed by another plugin.
+			control.setting.bind( function( value ) {
+				if ( ! suspendEditorUpdate ) {
+					control.editor.codemirror.setValue( value );
+				}
+			});
+
+			// Prevent collapsing section when hitting Esc to tab out of editor.
+			control.editor.codemirror.on( 'keydown', function onKeydown( codemirror, event ) {
+				var escKeyCode = 27;
+				if ( escKeyCode === event.keyCode ) {
+					event.stopPropagation();
+				}
+			});
+		},
+
+		/**
+		 * Handle tabbing to the field after the editor.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 */
+		onTabNext: function onTabNext() {
+			var control = this, controls, controlIndex, section;
+			section = api.section( control.section() );
+			controls = section.controls();
+			controlIndex = controls.indexOf( control );
+			if ( controls.length === controlIndex + 1 ) {
+				$( '#customize-footer-actions .collapse-sidebar' ).focus();
+			} else {
+				controls[ controlIndex + 1 ].container.find( ':focusable:first' ).focus();
+			}
+		},
+
+		/**
+		 * Handle tabbing to the field before the editor.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 */
+		onTabPrevious: function onTabPrevious() {
+			var control = this, controls, controlIndex, section;
+			section = api.section( control.section() );
+			controls = section.controls();
+			controlIndex = controls.indexOf( control );
+			if ( 0 === controlIndex ) {
+				section.contentContainer.find( '.customize-section-title .customize-help-toggle, .customize-section-title .customize-section-description.open .section-description-close' ).last().focus();
+			} else {
+				controls[ controlIndex - 1 ].contentContainer.find( ':focusable:first' ).focus();
+			}
+		},
+
+		/**
+		 * Update error notice.
+		 *
+		 * @since 4.9.0
+		 * @param {Array} errorAnnotations - Error annotations.
+		 * @returns {void}
+		 */
+		onUpdateErrorNotice: function onUpdateErrorNotice( errorAnnotations ) {
+			var control = this, message;
+			control.setting.notifications.remove( 'csslint_error' );
+
+			if ( 0 !== errorAnnotations.length ) {
+				if ( 1 === errorAnnotations.length ) {
+					message = api.l10n.customCssError.singular.replace( '%d', '1' );
+				} else {
+					message = api.l10n.customCssError.plural.replace( '%d', String( errorAnnotations.length ) );
+				}
+				control.setting.notifications.add( 'csslint_error', new api.Notification( 'csslint_error', {
+					message: message,
+					type: 'error'
+				} ) );
+			}
+		},
+
+		/**
+		 * Initialize plain-textarea editor when syntax highlighting is disabled.
+		 *
+		 * @since 4.9.0
+		 * @returns {void}
+		 */
+		initPlainTextareaEditor: function() {
+			var control = this, $textarea = control.container.find( 'textarea' ), textarea = $textarea[0];
+
+			$textarea.on( 'blur', function onBlur() {
+				$textarea.data( 'next-tab-blurs', false );
+			} );
+
+			$textarea.on( 'keydown', function onKeydown( event ) {
+				var selectionStart, selectionEnd, value, tabKeyCode = 9, escKeyCode = 27;
+
+				if ( escKeyCode === event.keyCode ) {
+					if ( ! $textarea.data( 'next-tab-blurs' ) ) {
+						$textarea.data( 'next-tab-blurs', true );
+						event.stopPropagation(); // Prevent collapsing the section.
+					}
+					return;
+				}
+
+				// Short-circuit if tab key is not being pressed or if a modifier key *is* being pressed.
+				if ( tabKeyCode !== event.keyCode || event.ctrlKey || event.altKey || event.shiftKey ) {
+					return;
+				}
+
+				// Prevent capturing Tab characters if Esc was pressed.
+				if ( $textarea.data( 'next-tab-blurs' ) ) {
+					return;
+				}
+
+				selectionStart = textarea.selectionStart;
+				selectionEnd = textarea.selectionEnd;
+				value = textarea.value;
+
+				if ( selectionStart >= 0 ) {
+					textarea.value = value.substring( 0, selectionStart ).concat( '\t', value.substring( selectionEnd ) );
+					$textarea.selectionStart = textarea.selectionEnd = selectionStart + 1;
+				}
+
+				event.stopPropagation();
+				event.preventDefault();
+			});
+		}
+	});
+
 	// Change objects contained within the main customize object to Settings.
 	api.defaultConstructor = api.Setting;
 
@@ -3417,6 +3928,9 @@
 	api.control = new api.Values({ defaultConstructor: api.Control });
 	api.section = new api.Values({ defaultConstructor: api.Section });
 	api.panel = new api.Values({ defaultConstructor: api.Panel });
+
+	// Create the collection for global Notifications.
+	api.notifications = new api.Notifications();
 
 	/**
 	 * An object that fetches a preview in the background of the document, which
@@ -4102,7 +4616,8 @@
 		header:              api.HeaderControl,
 		background:          api.BackgroundControl,
 		background_position: api.BackgroundPositionControl,
-		theme:               api.ThemeControl
+		theme:               api.ThemeControl,
+		code_editor:         api.CodeEditorControl
 	};
 	api.panelConstructor = {};
 	api.sectionConstructor = {
@@ -4422,9 +4937,10 @@
 				}
 
 				submit = function () {
-					var request, query, settingInvalidities = {}, latestRevision = api._latestRevision;
+					var request, query, settingInvalidities = {}, latestRevision = api._latestRevision, errorCode = 'client_side_error';
 
 					api.bind( 'change', captureSettingModifiedDuringSave );
+					api.notifications.remove( errorCode );
 
 					/*
 					 * Block saving if there are any settings that are marked as
@@ -4446,6 +4962,14 @@
 					if ( ! _.isEmpty( invalidControls ) ) {
 						_.values( invalidControls )[0][0].focus();
 						api.unbind( 'change', captureSettingModifiedDuringSave );
+
+						api.notifications.add( errorCode, new api.Notification( errorCode, {
+							message: ( 1 === invalidSettings.length ? api.l10n.saveBlockedError.singular : api.l10n.saveBlockedError.plural ).replace( /%s/g, String( invalidSettings.length ) ),
+							type: 'error',
+							dismissible: true,
+							saveFailure: true
+						} ) );
+
 						deferred.rejectWith( previewer, [
 							{ setting_invalidities: settingInvalidities }
 						] );
@@ -4492,6 +5016,13 @@
 						api.unbind( 'change', captureSettingModifiedDuringSave );
 					} );
 
+					// Remove notifications that were added due to save failures.
+					api.notifications.each( function( notification ) {
+						if ( notification.saveFailure ) {
+							api.notifications.remove( notification.code );
+						}
+					});
+
 					request.fail( function ( response ) {
 
 						if ( '0' === response ) {
@@ -4509,6 +5040,22 @@
 								previewer.save();
 								previewer.preview.iframe.show();
 							} );
+						} else if ( response.code ) {
+							api.notifications.add( response.code, new api.Notification( response.code, {
+								message: response.message,
+								type: 'error',
+								dismissible: true,
+								fromServer: true,
+								saveFailure: true
+							} ) );
+						} else {
+							api.notifications.add( 'unknown_error', new api.Notification( 'unknown_error', {
+								message: api.l10n.serverSaveError,
+								type: 'error',
+								dismissible: true,
+								fromServer: true,
+								saveFailure: true
+							} ) );
 						}
 
 						if ( response.setting_validities ) {
@@ -4678,6 +5225,29 @@
 			values.bind( 'change', debouncedReflowPaneContents );
 			values.bind( 'remove', debouncedReflowPaneContents );
 		} );
+
+		// Set up global notifications area.
+		api.bind( 'ready', function setUpGlobalNotificationsArea() {
+			var sidebar, containerHeight, containerInitialTop;
+			api.notifications.container = $( '#customize-notifications-area' );
+
+			api.notifications.bind( 'change', _.debounce( function() {
+				api.notifications.render();
+			} ) );
+
+			sidebar = $( '.wp-full-overlay-sidebar-content' );
+			api.notifications.bind( 'rendered', function updateSidebarTop() {
+				sidebar.css( 'top', '' );
+				if ( 0 !== api.notifications.count() ) {
+					containerHeight = api.notifications.container.outerHeight() + 1;
+					containerInitialTop = parseInt( sidebar.css( 'top' ), 10 );
+					sidebar.css( 'top', containerInitialTop + containerHeight + 'px' );
+				}
+				api.notifications.trigger( 'sidebarTopUpdated' );
+			});
+
+			api.notifications.render();
+		});
 
 		// Save and activated states
 		(function() {
@@ -4962,11 +5532,31 @@
 				}
 
 				var scrollTop = parentContainer.scrollTop(),
-					isScrollingUp = ( lastScrollTop ) ? scrollTop <= lastScrollTop : true;
+					scrollDirection;
 
+				if ( ! lastScrollTop ) {
+					scrollDirection = 1;
+				} else {
+					if ( scrollTop === lastScrollTop ) {
+						scrollDirection = 0;
+					} else if ( scrollTop > lastScrollTop ) {
+						scrollDirection = 1;
+					} else {
+						scrollDirection = -1;
+					}
+				}
 				lastScrollTop = scrollTop;
-				positionStickyHeader( activeHeader, scrollTop, isScrollingUp );
+				if ( 0 !== scrollDirection ) {
+					positionStickyHeader( activeHeader, scrollTop, scrollDirection );
+				}
 			}, 8 ) );
+
+			// Update header position on sidebar layout change.
+			api.notifications.bind( 'sidebarTopUpdated', function() {
+				if ( activeHeader && activeHeader.element.hasClass( 'is-sticky' ) ) {
+					activeHeader.element.css( 'top', parentContainer.css( 'top' ) );
+				}
+			});
 
 			// Release header element if it is sticky.
 			releaseStickyHeader = function( headerElement ) {
@@ -4981,13 +5571,15 @@
 
 			// Reset position of the sticky header.
 			resetStickyHeader = function( headerElement, headerParent ) {
-				headerElement
-					.removeClass( 'maybe-sticky is-in-view' )
-					.css( {
-						width: '',
-						top: ''
-					} );
-				headerParent.css( 'padding-top', '' );
+				if ( headerElement.hasClass( 'is-in-view' ) ) {
+					headerElement
+						.removeClass( 'maybe-sticky is-in-view' )
+						.css( {
+							width: '',
+							top:   ''
+						} );
+					headerParent.css( 'padding-top', '' );
+				}
 			};
 
 			/**
@@ -5014,19 +5606,20 @@
 			 * @since 4.7.0
 			 * @access private
 			 *
-			 * @param {object}  header        Header.
-			 * @param {number}  scrollTop     Scroll top.
-			 * @param {boolean} isScrollingUp Is scrolling up?
+			 * @param {object} header - Header.
+			 * @param {number} scrollTop - Scroll top.
+			 * @param {number} scrollDirection - Scroll direction, negative number being up and positive being down.
 			 * @returns {void}
 			 */
-			positionStickyHeader = function( header, scrollTop, isScrollingUp ) {
+			positionStickyHeader = function( header, scrollTop, scrollDirection ) {
 				var headerElement = header.element,
 					headerParent = header.parent,
 					headerHeight = header.height,
 					headerTop = parseInt( headerElement.css( 'top' ), 10 ),
 					maybeSticky = headerElement.hasClass( 'maybe-sticky' ),
 					isSticky = headerElement.hasClass( 'is-sticky' ),
-					isInView = headerElement.hasClass( 'is-in-view' );
+					isInView = headerElement.hasClass( 'is-in-view' ),
+					isScrollingUp = ( -1 === scrollDirection );
 
 				// When scrolling down, gradually hide sticky header.
 				if ( ! isScrollingUp ) {
@@ -5069,7 +5662,7 @@
 						headerElement
 							.addClass( 'is-sticky' )
 							.css( {
-								top:   '',
+								top:   parentContainer.css( 'top' ),
 								width: headerParent.outerWidth() + 'px'
 							} );
 					}
@@ -5319,85 +5912,104 @@
 			});
 		});
 
-		// Change previewed URL to the homepage when changing the page_on_front.
-		api( 'show_on_front', 'page_on_front', function( showOnFront, pageOnFront ) {
-			var updatePreviewUrl = function() {
-				if ( showOnFront() === 'page' && parseInt( pageOnFront(), 10 ) > 0 ) {
-					api.previewer.previewUrl.set( api.settings.url.home );
+		// Add behaviors to the static front page controls.
+		api( 'show_on_front', 'page_on_front', 'page_for_posts', function( showOnFront, pageOnFront, pageForPosts ) {
+			var handleChange = function() {
+				var setting = this, pageOnFrontId, pageForPostsId, errorCode = 'show_on_front_page_collision';
+				pageOnFrontId = parseInt( pageOnFront(), 10 );
+				pageForPostsId = parseInt( pageForPosts(), 10 );
+
+				if ( 'page' === showOnFront() ) {
+
+					// Change previewed URL to the homepage when changing the page_on_front.
+					if ( setting === pageOnFront && pageOnFrontId > 0 ) {
+						api.previewer.previewUrl.set( api.settings.url.home );
+					}
+
+					// Change the previewed URL to the selected page when changing the page_for_posts.
+					if ( setting === pageForPosts && pageForPostsId > 0 ) {
+						api.previewer.previewUrl.set( api.settings.url.home + '?page_id=' + pageForPostsId );
+					}
+				}
+
+				// Toggle notification when the homepage and posts page are both set and the same.
+				if ( 'page' === showOnFront() && pageOnFrontId && pageForPostsId && pageOnFrontId === pageForPostsId ) {
+					showOnFront.notifications.add( errorCode, new api.Notification( errorCode, {
+						type: 'error',
+						message: api.l10n.pageOnFrontError
+					} ) );
+				} else {
+					showOnFront.notifications.remove( errorCode );
 				}
 			};
-			showOnFront.bind( updatePreviewUrl );
-			pageOnFront.bind( updatePreviewUrl );
-		});
+			showOnFront.bind( handleChange );
+			pageOnFront.bind( handleChange );
+			pageForPosts.bind( handleChange );
+			handleChange.call( showOnFront, showOnFront() ); // Make sure initial notification is added after loading existing changeset.
 
-		// Change the previewed URL to the selected page when changing the page_for_posts.
-		api( 'page_for_posts', function( setting ) {
-			setting.bind(function( pageId ) {
-				pageId = parseInt( pageId, 10 );
-				if ( pageId > 0 ) {
-					api.previewer.previewUrl.set( api.settings.url.home + '?page_id=' + pageId );
-				}
+			// Move notifications container to the bottom.
+			api.control( 'show_on_front', function( showOnFrontControl ) {
+				showOnFrontControl.deferred.embedded.done( function() {
+					showOnFrontControl.container.append( showOnFrontControl.getNotificationsContainerElement() );
+				});
 			});
 		});
 
-		// Allow tabs to be entered in Custom CSS textarea.
-		api.control( 'custom_css', function setupCustomCssControl( control ) {
-			control.deferred.embedded.done( function allowTabs() {
-				var $textarea = control.container.find( 'textarea' ), textarea = $textarea[0];
+		// Add code editor for Custom CSS.
+		(function() {
+			var sectionReady = $.Deferred();
 
-				$textarea.on( 'blur', function onBlur() {
-					$textarea.data( 'next-tab-blurs', false );
-				} );
-
-				$textarea.on( 'keydown', function onKeydown( event ) {
-					var selectionStart, selectionEnd, value, tabKeyCode = 9, escKeyCode = 27;
-
-					if ( escKeyCode === event.keyCode ) {
-						if ( ! $textarea.data( 'next-tab-blurs' ) ) {
-							$textarea.data( 'next-tab-blurs', true );
-							event.stopPropagation(); // Prevent collapsing the section.
-						}
-						return;
+			api.section( 'custom_css', function( section ) {
+				section.deferred.embedded.done( function() {
+					if ( section.expanded() ) {
+						sectionReady.resolve( section );
+					} else {
+						section.expanded.bind( function( isExpanded ) {
+							if ( isExpanded ) {
+								sectionReady.resolve( section );
+							}
+						} );
 					}
+				});
+			});
 
-					// Short-circuit if tab key is not being pressed or if a modifier key *is* being pressed.
-					if ( tabKeyCode !== event.keyCode || event.ctrlKey || event.altKey || event.shiftKey ) {
-						return;
-					}
+			// Set up the section desription behaviors.
+			sectionReady.done( function setupSectionDescription( section ) {
+				var control = api.control( 'custom_css' );
 
-					// Prevent capturing Tab characters if Esc was pressed.
-					if ( $textarea.data( 'next-tab-blurs' ) ) {
-						return;
-					}
+				// Close the section description when clicking the close button.
+				section.container.find( '.section-description-buttons .section-description-close' ).on( 'click', function() {
+					section.container.find( '.section-meta .customize-section-description:first' )
+						.removeClass( 'open' )
+						.slideUp()
+						.attr( 'aria-expanded', 'false' );
+				});
 
-					selectionStart = textarea.selectionStart;
-					selectionEnd = textarea.selectionEnd;
-					value = textarea.value;
-
-					if ( selectionStart >= 0 ) {
-						textarea.value = value.substring( 0, selectionStart ).concat( '\t', value.substring( selectionEnd ) );
-						$textarea.selectionStart = textarea.selectionEnd = selectionStart + 1;
-					}
-
-					event.stopPropagation();
-					event.preventDefault();
-				} );
-			} );
-		} );
+				// Reveal help text if setting is empty.
+				if ( control && ! control.setting.get() ) {
+					section.container.find( '.section-meta .customize-section-description:first' )
+						.addClass( 'open' )
+						.show()
+						.attr( 'aria-expanded', 'true' );
+				}
+			});
+		})();
 
 		// Toggle visibility of Header Video notice when active state change.
 		api.control( 'header_video', function( headerVideoControl ) {
 			headerVideoControl.deferred.embedded.done( function() {
 				var toggleNotice = function() {
-					var section = api.section( headerVideoControl.section() ), notice;
+					var section = api.section( headerVideoControl.section() ), noticeCode = 'video_header_not_available';
 					if ( ! section ) {
 						return;
 					}
-					notice = section.container.find( '.header-video-not-currently-previewable:first' );
 					if ( headerVideoControl.active.get() ) {
-						notice.stop().slideUp( 'fast' );
+						section.notifications.remove( noticeCode );
 					} else {
-						notice.stop().slideDown( 'fast' );
+						section.notifications.add( noticeCode, new api.Notification( noticeCode, {
+							type: 'info',
+							message: api.l10n.videoHeaderNotice
+						} ) );
 					}
 				};
 				toggleNotice();

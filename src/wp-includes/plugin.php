@@ -363,7 +363,7 @@ function doing_filter( $filter = null ) {
 }
 
 /**
- * Retrieve the name of an action currently being processed.
+ * Retrieve whether action currently being processed.
  *
  * @since 3.9.0
  *
@@ -574,6 +574,15 @@ function remove_all_actions($tag, $priority = false) {
  * When a filter hook is deprecated, the apply_filters() call is replaced with
  * apply_filters_deprecated(), which triggers a deprecation notice and then fires
  * the original filter hook.
+ *
+ * Note: the value and extra arguments passed to the original apply_filters() call
+ * must be passed here to `$args` as an array. For example:
+ *
+ *     // Old filter.
+ *     return apply_filters( 'wpdocs_filter', $value, $extra_arg );
+ *
+ *     // Deprecated.
+ *     return apply_filters_deprecated( 'wpdocs_filter', array( $value, $extra_arg ), '4.9', 'wpdocs_new_filter' );
  *
  * @since 4.6.0
  *

@@ -303,6 +303,9 @@ class Tests_WP_Customize_Manager extends WP_UnitTestCase {
 		$wp_customize = new WP_Customize_Manager();
 		$this->assertNull( $wp_customize->find_changeset_post_id( wp_generate_uuid4() ) );
 		$this->assertEquals( $post_id, $wp_customize->find_changeset_post_id( $uuid ) );
+
+		// Verify that the found post ID was cached under the given UUID, not the manager's UUID.
+		$this->assertNotEquals( $post_id, $wp_customize->find_changeset_post_id( $wp_customize->changeset_uuid() ) );
 	}
 
 	/**
@@ -1407,6 +1410,24 @@ class Tests_WP_Customize_Manager extends WP_UnitTestCase {
 		// Ensure that the value has actually been written to the DB.
 		$updated_sidebars_widgets = get_option( 'sidebars_widgets' );
 		$this->assertEquals( $new_sidebar_1, $updated_sidebars_widgets['sidebar-1'] );
+	}
+
+	/**
+	 * Ensure that saving a changeset with a publish status but future date will change the status to future, to align with behavior in wp_insert_post().
+	 *
+	 * @ticket 41336
+	 * @covers WP_Customize_Manager::save_changeset_post
+	 */
+	function test_publish_changeset_with_future_status_when_future_date() {
+		$wp_customize = $this->create_test_manager( wp_generate_uuid4() );
+
+		$wp_customize->save_changeset_post( array(
+			'date_gmt' => gmdate( 'Y-m-d H:i:s', strtotime( '+1 day' ) ),
+			'status' => 'publish',
+			'title' => 'Foo',
+		) );
+
+		$this->assertSame( 'future', get_post_status( $wp_customize->changeset_post_id() ) );
 	}
 
 	/**

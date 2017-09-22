@@ -63,7 +63,40 @@ if ( $theme->errors() && 'theme_no_stylesheet' == $theme->errors()->get_error_co
 
 $allowed_files = $style_files = array();
 $has_templates = false;
-$default_types = array( 'php', 'css' );
+$default_types = array(
+	'bash',
+	'conf',
+	'css',
+	'diff',
+	'htm',
+	'html',
+	'http',
+	'inc',
+	'include',
+	'js',
+	'json',
+	'jsx',
+	'less',
+	'md',
+	'patch',
+	'php',
+	'php3',
+	'php4',
+	'php5',
+	'php7',
+	'phps',
+	'phtml',
+	'sass',
+	'scss',
+	'sh',
+	'sql',
+	'svg',
+	'text',
+	'txt',
+	'xml',
+	'yaml',
+	'yml',
+);
 
 /**
  * Filters the list of file types allowed for editing in the Theme editor.
@@ -99,7 +132,7 @@ if ( empty( $file ) ) {
 	$relative_file = 'style.css';
 	$file = $allowed_files['style.css'];
 } else {
-	$relative_file = $file;
+	$relative_file = wp_unslash( $file );
 	$file = $theme->get_stylesheet_directory() . '/' . $relative_file;
 }
 
@@ -125,6 +158,12 @@ case 'update':
 	exit;
 
 default:
+
+	$settings = wp_enqueue_code_editor( compact( 'file' ) );
+	if ( ! empty( $settings ) ) {
+		wp_enqueue_script( 'wp-theme-plugin-editor' );
+		wp_add_inline_script( 'wp-theme-plugin-editor', sprintf( 'jQuery( function() { wp.themePluginEditor.init( %s ); } )', wp_json_encode( $settings ) ) );
+	}
 
 	require_once( ABSPATH . 'wp-admin/admin-header.php' );
 
@@ -156,10 +195,12 @@ default:
  <div id="message" class="updated notice is-dismissible"><p><?php _e( 'File edited successfully.' ) ?></p></div>
 <?php endif;
 
-$description = get_file_description( $relative_file );
+$file_description = get_file_description( $relative_file );
 $file_show = array_search( $file, array_filter( $allowed_files ) );
-if ( $description != $file_show )
-	$description .= ' <span>(' . $file_show . ')</span>';
+$description = esc_html( $file_description );
+if ( $file_description != $file_show ) {
+	$description .= ' <span>(' . esc_html( $file_show ) . ')</span>';
+}
 ?>
 <div class="wrap">
 <h1><?php echo esc_html( $title ); ?></h1>
@@ -230,9 +271,9 @@ if ( $allowed_files ) :
 			echo "\t<ul>\n";
 		}
 
-		$file_description = get_file_description( $filename );
+		$file_description = esc_html( get_file_description( $filename ) );
 		if ( $filename !== basename( $absolute_filename ) || $file_description !== $filename ) {
-			$file_description .= '<br /><span class="nonessential">(' . $filename . ')</span>';
+			$file_description .= '<br /><span class="nonessential">(' . esc_html( $filename ) . ')</span>';
 		}
 
 		if ( $absolute_filename === $file ) {

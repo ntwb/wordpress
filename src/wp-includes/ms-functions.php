@@ -2069,10 +2069,10 @@ function maybe_redirect_404() {
 }
 
 /**
- * Add a new user to a blog by visiting /newbloguser/username/.
+ * Add a new user to a blog by visiting /newbloguser/{key}/.
  *
  * This will only work when the user's details are saved as an option
- * keyed as 'new_user_x', where 'x' is the username of the user to be
+ * keyed as 'new_user_{key}', where '{key}' is a hash generated for the user to be
  * added, as when a user is invited through the regular WP Add User interface.
  *
  * @since MU (3.0.0)
@@ -2110,17 +2110,16 @@ function add_existing_user_to_blog( $details = false ) {
 		$blog_id = get_current_blog_id();
 		$result = add_user_to_blog( $blog_id, $details[ 'user_id' ], $details[ 'role' ] );
 
-		if ( ! is_wp_error( $result ) ) {
-			/**
-			 * Fires immediately after an existing user is added to a site.
-			 *
-			 * @since MU (3.0.0)
-			 *
-			 * @param int   $user_id User ID.
-			 * @param mixed $result  True on success or a WP_Error object if the user doesn't exist.
-			 */
-			do_action( 'added_existing_user', $details['user_id'], $result );
-		}
+		/**
+		 * Fires immediately after an existing user is added to a site.
+		 *
+		 * @since MU (3.0.0)
+		 *
+		 * @param int   $user_id User ID.
+		 * @param mixed $result  True on success or a WP_Error object if the user doesn't exist
+		 *                       or could not be added.
+		 */
+		do_action( 'added_existing_user', $details['user_id'], $result );
 
 		return $result;
 	}

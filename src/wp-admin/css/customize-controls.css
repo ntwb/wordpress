@@ -550,6 +550,20 @@ p.customize-section-description {
 	margin-top: 22px;
 	margin-bottom: 0;
 }
+.customize-section-description ul {
+	margin-left: 1em;
+}
+.customize-section-description ul > li {
+	list-style: disc;
+}
+.section-description-buttons {
+	text-align: right;
+}
+
+.section-description-buttons button.button-link {
+	color: #0073aa;
+	text-decoration: underline;
+}
 
 .customize-control {
 	width: 100%;
@@ -766,7 +780,6 @@ p.customize-section-description {
 #customize-controls .customize-control-notifications-container { /* Scoped to #customize-controls for specificity over notification styles in common.css. */
 	margin: 4px 0 8px 0;
 	padding: 0;
-	display: none;
 	cursor: default;
 }
 
@@ -776,10 +789,14 @@ p.customize-section-description {
 	transition: .15s box-shadow linear;
 }
 
-.customize-control-notifications-container li.notice {
+#customize-controls .customize-control-notifications-container li.notice {
 	list-style: none;
 	margin: 0 0 6px 0;
-	padding: 4px 8px;
+	padding: 9px 14px;
+	overflow: hidden;
+}
+#customize-controls .customize-control-notifications-container .notice.is-dismissible {
+	padding-right: 38px;
 }
 
 .customize-control-notifications-container li.notice:last-child {
@@ -798,7 +815,64 @@ p.customize-section-description {
 	outline: 2px solid #dc3232;
 }
 
+#customize-controls #customize-notifications-area {
+	position: absolute;
+	top: 46px;
+	width: 100%;
+	border-bottom: 1px solid #ddd;
+	display: block;
+	padding: 0;
+	margin: 0;
+}
+
+#customize-controls #customize-notifications-area,
+#customize-controls .customize-section-title > .customize-control-notifications-container,
+#customize-controls .panel-meta > .customize-control-notifications-container {
+	max-height: 210px;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+#customize-controls #customize-notifications-area > ul,
+#customize-controls #customize-notifications-area .notice,
+#customize-controls .panel-meta > .customize-control-notifications-container,
+#customize-controls .panel-meta > .customize-control-notifications-container .notice,
+#customize-controls .customize-section-title > .customize-control-notifications-container,
+#customize-controls .customize-section-title > .customize-control-notifications-container .notice {
+	margin: 0;
+}
+#customize-controls .panel-meta > .customize-control-notifications-container,
+#customize-controls .customize-section-title > .customize-control-notifications-container {
+	border-top: 1px solid #ddd;
+}
+#customize-controls #customize-notifications-area .notice,
+#customize-controls .panel-meta > .customize-control-notifications-container .notice,
+#customize-controls .customize-section-title > .customize-control-notifications-container .notice {
+	padding: 9px 14px;
+}
+#customize-controls #customize-notifications-area .notice.is-dismissible,
+#customize-controls .panel-meta > .customize-control-notifications-container .notice.is-dismissible,
+#customize-controls .customize-section-title > .customize-control-notifications-container .notice.is-dismissible {
+	padding-right: 38px;
+}
+#customize-controls #customize-notifications-area .notice + .notice,
+#customize-controls .panel-meta > .customize-control-notifications-container .notice + .notice,
+#customize-controls .customize-section-title > .customize-control-notifications-container .notice + .notice {
+	margin-top: 1px;
+}
+
 /* Style for custom settings */
+
+/**
+ * Static front page
+ */
+
+#customize-control-show_on_front.has-error {
+	margin-bottom: 0;
+}
+#customize-control-show_on_front.has-error .customize-control-notifications-container {
+	margin-top:12px;
+}
 
 /**
  * Dropdowns
@@ -856,15 +930,6 @@ p.customize-section-description {
 	background: #eee;
 	display: none;
 	max-width: 112px;
-}
-
-/* Color Picker */
-.customize-control-color .color-picker-hex {
-	display: none;
-}
-
-.customize-control-color.open .color-picker-hex {
-	display: block;
 }
 
 .customize-control-color .dropdown {
@@ -1099,11 +1164,25 @@ p.customize-section-description {
 }
 
 /**
- * Custom CSS Section
+ * Code Editor Control and Custom CSS Section
  *
  * Modifications to the Section Container to make the textarea full-width and
  * full-height, if the control is the only control in the section.
  */
+
+.customize-control-code_editor textarea {
+	width: 100%;
+	font-family: Consolas, Monaco, monospace;
+	font-size: 12px;
+	padding: 6px 8px;
+	-moz-tab-size: 2;
+	-o-tab-size: 2;
+	tab-size: 2;
+}
+.customize-control-code_editor textarea,
+.customize-control-code_editor .CodeMirror {
+	height: 14em;
+}
 
 #customize-controls .customize-section-description-container.section-meta.customize-info {
 	border-bottom: none;
@@ -1115,13 +1194,7 @@ p.customize-section-description {
 
 #customize-control-custom_css textarea {
 	display: block;
-	font-family: Consolas, Monaco, monospace;
-	font-size: 12px;
-	padding: 6px 8px;
 	height: 500px;
-	-moz-tab-size: 4;
-	-o-tab-size: 4;
-	tab-size: 4;
 }
 
 .customize-section-description-container + #customize-control-custom_css:last-child textarea {
@@ -1135,6 +1208,19 @@ p.customize-section-description {
 	width: 299px;
 	width: calc( 100% + 24px );
 	margin-bottom: -12px;
+}
+
+.customize-section-description-container + #customize-control-custom_css:last-child .CodeMirror {
+	height: calc( 100vh - 185px );
+}
+.CodeMirror-lint-tooltip,
+.CodeMirror-hints {
+	z-index: 500000 !important;
+}
+
+.customize-section-description-container + #customize-control-custom_css:last-child .customize-control-notifications-container {
+	margin-left: 12px;
+	margin-right: 12px;
 }
 
 @media screen and ( max-width: 640px ) {
@@ -1176,6 +1262,21 @@ p.customize-section-description {
 	border-bottom: 1px solid #ddd;
 	border-left: none;
 	margin-top: 0;
+}
+#customize-theme-controls .control-section-themes .customize-section-back {
+	position: absolute;
+	right: 0;
+	top: 0;
+	height: 80px;
+	border-left: 1px solid #ddd;
+	border-right: 4px solid #fff;
+}
+#customize-theme-controls .control-section-themes .customize-section-back:before {
+	content: "\f345";
+}
+#customize-theme-controls .control-section-themes .customize-section-back:hover,
+#customize-theme-controls .control-section-themes .customize-section-back:focus {
+	border-right-color: #0073aa;
 }
 
 #customize-theme-controls .control-section-themes .customize-themes-panel .accordion-section-title:first-child:hover, /* Not a focusable element. */

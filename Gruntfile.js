@@ -360,6 +360,7 @@ module.exports = function(grunt) {
 					'wp-includes/js/tinymce/plugins/wordpress/plugin.js',
 					'wp-includes/js/tinymce/plugins/wp*/plugin.js',
 					// Third party scripts
+					'!wp-includes/js/codemirror/*.js',
 					'!wp-admin/js/farbtastic.js',
 					'!wp-includes/js/backbone*.js',
 					'!wp-includes/js/swfobject.js',
@@ -369,7 +370,8 @@ module.exports = function(grunt) {
 					'!wp-includes/js/json2.js',
 					'!wp-includes/js/tw-sack.js',
 					'!wp-includes/js/twemoji.js',
-					'!**/*.min.js'
+					'!**/*.min.js',
+					'!wp-includes/js/wp-hooks.js'
 				],
 				// Remove once other JSHint errors are resolved
 				options: {
@@ -432,6 +434,14 @@ module.exports = function(grunt) {
 					}
 
 					return false;
+				}
+			}
+		},
+		jsdoc : {
+			dist : {
+				dest: 'jsdoc',
+				options: {
+					configure : 'jsdoc.conf.json'
 				}
 			}
 		},

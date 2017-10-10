@@ -121,14 +121,16 @@
 .screen-reader-text,
 .screen-reader-text span,
 .ui-helper-hidden-accessible {
-	position: absolute;
-	margin: -1px;
-	padding: 0;
-	height: 1px;
-	width: 1px;
-	overflow: hidden;
-	clip: rect(0 0 0 0);
 	border: 0;
+	clip: rect(1px, 1px, 1px, 1px);
+	-webkit-clip-path: inset(50%);
+	clip-path: inset(50%);
+	height: 1px;
+	margin: -1px;
+	overflow: hidden;
+	padding: 0;
+	position: absolute;
+	width: 1px;
 	word-wrap: normal !important; /* many screen reader and browser combinations announce broken words as they would appear visually */
 }
 
@@ -1461,6 +1463,22 @@ div.error {
 	margin: 5px 0 15px;
 }
 
+.wrap #templateside .notice {
+	display: block;
+	margin: 0;
+	padding: 5px 12px;
+	font-weight: 600;
+	text-decoration: none;
+}
+
+.wrap #templateside span.notice {
+  margin-left: -12px;
+}
+
+#templateside li.notice a {
+  padding: 0;
+}
+
 /* Update icon. */
 .update-message p:before,
 .updating-message p:before,
@@ -1599,10 +1617,6 @@ form.upgrade .hint {
 #contextual-help-wrap {
 	overflow: auto;
 	margin-left: 0 !important;
-}
-
-#screen-meta .screen-reader-text {
-	visibility: hidden;
 }
 
 #screen-meta-links {
@@ -2203,13 +2217,15 @@ h1.nav-tab-wrapper, /* Back-compat for pre-4.4 */
 #template > div {
 	margin-right: 190px;
 }
-#template .active-plugin-edit-warning {
+#template .notice {
 	margin-top: 1em;
-	margin-right: 30%;
-	margin-right: calc( 184px + 3% );
+	margin-right: 3%;
 }
-#template .active-plugin-edit-warning p {
+#template .notice p {
 	width: auto;
+}
+#template .submit .spinner {
+	float: none;
 }
 
 .metabox-holder .stuffbox > h3, /* Back-compat for pre-4.4 */
@@ -2245,7 +2261,7 @@ table .column-rating {
 
 .attention,
 .error-message {
-	color: red;
+	color: #dc3232;
 	font-weight: 600;
 }
 
@@ -2950,7 +2966,7 @@ img {
 }
 
 /* Metabox collapse arrow indicators */
-.js .sidebar-name .sidebar-name-arrow:before,
+.sidebar-name .toggle-indicator:before,
 .js .meta-box-sortables .postbox .toggle-indicator:before,
 .bulk-action-notice .toggle-indicator:before {
 	content: "\f142";
@@ -2962,24 +2978,10 @@ img {
 	text-decoration: none !important;
 }
 
-.js .widgets-holder-wrap.closed .sidebar-name-arrow:before,
+.js .widgets-holder-wrap.closed .toggle-indicator:before,
 .js .meta-box-sortables .postbox.closed .handlediv .toggle-indicator:before,
 .bulk-action-notice .bulk-action-errors-collapsed .toggle-indicator:before {
 	content: "\f140";
-}
-
-.js .sidebar-name .sidebar-name-arrow:before {
-	padding: 10px;
-	left: 0;
-}
-
-.js #widgets-left .sidebar-name .sidebar-name-arrow {
-	display: none;
-}
-
-.js #widgets-left .widgets-holder-wrap.closed .sidebar-name .sidebar-name-arrow,
-.js #widgets-left .sidebar-name:hover .sidebar-name-arrow {
-	display: block;
 }
 
 .js .postbox .handlediv .toggle-indicator:before {
@@ -3032,13 +3034,31 @@ img {
 #template textarea,
 #template .CodeMirror {
 	width: 97%;
-	height: calc( 100vh - 220px );
+	height: calc( 100vh - 280px );
+}
+#templateside {
+	margin-top: 31px;
+	overflow: scroll;
+}
+
+#theme-plugin-editor-label {
+	display: inline-block;
+	margin-bottom: 1em;
+	font-weight: 600;
 }
 
 /* rtl:ignore */
 #template textarea,
 #docs-list {
 	direction: ltr;
+}
+
+.fileedit-sub #theme,
+.fileedit-sub #plugin {
+	max-width: 40%;
+}
+.fileedit-sub .alignright {
+	text-align: right;
 }
 
 #template p {
@@ -3127,6 +3147,10 @@ img {
 	line-height: 180%;
 }
 
+#file-editor-warning .file-editor-warning-content {
+	margin: 25px;
+}
+
 /* @todo: can we use a common class for these? */
 .nav-menus-php .item-edit:before,
 .widget-top .widget-action .toggle-indicator:before,
@@ -3149,7 +3173,7 @@ img {
 .handlediv,
 .postbox .handlediv.button-link,
 .item-edit,
-.sidebar-name-arrow,
+.toggle-indicator,
 .accordion-section-title:after {
 	color: #72777c;
 }
@@ -3166,7 +3190,7 @@ img {
 .postbox .handlediv.button-link:focus,
 .item-edit:hover,
 .item-edit:focus,
-.sidebar-name:hover .sidebar-name-arrow,
+.sidebar-name:hover .toggle-indicator,
 .accordion-section-title:hover:after {
 	color: #23282d;
 }
@@ -3466,8 +3490,8 @@ img {
 	#screen-meta-links a.show-settings,
 	.widget-top .widget-action,
 	.widget-top .widget-action:hover,
-	.sidebar-name-arrow,
-	.sidebar-name:hover .sidebar-name-arrow,
+	.sidebar-name .toggle-indicator,
+	.sidebar-name:hover .toggle-indicator,
 	.meta-box-sortables .postbox:hover .handlediv,
 	#bulk-titles div a,
 	#bulk-titles div a:hover {
@@ -3618,7 +3642,7 @@ img {
 	}
 
 	#template > div,
-	#template  .active-plugin-edit-warning {
+	#template .notice {
 		float: none;
 		margin: 1em 0;
 		width: auto;

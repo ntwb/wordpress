@@ -7,6 +7,10 @@
   16.1 - Manage Themes
 ------------------------------------------------------------------------------*/
 
+body.js .theme-browser.search-loading {
+	display: none;
+}
+
 .theme-browser .themes {
 	clear: both;
 }
@@ -549,7 +553,7 @@ body.folded .theme-browser ~ .theme-overlay .theme-wrap {
 	float: left;
 	margin: 0 30px 0 0;
 	width: 55%;
-	max-width: 880px;
+	max-width: 1200px; /* Recommended theme screenshot width, set here to avoid stretching */
 	text-align: center;
 }
 
@@ -1049,7 +1053,8 @@ body.folded .theme-browser ~ .theme-overlay .theme-wrap {
 	text-align: center;
 }
 
-p.no-themes {
+p.no-themes,
+p.no-themes-local {
 	clear: both;
 	color: #666;
 	font-size: 18px;
@@ -1705,9 +1710,9 @@ body.full-overlay-active {
 	display: none;
 }
 
-#customize-container {
-	display: none;
-	background: #fff;
+#customize-container,
+#customize-controls .notice.notification-overlay {
+	background: #eee;
 	z-index: 500000;
 	position: fixed;
 	overflow: visible;
@@ -1716,6 +1721,9 @@ body.full-overlay-active {
 	left: 0;
 	right: 0;
 	height: 100%;
+}
+#customize-container {
+	display: none;
 }
 
 /* Make the Customizer and Theme installer overlays the only available content. */
@@ -1824,6 +1832,7 @@ body.full-overlay-active {
 
 #customize-preview.wp-full-overlay-main:before,
 .customize-loading #customize-container:before,
+#customize-controls .notice.notification-overlay.notification-loading:before,
 .theme-install-overlay .wp-full-overlay-main:before {
 	content: "";
 	display: block;
@@ -1861,6 +1870,7 @@ body.full-overlay-active {
 
 	#customize-preview.wp-full-overlay-main:before,
 	.customize-loading #customize-container:before,
+	#customize-controls .notice.notification-overlay.notification-loading:before,
 	.theme-install-overlay .wp-full-overlay-main:before {
 		background-image: url(../images/spinner-2x.gif);
 	}

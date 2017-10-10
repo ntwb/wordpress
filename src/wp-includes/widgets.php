@@ -315,8 +315,8 @@ function is_registered_sidebar( $sidebar_id ) {
  *
  * @since 2.2.0
  *
- * @global array $wp_registered_widgets       Uses stored registered widgets.
- * @global array $wp_register_widget_defaults Retrieves widget defaults.
+ * @global array $wp_registered_widgets            Uses stored registered widgets.
+ * @global array $wp_registered_widget_controls    Stores the registered widget control (options).
  * @global array $wp_registered_widget_updates
  * @global array $_wp_deprecated_widgets_callbacks
  *
@@ -1147,7 +1147,6 @@ function retrieve_widgets( $theme_changed = false ) {
 		}
 	}
 
-
 	// Discard invalid, theme-specific widgets from sidebars.
 	$sidebars_widgets = _wp_remove_unregistered_widgets( $sidebars_widgets, $registered_widgets_ids );
 	$sidebars_widgets = wp_map_sidebars_widgets( $sidebars_widgets );
@@ -1214,7 +1213,7 @@ function wp_map_sidebars_widgets( $existing_sidebars_widgets ) {
 		if ( in_array( $sidebar, $existing_sidebars, true ) ) {
 			$new_sidebars_widgets[ $sidebar ] = $existing_sidebars_widgets[ $sidebar ];
 			unset( $existing_sidebars_widgets[ $sidebar ] );
-		} else {
+		} else if ( ! array_key_exists( $sidebar, $new_sidebars_widgets ) ) {
 			$new_sidebars_widgets[ $sidebar ] = array();
 		}
 	}
@@ -1287,6 +1286,7 @@ function wp_map_sidebars_widgets( $existing_sidebars_widgets ) {
 
 	// Sidebars_widgets settings from when this theme was previously active.
 	$old_sidebars_widgets = get_theme_mod( 'sidebars_widgets' );
+	$old_sidebars_widgets = $old_sidebars_widgets['data'];
 
 	if ( is_array( $old_sidebars_widgets ) ) {
 
@@ -1608,6 +1608,8 @@ function wp_widgets_init() {
 	register_widget( 'WP_Widget_Media_Audio' );
 
 	register_widget( 'WP_Widget_Media_Image' );
+
+	register_widget( 'WP_Widget_Media_Gallery' );
 
 	register_widget( 'WP_Widget_Media_Video' );
 

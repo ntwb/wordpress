@@ -1160,4 +1160,5 @@ class Tests_Functions extends WP_UnitTestCase {
 
 		return $data;
 	}
+
 }

@@ -501,8 +501,49 @@
 			 * Add a helper function to handle post Meta.
 			 */
 			MetaMixin = {
-				getMeta: function() {
-					return buildCollectionGetter( this, 'PostMeta', 'https://api.w.org/meta' );
+
+				/**
+				 * Get meta by key for a post.
+				 *
+				 * @param {string} key The meta key.
+				 *
+				 * @return {object} The post meta value.
+				 */
+				getMeta: function( key ) {
+					var metas = this.get( 'meta' );
+					return metas[ key ];
+				},
+
+				/**
+				 * Get all meta key/values for a post.
+				 *
+				 * @return {object} The post metas, as a key value pair object.
+				 */
+				getMetas: function() {
+					return this.get( 'meta' );
+				},
+
+				/**
+				 * Set a group of meta key/values for a post.
+				 *
+				 * @param {object} meta The post meta to set, as key/value pairs.
+				 */
+				setMetas: function( meta ) {
+					var metas = this.get( 'meta' );
+					_.extend( metas, meta );
+					this.set( 'meta', metas );
+				},
+
+				/**
+				 * Set a single meta value for a post, by key.
+				 *
+				 * @param {string} key   The meta key.
+				 * @param {object} value The meta value.
+				 */
+				setMeta: function( key, value ) {
+					var metas = this.get( 'meta' );
+					metas[ key ] = value;
+					this.set( 'meta', metas );
 				}
 			},
 
@@ -734,8 +775,8 @@
 			model = model.extend( CategoriesMixin );
 		}
 
-		// Add the MetaMixin for models that support meta collections.
-		if ( ! _.isUndefined( loadingObjects.collections[ modelClassName + 'Meta' ] ) ) {
+		// Add the MetaMixin for models that support meta.
+		if ( ! _.isUndefined( model.prototype.args.meta ) ) {
 			model = model.extend( MetaMixin );
 		}
 
@@ -770,6 +811,36 @@
 	wp.api.WPApiBaseModel = Backbone.Model.extend(
 		/** @lends WPApiBaseModel.prototype  */
 		{
+			initialize: function( attributes, options ) {
+
+				/**
+				 * Determine if a model requires ?force=true to actually delete them.
+				 */
+				if (
+					! _.isEmpty(
+						_.filter(
+							this.endpoints,
+							function( endpoint ) {
+								return (
+
+									// Does the method support DELETE?
+									'DELETE' === endpoint.methods[0] &&
+
+									// Exclude models that support trash (Post, Page).
+									(
+										! _.isUndefined( endpoint.args.force ) &&
+										! _.isUndefined( endpoint.args.force.description ) &&
+										'Whether to bypass trash and force deletion.' !== endpoint.args.force.description
+									)
+								);
+							}
+						)
+					)
+				) {
+					this.requireForceForDelete = true;
+				}
+			},
+
 			/**
 			 * Set nonce header before every Backbone sync.
 			 *
@@ -1266,23 +1337,8 @@
 						// Include the array of route methods for easy reference.
 						methods: modelRoute.route.methods,
 
-						initialize: function( attributes, options ) {
-							wp.api.WPApiBaseModel.prototype.initialize.call( this, attributes, options );
-
-							/**
-							 * Posts and pages support trashing, other types don't support a trash
-							 * and require that you pass ?force=true to actually delete them.
-							 *
-							 * @todo we should be getting trashability from the Schema, not hard coding types here.
-							 */
-							if (
-								'Posts' !== this.name &&
-								'Pages' !== this.name &&
-								_.includes( this.methods, 'DELETE' )
-							) {
-								this.requireForceForDelete = true;
-							}
-						}
+						// Include the array of route endpoints for easy reference.
+						endpoints: modelRoute.route.endpoints
 					} );
 				} else {
 
@@ -1317,7 +1373,10 @@
 						name: modelClassName,
 
 						// Include the array of route methods for easy reference.
-						methods: modelRoute.route.methods
+						methods: modelRoute.route.methods,
+
+						// Include the array of route endpoints for easy reference.
+						endpoints: modelRoute.route.endpoints
 					} );
 				}
 

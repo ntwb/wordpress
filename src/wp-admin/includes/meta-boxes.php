@@ -223,6 +223,26 @@ if ( $can_publish ) : // Contributors don't get to choose the date of publish ?>
 </div><?php // /misc-pub-section ?>
 <?php endif; ?>
 
+<?php if ( 'draft' === $post->post_status && get_post_meta( $post->ID, '_customize_changeset_uuid', true ) ) : ?>
+	<div class="notice notice-info notice-alt inline">
+		<p>
+			<?php
+			echo sprintf(
+				/* translators: %s is the URL to the Customizer */
+				__( 'This draft comes from your <a href="%s">unpublished customization changes</a>. You can edit, but there&#8217;s no need to publish now. It will be published automatically with those changes.' ),
+				esc_url(
+					add_query_arg(
+						'changeset_uuid',
+						rawurlencode( get_post_meta( $post->ID, '_customize_changeset_uuid', true ) ),
+						admin_url( 'customize.php' )
+					)
+				)
+			);
+			?>
+		</p>
+	</div>
+<?php endif; ?>
+
 <?php
 /**
  * Fires after the post time/date setting in the Publish meta box.
@@ -313,15 +333,19 @@ function attachment_submit_meta_box( $post ) {
 
 
 <div id="misc-publishing-actions">
-	<?php
-	/* translators: Publish box date format, see https://secure.php.net/date */
-	$datef = __( 'M j, Y @ H:i' );
-	/* translators: Attachment information. 1: Date the attachment was uploaded */
-	$stamp = __('Uploaded on: <b>%1$s</b>');
-	$date = date_i18n( $datef, strtotime( $post->post_date ) );
-	?>
 	<div class="misc-pub-section curtime misc-pub-curtime">
-		<span id="timestamp"><?php printf($stamp, $date); ?></span>
+		<span id="timestamp"><?php
+			$date = date_i18n(
+				/* translators: Publish box date format, see https://secure.php.net/date */
+				__( 'M j, Y @ H:i' ),
+				strtotime( $post->post_date )
+			);
+			printf(
+				/* translators: Attachment information. %s: Date the attachment was uploaded */
+				__( 'Uploaded on: %s' ),
+				'<b>' . $date . '</b>'
+			);
+		?></span>
 	</div><!-- .misc-pub-section -->
 
 	<?php

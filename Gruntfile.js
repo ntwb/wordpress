@@ -11,7 +11,7 @@ module.exports = function(grunt) {
 		BUILD_DIR = 'build/',
  		BANNER_TEXT = '/*! This file is auto-generated */',
 		autoprefixer = require( 'autoprefixer' ),
-		phpUnitWatchFiles = grunt.option( 'files' ) && SOURCE_DIR + grunt.option( 'files' );
+		phpUnitWatchFiles = grunt.option( 'files' ) && SOURCE_DIR + grunt.option( 'files' ),
 		phpUnitWatchGroup = grunt.option( 'group' );
 
 	if ( 'watch:phpunit' === grunt.cli.tasks[ 0 ] ) {
@@ -23,7 +23,7 @@ module.exports = function(grunt) {
 		if ( ! phpUnitWatchFiles || ! phpUnitWatchGroup ) {
 			grunt.log.writeln();
 			grunt.fail.fatal(
-				'Missing required parameters. Example usage: ' + "\n\n" +
+				'Missing required parameters. Example usage: ' + '\n\n' +
 				'grunt watch:phpunit --files=wp-admin/includes --group=community-events'
 			);
 		}

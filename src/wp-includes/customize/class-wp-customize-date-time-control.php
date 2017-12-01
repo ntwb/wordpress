@@ -81,11 +81,11 @@ class WP_Customize_Date_Time_Control extends WP_Customize_Control {
 	public function json() {
 		$data = parent::json();
 
-		$data['maxYear'] = intval( $this->max_year );
-		$data['minYear'] = intval( $this->min_year );
-		$data['allowPastDate'] = (bool) $this->allow_past_date;
+		$data['maxYear']          = intval( $this->max_year );
+		$data['minYear']          = intval( $this->min_year );
+		$data['allowPastDate']    = (bool) $this->allow_past_date;
 		$data['twelveHourFormat'] = (bool) $this->twelve_hour_format;
-		$data['includeTime'] = (bool) $this->include_time;
+		$data['includeTime']      = (bool) $this->include_time;
 
 		return $data;
 	}
@@ -96,18 +96,17 @@ class WP_Customize_Date_Time_Control extends WP_Customize_Control {
 	 * @since 4.9.0
 	 */
 	public function content_template() {
-		$data = array_merge( $this->json(), $this->get_month_choices() );
+		$data          = array_merge( $this->json(), $this->get_month_choices() );
 		$timezone_info = $this->get_timezone_info();
 
 		$date_format = get_option( 'date_format' );
-		foreach ( array( 'Y', 'y', 'o' ) as $year_token ) {
-			$date_format = preg_replace( '/(?<!\\\\)' . $year_token . '/', '%1$s', $date_format );
-		}
-		foreach ( array( 'F', 'm', 'M', 'n' ) as $month_token ) {
-			$date_format = preg_replace( '/(?<!\\\\)' . $month_token . '/', '%2$s', $date_format );
-		}
-		foreach ( array( 'j', 'd' ) as $day_token ) {
-			$date_format = preg_replace( '/(?<!\\\\)' . $day_token . '/', '%3$s', $date_format );
+		$date_format = preg_replace( '/(?<!\\\\)[Yyo]/', '%1$s', $date_format );
+		$date_format = preg_replace( '/(?<!\\\\)[FmMn]/', '%2$s', $date_format );
+		$date_format = preg_replace( '/(?<!\\\\)[jd]/', '%3$s', $date_format );
+
+		// Fallback to ISO date format if year, month, or day are missing from the date format.
+		if ( 1 !== substr_count( $date_format, '%1$s' ) || 1 !== substr_count( $date_format, '%2$s' ) || 1 !== substr_count( $date_format, '%3$s' ) ) {
+			$date_format = '%1$s-%2$s-%3$s';
 		}
 		?>
 
@@ -199,7 +198,7 @@ class WP_Customize_Date_Time_Control extends WP_Customize_Control {
 			$month_text = $wp_locale->get_month_abbrev( $wp_locale->get_month( $i ) );
 
 			/* translators: 1: month number (01, 02, etc.), 2: month abbreviation */
-			$months[ $i ]['text'] = sprintf( __( '%1$s-%2$s' ), $i, $month_text );
+			$months[ $i ]['text']  = sprintf( __( '%1$s-%2$s' ), $i, $month_text );
 			$months[ $i ]['value'] = $i;
 		}
 		return array(
@@ -215,7 +214,7 @@ class WP_Customize_Date_Time_Control extends WP_Customize_Control {
 	 * @return array abbr and description.
 	 */
 	public function get_timezone_info() {
-		$tz_string = get_option( 'timezone_string' );
+		$tz_string     = get_option( 'timezone_string' );
 		$timezone_info = array();
 
 		if ( $tz_string ) {
@@ -226,9 +225,9 @@ class WP_Customize_Date_Time_Control extends WP_Customize_Control {
 			}
 
 			if ( $tz ) {
-				$now = new DateTime( 'now', $tz );
-				$formatted_gmt_offset = sprintf( 'UTC%s', $this->format_gmt_offset( $tz->getOffset( $now ) / 3600 ) );
-				$tz_name = str_replace( '_', ' ', $tz->getName() );
+				$now                   = new DateTime( 'now', $tz );
+				$formatted_gmt_offset  = sprintf( 'UTC%s', $this->format_gmt_offset( $tz->getOffset( $now ) / 3600 ) );
+				$tz_name               = str_replace( '_', ' ', $tz->getName() );
 				$timezone_info['abbr'] = $now->format( 'T' );
 
 				/* translators: 1: timezone name, 2: timezone abbreviation, 3: gmt offset  */
@@ -237,7 +236,7 @@ class WP_Customize_Date_Time_Control extends WP_Customize_Control {
 				$timezone_info['description'] = '';
 			}
 		} else {
-			$formatted_gmt_offset = $this->format_gmt_offset( intval( get_option( 'gmt_offset', 0 ) ) );
+			$formatted_gmt_offset  = $this->format_gmt_offset( intval( get_option( 'gmt_offset', 0 ) ) );
 			$timezone_info['abbr'] = sprintf( 'UTC%s', $formatted_gmt_offset );
 
 			/* translators: %s: UTC offset  */

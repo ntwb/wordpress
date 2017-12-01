@@ -15,6 +15,8 @@ matrix:
   - php: 7.2
     env: WP_TRAVISCI=travis:js
   - php: 7.2
+    env: WP_TRAVISCI=travis:phpcbf
+  - php: 7.2
   - php: 7.1
   - php: 7.0
   - php: 5.6
@@ -39,6 +41,12 @@ before_install:
       sed -i "s/yourusernamehere/root/" wp-tests-config.php
       sed -i "s/yourpasswordhere//" wp-tests-config.php
       svn checkout https://plugins.svn.wordpress.org/wordpress-importer/tags/0.6.3/ tests/phpunit/data/plugins/wordpress-importer
+  fi
+- |
+  if [[ "$WP_TRAVISCI" == "travis:phpcbf" ]]; then
+      composer require "wp-coding-standards/wpcs:dev-master"
+      composer require "wp-coding-standards/wpcs:dev-develop"
+      phpcs --config-set installed_paths /home/.composer/vendor/wp-coding-standards/wpcs/
   fi
 - |
   if [[ "$WP_TRAVIS_OBJECT_CACHE" == "true" ]]; then

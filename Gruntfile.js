@@ -470,6 +470,18 @@ module.exports = function(grunt) {
 				args: ['--verbose', '-c', 'phpunit.xml.dist', '--group', 'restapi-jsclient']
 			}
 		},
+		phpcs: {
+			core: {
+				cmd: 'phpcs',
+				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
+			}
+		},
+		phpcbf: {
+			core: {
+				cmd: 'phpcbf',
+				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
+			}
+		},
 		uglify: {
 			options: {
 				ASCIIOnly: true,
@@ -943,6 +955,22 @@ module.exports = function(grunt) {
 
 	// Testing tasks.
 	grunt.registerMultiTask('phpunit', 'Runs PHPUnit tests, including the ajax, external-http, and multisite tests.', function() {
+		grunt.util.spawn({
+			cmd: this.data.cmd,
+			args: this.data.args,
+			opts: {stdio: 'inherit'}
+		}, this.async());
+	});
+
+	grunt.registerMultiTask('phpcs', 'Runs PHPCS using phpcs.xml.dist.', function() {
+		grunt.util.spawn({
+			cmd: this.data.cmd,
+			args: this.data.args,
+			opts: {stdio: 'inherit'}
+		}, this.async());
+	});
+
+	grunt.registerMultiTask('phpcbf', 'Runs PHPCBF using phpcs.xml.dist.', function() {
 		grunt.util.spawn({
 			cmd: this.data.cmd,
 			args: this.data.args,

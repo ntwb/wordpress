@@ -46,7 +46,7 @@ before_install:
   if [[ "$WP_TRAVISCI" == "travis:phpcbf" ]]; then
       composer require squizlabs/php_codesniffer:dev-master
       composer require wp-coding-standards/wpcs:dev-develop
-      phpcs --config-set installed_paths /home/.composer/vendor/wp-coding-standards/wpcs/
+      /home/.composer/vendor/bin/phpcs --config-set installed_paths /home/.composer/vendor/wp-coding-standards/wpcs/
   fi
 - |
   if [[ "$WP_TRAVIS_OBJECT_CACHE" == "true" ]]; then

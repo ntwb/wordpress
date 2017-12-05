@@ -12,8 +12,10 @@ env:
     - WP_TRAVISCI=travis:phpunit
 matrix:
   include:
-  - php: 7.1
+  - php: 7.2
     env: WP_TRAVISCI=travis:js
+  - php: 7.2
+    env: WP_TRAVISCI=travis:phpcbf
   - php: 7.2
   - php: 7.1
   - php: 7.0
@@ -39,6 +41,13 @@ before_install:
       sed -i "s/yourusernamehere/root/" wp-tests-config.php
       sed -i "s/yourpasswordhere//" wp-tests-config.php
       svn checkout https://plugins.svn.wordpress.org/wordpress-importer/tags/0.6.3/ tests/phpunit/data/plugins/wordpress-importer
+  fi
+- |
+  if [[ "$WP_TRAVISCI" == "travis:phpcbf" ]]; then
+      composer global require "squizlabs/php_codesniffer:dev-master"
+      # composer global require "wp-coding-standards/wpcs:dev-develop"
+      composer global require "wp-coding-standards/wpcs:dev-feature/new-multi-line-comment-formatting-sniffs"
+      composer global require "dealerdirect/phpcodesniffer-composer-installer:^0.4.3"
   fi
 - |
   if [[ "$WP_TRAVIS_OBJECT_CACHE" == "true" ]]; then
@@ -95,6 +104,11 @@ before_script:
 - node --version
 - which phpunit
 - phpunit --version
+- phpcs --config-show
+- which phpcs
+- phpcs --version
+- which phpcbf
+- phpcbf --version
 - curl --version
 - grunt --version
 - git --version

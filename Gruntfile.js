@@ -470,6 +470,18 @@ module.exports = function(grunt) {
 				args: ['--verbose', '-c', 'phpunit.xml.dist', '--group', 'restapi-jsclient']
 			}
 		},
+		phpcs: {
+			core: {
+				cmd: 'phpcs',
+				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
+			}
+		},
+		phpcbf: {
+			core: {
+				cmd: 'phpcbf',
+				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
+			}
+		},
 		uglify: {
 			options: {
 				ASCIIOnly: true,
@@ -950,6 +962,22 @@ module.exports = function(grunt) {
 		}, this.async());
 	});
 
+	grunt.registerMultiTask('phpcs', 'Runs PHPCS using phpcs.xml.dist.', function() {
+		grunt.util.spawn({
+			cmd: this.data.cmd,
+			args: this.data.args,
+			opts: {stdio: 'inherit'}
+		}, this.async());
+	});
+
+	grunt.registerMultiTask('phpcbf', 'Runs PHPCBF using phpcs.xml.dist.', function() {
+		grunt.util.spawn({
+			cmd: this.data.cmd,
+			args: this.data.args,
+			opts: {stdio: 'inherit'}
+		}, this.async());
+	});
+
 	grunt.registerTask('qunit:compiled', 'Runs QUnit tests on compiled as well as uncompiled scripts.',
 		['build', 'copy:qunit', 'qunit']);
 
@@ -958,6 +986,8 @@ module.exports = function(grunt) {
 	// Travis CI tasks.
 	grunt.registerTask('travis:js', 'Runs Javascript Travis CI tasks.', [ 'jshint:corejs', 'qunit:compiled' ]);
 	grunt.registerTask('travis:phpunit', 'Runs PHPUnit Travis CI tasks.', 'phpunit');
+	grunt.registerTask('travis:phpcs', 'Runs PHP_CodeSniffer phpcs task.', 'phpcbf');
+	grunt.registerTask('travis:phpcbf', 'Runs PHP_CodeSniffer phpcbf task.', 'phpcbf');
 
 	// Patch task.
 	grunt.renameTask('patch_wordpress', 'patch');

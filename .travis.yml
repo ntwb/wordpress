@@ -46,10 +46,7 @@ before_install:
   if [[ "$WP_TRAVISCI" == "travis:phpcbf" ]]; then
       composer global require squizlabs/php_codesniffer:dev-master
       composer global require wp-coding-standards/wpcs:dev-develop
-      which phpcs
-      which phpcbf
-      ./home/travis/.composer/vendor/bin/phpcs --config-set installed_paths /home/travis/.composer/vendor/wp-coding-standards/wpcs/
-      ./home/travis/.composer/vendor/bin/phpcs --config-show
+      # ./home/travis/.composer/vendor/bin/phpcs --config-set installed_paths /home/travis/.composer/vendor/wp-coding-standards/wpcs/
   fi
 - |
   if [[ "$WP_TRAVIS_OBJECT_CACHE" == "true" ]]; then
@@ -106,6 +103,14 @@ before_script:
 - node --version
 - which phpunit
 - phpunit --version
+- ./home/travis/.composer/vendor/bin/phpcs --config-show
+- /home/travis/.composer/vendor/bin/phpcs --config-show
+- ./vendor/bin/phpcs --config-show
+- vendor/bin/phpcs --config-show
+- .phpcs --config-show
+- phpcs --config-show
+- phpcs --version
+- phpcbf --version
 - curl --version
 - grunt --version
 - git --version

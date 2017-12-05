@@ -103,8 +103,6 @@ before_script:
 - node --version
 - which phpunit
 - phpunit --version
-- /home/travis/.composer/vendor/bin/phpcs --config-show
-- vendor/bin/phpcs --config-show
 - phpcs --config-show
 - phpcs --version
 - phpcbf --version

@@ -44,8 +44,9 @@ before_install:
   fi
 - |
   if [[ "$WP_TRAVISCI" == "travis:phpcbf" ]]; then
-      composer global require squizlabs/php_codesniffer:dev-master
-      composer global require wp-coding-standards/wpcs:dev-develop
+      composer global require "squizlabs/php_codesniffer:dev-master"
+      # composer global require "wp-coding-standards/wpcs:dev-develop"
+      composer global require "wp-coding-standards/wpcs:dev-feature/new-multi-line-comment-formatting-sniffs"
       composer global require "dealerdirect/phpcodesniffer-composer-installer:^0.4.3"
   fi
 - |

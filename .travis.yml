@@ -14,7 +14,7 @@ matrix:
   include:
   - php: 7.2
     env: WP_TRAVISCI=travis:js
-  - php: 7.0
+  - php: 7.2
     env: WP_TRAVISCI=travis:phpcbf
   - php: 7.2
   - php: 7.1
@@ -46,7 +46,7 @@ before_install:
   if [[ "$WP_TRAVISCI" == "travis:phpcbf" ]]; then
       composer global require squizlabs/php_codesniffer:dev-master
       composer global require wp-coding-standards/wpcs:dev-develop
-      composer global require dealerdirect/phpcodesniffer-composer-installer:^4.3
+      composer global require "dealerdirect/phpcodesniffer-composer-installer:^0.4.3"
   fi
 - |
   if [[ "$WP_TRAVIS_OBJECT_CACHE" == "true" ]]; then

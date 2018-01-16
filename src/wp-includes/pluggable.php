@@ -1226,6 +1226,22 @@ if ( ! function_exists( 'wp_redirect' ) ) :
 			status_header( $status ); // This causes problems on IIS and some FastCGI setups
 		}
 
+		/**
+		 * Filters the X-Redirect-By header.
+		 *
+		 * Allows applications to identify themselves when they're doing a redirect.
+		 *
+		 * @since 5.0.0
+		 *
+		 * @param string $x_redirect_by The application doing the redirect.
+		 * @param int    $status        Status code to use.
+		 * @param string $location      The path to redirect to.
+		 */
+		$x_redirect_by = apply_filters( 'x_redirect_by', 'WordPress', $status, $location );
+		if ( is_string( $x_redirect_by ) ) {
+			header( "X-Redirect-By: $x_redirect_by" );
+		}
+
 		header( "Location: $location", true, $status );
 
 		return true;
@@ -2312,6 +2328,9 @@ if ( ! function_exists( 'wp_generate_password' ) ) :
 	/**
 	 * Generates a random password drawn from the defined set of characters.
 	 *
+	 * Uses wp_rand() is used to create passwords with far less predictability
+	 * than similar native PHP functions like `rand()` or `mt_rand()`.
+	 *
 	 * @since 2.5.0
 	 *
 	 * @param int  $length              Optional. The length of password to generate. Default 12.
@@ -2348,14 +2367,14 @@ endif;
 
 if ( ! function_exists( 'wp_rand' ) ) :
 	/**
-	 * Generates a random number
+	 * Generates a random number.
 	 *
 	 * @since 2.6.2
 	 * @since 4.4.0 Uses PHP7 random_int() or the random_compat library if available.
 	 *
 	 * @global string $rnd_value
 	 * @staticvar string $seed
-	 * @staticvar bool $external_rand_source_available
+	 * @staticvar bool $use_random_int_functionality
 	 *
 	 * @param int $min Lower limit for the generated number
 	 * @param int $max Upper limit for the generated number

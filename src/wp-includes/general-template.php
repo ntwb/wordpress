@@ -2937,7 +2937,7 @@ function wp_resource_hints() {
 	 * The path is removed in the foreach loop below.
 	 */
 	/** This filter is documented in wp-includes/formatting.php */
-	$hints['dns-prefetch'][] = apply_filters( 'emoji_svg_url', 'https://s.w.org/images/core/emoji/2.3/svg/' );
+	$hints['dns-prefetch'][] = apply_filters( 'emoji_svg_url', 'https://s.w.org/images/core/emoji/2.4/svg/' );
 
 	foreach ( $hints as $relation_type => $urls ) {
 		$unique_urls = array();
@@ -3250,7 +3250,7 @@ function wp_enqueue_code_editor( $args ) {
 		'htmlhint'   => array(
 			'tagname-lowercase'        => true,
 			'attr-lowercase'           => true,
-			'attr-value-double-quotes' => true,
+			'attr-value-double-quotes' => false,
 			'doctype-first'            => false,
 			'tag-pair'                 => true,
 			'spec-char-escape'         => true,

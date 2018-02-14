@@ -6836,7 +6836,7 @@
 
 		cheatin: function() {
 			$( document.body ).empty().addClass( 'cheatin' ).append(
-				'<h1>' + api.l10n.cheatin + '</h1>' +
+				'<h1>' + api.l10n.notAllowedHeading + '</h1>' +
 				'<p>' + api.l10n.notAllowed + '</p>'
 			);
 		},
@@ -8208,6 +8208,7 @@
 			// Check for lock when sending heartbeat requests.
 			$( document ).on( 'heartbeat-send.update_lock_notice', function( event, data ) {
 				data.check_changeset_lock = true;
+				data.changeset_uuid = api.settings.changeset.uuid;
 			} );
 
 			// Handle heartbeat ticks.

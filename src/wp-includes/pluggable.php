@@ -981,8 +981,12 @@ endif;
 
 if ( ! function_exists( 'is_user_logged_in' ) ) :
 	/**
-	 * Checks if the current visitor is a logged in user.
+	 * Determines whether the current visitor is a logged in user.
 	 *
+	 * For more information on this and similar theme functions, check out
+	 * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/ 
+	 * Conditional Tags} article in the Theme Developer Handbook.
+	 * 
 	 * @since 2.0.0
 	 *
 	 * @return bool True if user is logged in, false if not logged in.
@@ -1186,14 +1190,16 @@ if ( ! function_exists( 'wp_redirect' ) ) :
 	 *     }
 	 *
 	 * @since 1.5.1
+	 * @since 5.0.0 The `$x_redirect_by` parameter was added.
 	 *
 	 * @global bool $is_IIS
 	 *
-	 * @param string $location The path or URL to redirect to.
-	 * @param int    $status   Optional. HTTP response status code to use. Default '302' (Moved Temporarily).
+	 * @param string $location      The path or URL to redirect to.
+	 * @param int    $status        Optional. HTTP response status code to use. Default '302' (Moved Temporarily).
+	 * @param string $x_redirect_by Optional. The application doing the redirect. Default 'WordPress'.
 	 * @return bool False if the redirect was cancelled, true otherwise.
 	 */
-	function wp_redirect( $location, $status = 302 ) {
+	function wp_redirect( $location, $status = 302, $x_redirect_by = 'WordPress' ) {
 		global $is_IIS;
 
 		/**
@@ -1237,7 +1243,7 @@ if ( ! function_exists( 'wp_redirect' ) ) :
 		 * @param int    $status        Status code to use.
 		 * @param string $location      The path to redirect to.
 		 */
-		$x_redirect_by = apply_filters( 'x_redirect_by', 'WordPress', $status, $location );
+		$x_redirect_by = apply_filters( 'x_redirect_by', $x_redirect_by, $status, $location );
 		if ( is_string( $x_redirect_by ) ) {
 			header( "X-Redirect-By: $x_redirect_by" );
 		}
@@ -1322,13 +1328,14 @@ if ( ! function_exists( 'wp_safe_redirect' ) ) :
 	 *     }
 	 *
 	 * @since 2.3.0
-	 * @since 5.0.0 The return value from wp_redirect() is now passed on.
+	 * @since 5.0.0 The return value from wp_redirect() is now passed on, and the `$x_redirect_by` parameter was added.
 	 *
-	 * @param string $location The path or URL to redirect to.
-	 * @param int    $status   Optional. HTTP response status code to use. Default '302' (Moved Temporarily).
-	 * @return bool  $redirect False if the redirect was cancelled, true otherwise.
+	 * @param string $location      The path or URL to redirect to.
+	 * @param int    $status        Optional. HTTP response status code to use. Default '302' (Moved Temporarily).
+	 * @param string $x_redirect_by Optional. The application doing the redirect. Default 'WordPress'.
+ 	 * @return bool  $redirect False if the redirect was cancelled, true otherwise.
 	 */
-	function wp_safe_redirect( $location, $status = 302 ) {
+	function wp_safe_redirect( $location, $status = 302, $x_redirect_by = 'WordPress' ) {
 
 		// Need to look at the URL the way it will end up in wp_redirect()
 		$location = wp_sanitize_redirect( $location );
@@ -1343,7 +1350,7 @@ if ( ! function_exists( 'wp_safe_redirect' ) ) :
 		 */
 		$location = wp_validate_redirect( $location, apply_filters( 'wp_safe_redirect_fallback', admin_url(), $status ) );
 
-		return wp_redirect( $location, $status );
+		return wp_redirect( $location, $status, $x_redirect_by );
 	}
 endif;
 

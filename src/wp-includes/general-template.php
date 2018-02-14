@@ -618,7 +618,7 @@ function bloginfo( $show = '' ) {
  *   child theme will NOT take precedence over this value
  * - 'pingback_url' - The pingback XML-RPC file URL (xmlrpc.php)
  * - 'atom_url' - The Atom feed URL (/feed/atom)
- * - 'rdf_url' - The RDF/RSS 1.0 feed URL (/feed/rfd)
+ * - 'rdf_url' - The RDF/RSS 1.0 feed URL (/feed/rdf)
  * - 'rss_url' - The RSS 0.92 feed URL (/feed/rss)
  * - 'rss2_url' - The RSS 2.0 feed URL (/feed)
  * - 'comments_atom_url' - The comments Atom feed URL (/comments/feed)
@@ -3208,6 +3208,8 @@ function wp_enqueue_code_editor( $args ) {
 				'Ctrl-/'     => 'toggleComment',
 				'Cmd-/'      => 'toggleComment',
 				'Alt-F'      => 'findPersistent',
+				'Ctrl-F'     => 'findPersistent',
+				'Cmd-F'      => 'findPersistent',
 			),
 			'direction'        => 'ltr', // Code is shown in LTR even in RTL languages.
 			'gutters'          => array(),
@@ -3766,7 +3768,7 @@ function language_attributes( $doctype = 'html' ) {
  *     @type string $before_page_number A string to appear before the page number. Default empty.
  *     @type string $after_page_number  A string to append after the page number. Default empty.
  * }
- * @return array|string|void String of page links or array of page links.
+ * @return string|array|void String of page links or array of page links.
  */
 function paginate_links( $args = '' ) {
 	global $wp_query, $wp_rewrite;

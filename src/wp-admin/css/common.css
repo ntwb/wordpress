@@ -1548,6 +1548,15 @@ ul#dismissed-updates {
 	display: none;
 }
 
+#dismissed-updates li > p {
+	margin-top: 0;
+}
+
+#dismiss,
+#undismiss {
+	margin-left: 0.5em;
+}
+
 form.upgrade {
 	margin-top: 8px;
 }
@@ -3359,7 +3368,8 @@ img {
 .control-section.open .accordion-section-title:after,
 #customize-info.open .accordion-section-title:after,
 .nav-menus-php .menu-item-edit-active .item-edit:before,
-.widget.open .widget-top .widget-action .toggle-indicator:before {
+.widget.open .widget-top .widget-action .toggle-indicator:before,
+.widget.widget-in-question .widget-top .widget-action .toggle-indicator:before  {
 	content: "\f142";
 }
 

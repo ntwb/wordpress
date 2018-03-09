@@ -673,11 +673,11 @@ function wp_get_http_headers( $url, $deprecated = false ) {
 /**
  * Determines whether the publish date of the current post in the loop is different
  * from the publish date of the previous post in the loop.
- * 
+ *
  * For more information on this and similar theme functions, check out
- * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/ 
+ * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/
  * Conditional Tags} article in the Theme Developer Handbook.
- * 
+ *
  * @since 0.71
  *
  * @global string $currentday  The day of the current post in the loop.
@@ -1393,9 +1393,9 @@ function do_robots() {
  * cache, and the database goes away, then you might have problems.
  *
  * Checks for the 'siteurl' option for whether WordPress is installed.
- * 
+ *
  * For more information on this and similar theme functions, check out
- * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/ 
+ * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/
  * Conditional Tags} article in the Theme Developer Handbook.
  *
  * @since 2.1.0
@@ -1679,7 +1679,7 @@ function wp_mkdir_p( $target ) {
 
 	// We need to find the permissions of the parent folder that exists and inherit that.
 	$target_parent = dirname( $target );
-	while ( '.' != $target_parent && ! is_dir( $target_parent ) ) {
+	while ( '.' != $target_parent && ! is_dir( $target_parent ) && dirname( $target_parent ) !== $target_parent ) {
 		$target_parent = dirname( $target_parent );
 	}
 
@@ -2727,7 +2727,7 @@ function wp_nonce_ays( $action ) {
 			wp_logout_url( $redirect_to )
 		);
 	} else {
-		$html = __( 'The link you followed no longer exists.' );
+		$html = __( 'The link you followed has expired.' );
 		if ( wp_get_referer() ) {
 			$html .= '</p><p>';
 			$html .= sprintf(
@@ -2738,7 +2738,7 @@ function wp_nonce_ays( $action ) {
 		}
 	}
 
-	wp_die( $html, __( 'An error has occurred.' ), 403 );
+	wp_die( $html, __( 'Something went wrong.' ), 403 );
 }
 
 /**
@@ -5070,8 +5070,8 @@ function wp_scheduled_delete() {
  *
  * @since 2.9.0
  *
- * @param string $file            Path to the file.
- * @param array  $default_headers List of headers, in the format array('HeaderKey' => 'Header Name').
+ * @param string $file            Absolute path to the file.
+ * @param array  $default_headers List of headers, in the format `array('HeaderKey' => 'Header Name')`.
  * @param string $context         Optional. If specified adds filter hook {@see 'extra_$context_headers'}.
  *                                Default empty.
  * @return array Array of file headers in `HeaderKey => Header Value` format.
@@ -5366,6 +5366,8 @@ function wp_allowed_protocols() {
  *
  * @see https://core.trac.wordpress.org/ticket/19589
  *
+ * @staticvar array $truncate_paths Array of paths to truncate.
+ *
  * @param string $ignore_class Optional. A class to ignore all function calls within - useful
  *                             when you want to just give info about the callee. Default null.
  * @param int    $skip_frames  Optional. A number of stack frames to skip - useful for unwinding
@@ -5376,6 +5378,8 @@ function wp_allowed_protocols() {
  *                      of individual calls.
  */
 function wp_debug_backtrace_summary( $ignore_class = null, $skip_frames = 0, $pretty = true ) {
+	static $truncate_paths;
+
 	if ( version_compare( PHP_VERSION, '5.2.5', '>=' ) ) {
 		$trace = debug_backtrace( false );
 	} else {
@@ -5385,6 +5389,13 @@ function wp_debug_backtrace_summary( $ignore_class = null, $skip_frames = 0, $pr
 	$caller      = array();
 	$check_class = ! is_null( $ignore_class );
 	$skip_frames++; // skip this function
+
+	if ( ! isset( $truncate_paths ) ) {
+		$truncate_paths = array(
+			wp_normalize_path( WP_CONTENT_DIR ),
+			wp_normalize_path( ABSPATH )
+		);
+	}
 
 	foreach ( $trace as $call ) {
 		if ( $skip_frames > 0 ) {
@@ -5399,7 +5410,7 @@ function wp_debug_backtrace_summary( $ignore_class = null, $skip_frames = 0, $pr
 			if ( in_array( $call['function'], array( 'do_action', 'apply_filters' ) ) ) {
 				$caller[] = "{$call['function']}('{$call['args'][0]}')";
 			} elseif ( in_array( $call['function'], array( 'include', 'include_once', 'require', 'require_once' ) ) ) {
-				$caller[] = $call['function'] . "('" . str_replace( array( WP_CONTENT_DIR, ABSPATH ), '', $call['args'][0] ) . "')";
+				$caller[] = $call['function'] . "('" . str_replace( $truncate_paths, '', wp_normalize_path( $call['args'][0] ) ) . "')";
 			} else {
 				$caller[] = $call['function'];
 			}

@@ -11,11 +11,12 @@
  *
  * @since 2.8.0
  *
- * @global WP_Filesystem_Base $wp_filesystem Subclass
+ * @global WP_Filesystem_Base $wp_filesystem WordPress filesystem subclass.
  *
- * @param string $stylesheet Stylesheet of the theme to delete
- * @param string $redirect Redirect to page when complete.
- * @return void|bool|WP_Error When void, echoes content.
+ * @param string $stylesheet Stylesheet of the theme to delete.
+ * @param string $redirect   Redirect to page when complete.
+ * @return bool|null|WP_Error True on success, false if `$stylesheet` is empty, WP_Error on failure.
+ *                            Null if filesystem credentials are required to proceed.
  */
 function delete_theme( $stylesheet, $redirect = '' ) {
 	global $wp_filesystem;
@@ -60,7 +61,7 @@ function delete_theme( $stylesheet, $redirect = '' ) {
 		return new WP_Error( 'fs_unavailable', __( 'Could not access filesystem.' ) );
 	}
 
-	if ( is_wp_error( $wp_filesystem->errors ) && $wp_filesystem->errors->get_error_code() ) {
+	if ( is_wp_error( $wp_filesystem->errors ) && $wp_filesystem->errors->has_errors() ) {
 		return new WP_Error( 'fs_error', __( 'Filesystem error.' ), $wp_filesystem->errors );
 	}
 

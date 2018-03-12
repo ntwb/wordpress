@@ -29,7 +29,6 @@ class WP_UnitTestCase extends WP_UnitTestCase_Base {
 		self::assertThat( $condition, self::logicalNot( self::isFalse() ), $message );
 	}
 }
-<?php
 
 require_once dirname(dirname( __FILE__ ) ) . '/abstract-testcase.php';
 

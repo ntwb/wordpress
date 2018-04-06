@@ -523,7 +523,7 @@ function get_comment_class( $class = '', $comment_id = null, $post_id = null ) {
 	 *
 	 * @since 2.7.0
 	 *
-	 * @param array       $classes    An array of comment classes.
+	 * @param string[]    $classes    An array of comment classes.
 	 * @param string      $class      A comma-separated list of additional classes added to the list.
 	 * @param int         $comment_id The comment id.
 	 * @param WP_Comment  $comment    The comment object.
@@ -1202,11 +1202,11 @@ function trackback_rdf( $deprecated = '' ) {
 
 /**
  * Determines whether the current post is open for comments.
- * 
+ *
  * For more information on this and similar theme functions, check out
- * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/ 
+ * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/
  * Conditional Tags} article in the Theme Developer Handbook.
- * 
+ *
  * @since 1.5.0
  *
  * @param int|WP_Post $post_id Post ID or WP_Post object. Default current post.
@@ -1232,9 +1232,9 @@ function comments_open( $post_id = null ) {
 
 /**
  * Determines whether the current post is open for pings.
- * 
+ *
  * For more information on this and similar theme functions, check out
- * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/ 
+ * the {@link https://developer.wordpress.org/themes/basics/conditional-tags/
  * Conditional Tags} article in the Theme Developer Handbook.
  *
  * @since 1.5.0
@@ -2280,7 +2280,7 @@ function comment_form( $args = array(), $post_id = null ) {
 	 *
 	 * @since 3.0.0
 	 *
-	 * @param array $fields The default comment fields.
+	 * @param string[] $fields Array of the default comment fields.
 	 */
 	$fields   = apply_filters( 'comment_form_default_fields', $fields );
 	$defaults = array(

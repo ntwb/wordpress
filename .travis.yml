@@ -114,7 +114,7 @@ script:
   - ls -al
   - ls src/ -al
   - composer run-script format
-  - phpcbf -vvv
+  - ./vendor/bin/phpcbf -vvv
 after_script:
 - |
   if [[ "$WP_TEST_REPORTER" == "true" ]]; then

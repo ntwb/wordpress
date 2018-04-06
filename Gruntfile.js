@@ -480,6 +480,18 @@ module.exports = function(grunt) {
 				args: ['--verbose', '-c', 'phpunit.xml.dist', '--group', 'restapi-jsclient']
 			}
 		},
+		lint: {
+			core: {
+				cmd: 'phpcs',
+				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
+			}
+		},
+		format: {
+			core: {
+				cmd: 'phpcbf',
+				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
+			}
+		},
 		uglify: {
 			options: {
 				ASCIIOnly: true,
@@ -965,6 +977,22 @@ module.exports = function(grunt) {
 		grunt.util.spawn({
 			cmd: this.data.cmd,
 			args: phpUnitWatchGroup ? this.data.args.concat( [ '--group', phpUnitWatchGroup ] ) : this.data.args,
+			opts: {stdio: 'inherit'}
+		}, this.async());
+	});
+
+	grunt.registerMultiTask('lint', 'Runs PHPCS using phpcs.xml.dist.', function() {
+		grunt.util.spawn({
+			cmd: this.data.cmd,
+			args: this.data.args,
+			opts: {stdio: 'inherit'}
+		}, this.async());
+	});
+
+	grunt.registerMultiTask('format', 'Runs PHPCBF using phpcs.xml.dist.', function() {
+		grunt.util.spawn({
+			cmd: this.data.cmd,
+			args: this.data.args,
 			opts: {stdio: 'inherit'}
 		}, this.async());
 	});

@@ -112,7 +112,7 @@ script:
   - pwd
   - ls -al
   - ls src/ -al
-  - grunt $WP_TRAVISCI
+  - composer run-script format
 after_script:
 - |
   if [[ "$WP_TEST_REPORTER" == "true" ]]; then

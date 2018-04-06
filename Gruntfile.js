@@ -482,13 +482,13 @@ module.exports = function(grunt) {
 		},
 		lint: {
 			core: {
-				cmd: 'phpcs',
+				cmd: './vendor/bin/phpcs',
 				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
 			}
 		},
 		format: {
 			core: {
-				cmd: 'phpcbf',
+				cmd: './vendor/bin/phpcbf',
 				args: ['--standard=phpcs.xml.dist', '--report-summary', '--report-source']
 			}
 		},

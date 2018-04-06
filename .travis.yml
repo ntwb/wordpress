@@ -87,6 +87,7 @@ before_script:
 - |
   if [[ "$WP_TRAVISCI" == "travis:formatci" ]]; then
       composer install
+      pwd
   fi
 - npm --version
 - node --version

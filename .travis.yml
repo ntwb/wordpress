@@ -108,7 +108,11 @@ before_script:
 - git --version
 - svn --version
 - locale -a
-script: grunt $WP_TRAVISCI
+script:
+  - pwd
+  - ls -al
+  - ls src/ -al
+  - grunt $WP_TRAVISCI
 after_script:
 - |
   if [[ "$WP_TEST_REPORTER" == "true" ]]; then

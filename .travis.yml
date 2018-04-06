@@ -13,7 +13,7 @@ env:
 matrix:
   include:
   - php: 7.2
-    env: WP_TRAVISCI=travis:format
+    env: WP_TRAVISCI=travis:formatci
   - php: 7.1
     env: WP_TRAVISCI=travis:js
   - php: 7.2

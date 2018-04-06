@@ -841,6 +841,10 @@ module.exports = function(grunt) {
 		'phpunit'
 	] );
 
+	grunt.registerTask( 'precommit:format', [
+		'format'
+	] );
+
 	grunt.registerTask( 'precommit:emoji', [
 		'replace:emojiRegex'
 	] );
@@ -878,6 +882,7 @@ module.exports = function(grunt) {
 				'precommit:css',
 				'precommit:image',
 				'precommit:emoji',
+				'precommit:format',
 				'precommit:php'
 			]);
 

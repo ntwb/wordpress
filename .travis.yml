@@ -19,4 +19,6 @@ script:
   - ./vendor/bin/phpcbf 
   - ./vendor/bin/phpcs -i
   - ./vendor/bin/phpcbf -vvv
-  - ./vendor/bin/phpcs -p . --standard=PHPCompatibility
+  # - ./vendor/bin/phpcs -p . --standard=PHPCompatibility
+  - ./vendor/bin/phpcs -p . --standard=WordPress
+  - ./vendor/bin/phpcs -p . --standard=WordPress-Core

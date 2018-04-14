@@ -86,7 +86,8 @@ before_script:
   fi
 - |
   if [[ "$WP_TRAVISCI" == "travis:formatci" ]]; then
-      composer install
+      # composer install
+      composer install --no-interaction --dev
       composer info
       pwd
   fi

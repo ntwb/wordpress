@@ -21,6 +21,6 @@ script:
   # - ./vendor/bin/phpcbf -vvv
   # - ./vendor/bin/phpcs -p . --standard=PHPCompatibility
   # - ./vendor/bin/phpcs -p . --standard=WordPress
-  # - ./vendor/bin/phpcs -p . --standard=WordPress-Core
+  - ./vendor/bin/phpcs -p . --standard=WordPress-Core --report=summary
   - ./vendor/bin/phpcs --standard=phpcs.xml.dist
-  - ./vendor/bin/phpcbf -p . --standard=WordPress --report=summary
+  - ./vendor/bin/phpcbf -p . --standard=WordPress-Core --report=summary

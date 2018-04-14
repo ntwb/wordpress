@@ -8,5 +8,5 @@ before_script:
 
 script:
   # - vendor/bin/phpunit
-  - vendor/bin/phpcs
-  # - vendor/bin/phpcbf
+  - vendor/bin/phpcs  --standard=phpcs.xml.dist --report-summary --report-source
+  - vendor/bin/phpcbf  --standard=phpcs.xml.dist --report-summary --report-source

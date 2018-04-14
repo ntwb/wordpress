@@ -10,3 +10,5 @@ script:
   # - vendor/bin/phpunit
   - vendor/bin/phpcs  --standard=phpcs.xml.dist --report-summary --report-source
   - vendor/bin/phpcbf  --standard=phpcs.xml.dist --report-summary --report-source
+  - composer run-script lint
+  - composer run-script format

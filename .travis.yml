@@ -10,15 +10,16 @@ before_script:
 script:
   # - vendor/bin/phpunit
   - vendor/bin/phpcs  --standard=phpcs.xml.dist --report-summary --report-source
-  - vendor/bin/phpcbf  --standard=phpcs.xml.dist --report-summary --report-source
+  # - vendor/bin/phpcbf  --standard=phpcs.xml.dist --report-summary --report-source
   - composer run-script lint
-  - composer run-script format
+  # - composer run-script format
   - vendor/bin/phpcs 
-  - vendor/bin/phpcbf 
+  # - vendor/bin/phpcbf 
   - ./vendor/bin/phpcs 
   - ./vendor/bin/phpcbf 
-  - ./vendor/bin/phpcs -i
-  - ./vendor/bin/phpcbf -vvv
+  # - ./vendor/bin/phpcs -i
+  # - ./vendor/bin/phpcbf -vvv
   # - ./vendor/bin/phpcs -p . --standard=PHPCompatibility
-  - ./vendor/bin/phpcs -p . --standard=WordPress
-  - ./vendor/bin/phpcs -p . --standard=WordPress-Core
+  # - ./vendor/bin/phpcs -p . --standard=WordPress
+  # - ./vendor/bin/phpcs -p . --standard=WordPress-Core
+  - ./vendor/bin/phpcs --standard=phpcs.xml.dist

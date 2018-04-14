@@ -8,7 +8,6 @@ before_script:
   - composer update --lock
 
 script:
-    - export XMLLINT_INDENT="	"
     - xmllint --noout phpcs.xml.dist
     - xmllint --format phpcs.xml.dist
   # - vendor/bin/phpunit

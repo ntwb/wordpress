@@ -5,6 +5,7 @@ php:
 before_script:
   - composer self-update
   - composer install --no-interaction --dev
+  - composer update --lock
 
 script:
   # - vendor/bin/phpunit
@@ -12,3 +13,10 @@ script:
   - vendor/bin/phpcbf  --standard=phpcs.xml.dist --report-summary --report-source
   - composer run-script lint
   - composer run-script format
+  - vendor/bin/phpcs 
+  - vendor/bin/phpcbf 
+  - ./vendor/bin/phpcs 
+  - ./vendor/bin/phpcbf 
+  - ./vendor/bin/phpcs -i
+  - ./vendor/bin/phpcbf -vvv
+  - ./vendor/bin/phpcs -p . --standard=PHPCompatibility

@@ -2187,6 +2187,7 @@ function wp_list_comments( $args = array(), $comments = null ) {
  * @since 4.5.0 The 'author', 'email', and 'url' form fields are limited to 245, 100,
  *              and 200 characters, respectively.
  * @since 4.6.0 Introduced the 'action' argument.
+ * @since 4.9.6 Introduced the 'cookies' default comment field.
  *
  * @param array       $args {
  *     Optional. Default arguments and form fields to override.
@@ -2194,9 +2195,10 @@ function wp_list_comments( $args = array(), $comments = null ) {
  *     @type array $fields {
  *         Default comment fields, filterable by default via the {@see 'comment_form_default_fields'} hook.
  *
- *         @type string $author Comment author field HTML.
- *         @type string $email  Comment author email field HTML.
- *         @type string $url    Comment author URL field HTML.
+ *         @type string $author  Comment author field HTML.
+ *         @type string $email   Comment author email field HTML.
+ *         @type string $url     Comment author URL field HTML.
+ *         @type string $cookies Comment cookie opt-in field HTML.
  *     }
  *     @type string $comment_field        The comment textarea field HTML.
  *     @type string $must_log_in          HTML element for a 'must be logged in to comment' message.
@@ -2268,9 +2270,8 @@ function comment_form( $args = array(), $post_id = null ) {
 					 '<input id="email" name="email" ' . ( $html5 ? 'type="email"' : 'type="text"' ) . ' value="' . esc_attr( $commenter['comment_author_email'] ) . '" size="30" maxlength="100" aria-describedby="email-notes"' . $html_req . ' /></p>',
 		'url'     => '<p class="comment-form-url"><label for="url">' . __( 'Website' ) . '</label> ' .
 					 '<input id="url" name="url" ' . ( $html5 ? 'type="url"' : 'type="text"' ) . ' value="' . esc_attr( $commenter['comment_author_url'] ) . '" size="30" maxlength="200" /></p>',
-		'cookies' => '<p class="comment-form-cookies-consent"><label for="wp-comment-cookies-consent">' .
-					 '<input id="wp-comment-cookies-consent" name="wp-comment-cookies-consent" type="checkbox" value="yes"' . $consent . ' />' .
-					 __( 'Save my name, email, and site URL in my browser for next time I post a comment.' ) . '</label></p>',
+		'cookies' => '<p class="comment-form-cookies-consent"><input id="wp-comment-cookies-consent" name="wp-comment-cookies-consent" type="checkbox" value="yes"' . $consent . ' />' .
+					 '<label for="wp-comment-cookies-consent">' . __( 'Save my name, email, and website in this browser for the next time I comment.' ) . '</label></p>',
 	);
 
 	$required_text = sprintf( ' ' . __( 'Required fields are marked %s' ), '<span class="required">*</span>' );
@@ -2491,7 +2492,7 @@ function comment_form( $args = array(), $post_id = null ) {
 				 * @since 4.2.0
 				 *
 				 * @param string $submit_button HTML markup for the submit button.
-				 * @param array  $args          Arguments passed to `comment_form()`.
+				 * @param array  $args          Arguments passed to comment_form().
 				 */
 				$submit_button = apply_filters( 'comment_form_submit_button', $submit_button, $args );
 

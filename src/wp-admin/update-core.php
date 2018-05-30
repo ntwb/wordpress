@@ -265,7 +265,7 @@ foreach ( (array) $plugins as $plugin_file => $plugin_data ) {
 	$plugin_data = (object) _get_plugin_data_markup_translate( $plugin_file, (array) $plugin_data, false, true );
 
 	$icon            = '<span class="dashicons dashicons-admin-plugins"></span>';
-	$preferred_icons = array( 'svg', '1x', '2x', 'default' );
+	$preferred_icons = array( 'svg', '2x', '1x', 'default' );
 	foreach ( $preferred_icons as $preferred_icon ) {
 		if ( ! empty( $plugin_data->update->icons[ $preferred_icon ] ) ) {
 			$icon = '<img src="' . esc_url( $plugin_data->update->icons[ $preferred_icon ] ) . '" alt="" />';
@@ -641,7 +641,7 @@ if ( 'upgrade-core' == $action ) {
 	}
 
 	echo '<p>';
-	/* translators: %1 date, %2 time. */
+	/* translators: 1: date, 2: time */
 	printf( __( 'Last checked on %1$s at %2$s.' ), date_i18n( __( 'F j, Y' ), $last_update_check ), date_i18n( __( 'g:i a' ), $last_update_check ) );
 	echo ' &nbsp; <a class="button" href="' . esc_url( self_admin_url( 'update-core.php?force-check=1' ) ) . '">' . __( 'Check Again' ) . '</a>';
 	echo '</p>';

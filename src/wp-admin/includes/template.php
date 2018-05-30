@@ -1140,7 +1140,13 @@ function do_meta_boxes( $screen, $context, $object ) {
 						echo '<span class="toggle-indicator" aria-hidden="true"></span>';
 						echo '</button>';
 					}
-					echo "<h2 class='hndle'><span>{$box['title']}</span></h2>\n";
+					echo '<h2 class="hndle">';
+					if ( 'dashboard_php_nag' === $box['id'] ) {
+						echo '<span aria-hidden="true" class="dashicons dashicons-warning"></span>';
+						echo '<span class="screen-reader-text">' . __( 'Warning:' ) . ' </span>';
+					}
+					echo "<span>{$box['title']}</span>";
+					echo "</h2>\n";
 					echo '<div class="inside">' . "\n";
 					call_user_func( $box['callback'], $object, $box );
 					echo "</div>\n";
@@ -1788,6 +1794,7 @@ if ( is_rtl() ) {
 <?php
 /** This filter is documented in wp-admin/admin-header.php */
 $admin_body_classes = apply_filters( 'admin_body_class', '' );
+$admin_body_classes = ltrim( $admin_body_classes . ' ' . $admin_body_class );
 ?>
 <body
 <?php
@@ -1798,7 +1805,7 @@ if ( isset( $GLOBALS['body_id'] ) ) {
 	echo ' id="' . $GLOBALS['body_id'] . '"';
 }
 ?>
- class="wp-admin wp-core-ui no-js iframe <?php echo $admin_body_classes . ' ' . $admin_body_class; ?>">
+ class="wp-admin wp-core-ui no-js iframe <?php echo $admin_body_classes; ?>">
 <script type="text/javascript">
 (function(){
 var c = document.body.className;
@@ -2165,7 +2172,7 @@ function _wp_admin_html_begin() {
 ?>
 <!DOCTYPE html>
 <!--[if IE 8]>
-<html xmlns="http://www.w3.org/1999/xhtml" class="ie8 <?php echo $admin_html_class; ?>" 
+<html xmlns="http://www.w3.org/1999/xhtml" class="ie8 <?php echo $admin_html_class; ?>"
 																	<?php
 																	/**
 																	 * Fires inside the HTML tag in the admin header.
@@ -2177,7 +2184,7 @@ function _wp_admin_html_begin() {
 	<?php language_attributes(); ?>>
 <![endif]-->
 <!--[if !(IE 8) ]><!-->
-<html xmlns="http://www.w3.org/1999/xhtml" class="<?php echo $admin_html_class; ?>" 
+<html xmlns="http://www.w3.org/1999/xhtml" class="<?php echo $admin_html_class; ?>"
 																<?php
 																/** This action is documented in wp-admin/includes/template.php */
 																do_action( 'admin_xml_ns' );

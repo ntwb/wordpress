@@ -540,11 +540,12 @@ function wp_queue_comments_for_comment_meta_lazyload( $comments ) {
  * Sets the cookies used to store an unauthenticated commentator's identity. Typically used
  * to recall previous comments by this commentator that are still held in moderation.
  *
- * @param WP_Comment $comment Comment object.
- * @param object     $user    Comment author's object.
- * @param boolean    $cookies_consent Optional. Comment author's consent to store cookies. Default true.
- *
  * @since 3.4.0
+ * @since 4.9.6 The `$cookies_consent` parameter was added.
+ *
+ * @param WP_Comment $comment         Comment object.
+ * @param WP_User    $user            Comment author's user object. The user may not exist.
+ * @param boolean    $cookies_consent Optional. Comment author's consent to store cookies. Default true.
  */
 function wp_set_comment_cookies( $comment, $user, $cookies_consent = true ) {
 	// If the user already exists, or the user opted out of cookies, don't set cookies.
@@ -3276,13 +3277,15 @@ function wp_handle_comment_submission( $comment_data ) {
 }
 
 /**
- * Registers the personal data exporter for comments
+ * Registers the personal data exporter for comments.
  *
- * @param array   $exporters   An array of personal data exporters.
- * @return array  An array of personal data exporters.
+ * @since 4.9.6
+ *
+ * @param array $exporters An array of personal data exporters.
+ * @return array $exporters An array of personal data exporters.
  */
 function wp_register_comment_personal_data_exporter( $exporters ) {
-	$exporters[] = array(
+	$exporters['wordpress-comments'] = array(
 		'exporter_friendly_name' => __( 'WordPress Comments' ),
 		'callback'               => 'wp_comments_personal_data_exporter',
 	);
@@ -3293,29 +3296,27 @@ function wp_register_comment_personal_data_exporter( $exporters ) {
 /**
  * Finds and exports personal data associated with an email address from the comments table.
  *
- * @param string  $email_address The comment author email address.
- * @param int     $page          Comment page.
- * @return array  An array of personal data.
+ * @since 4.9.6
+ *
+ * @param string $email_address The comment author email address.
+ * @param int    $page          Comment page.
+ * @return array $return An array of personal data.
  */
 function wp_comments_personal_data_exporter( $email_address, $page = 1 ) {
-
-	// Technically, strtolower isn't necessary since get_comments will match email insensitive
-	// But it is a good example for plugin developers whose targets might not be as generous
-	$email_address = trim( strtolower( $email_address ) );
-
-	// Limit us to 500 comments at a time to avoid timing out
+	// Limit us to 500 comments at a time to avoid timing out.
 	$number = 500;
-	$page = (int) $page;
+	$page   = (int) $page;
 
 	$data_to_export = array();
 
 	$comments = get_comments(
 		array(
-			'author_email' => $email_address,
-			'number'       => $number,
-			'paged'        => $page,
-			'order_by'     => 'comment_ID',
-			'order'        => 'ASC',
+			'author_email'              => $email_address,
+			'number'                    => $number,
+			'paged'                     => $page,
+			'order_by'                  => 'comment_ID',
+			'order'                     => 'ASC',
+			'update_comment_meta_cache' => false,
 		)
 	);
 
@@ -3324,7 +3325,7 @@ function wp_comments_personal_data_exporter( $email_address, $page = 1 ) {
 		'comment_author_email' => __( 'Comment Author Email' ),
 		'comment_author_url'   => __( 'Comment Author URL' ),
 		'comment_author_IP'    => __( 'Comment Author IP' ),
-		'comment_agent'        => __( 'Comment Agent' ),
+		'comment_agent'        => __( 'Comment Author User Agent' ),
 		'comment_date'         => __( 'Comment Date' ),
 		'comment_content'      => __( 'Comment Content' ),
 		'comment_link'         => __( 'Comment URL' ),
@@ -3336,14 +3337,14 @@ function wp_comments_personal_data_exporter( $email_address, $page = 1 ) {
 		foreach ( $comment_prop_to_export as $key => $name ) {
 			$value = '';
 
-			switch( $key ) {
+			switch ( $key ) {
 				case 'comment_author':
 				case 'comment_author_email':
 				case 'comment_author_url':
 				case 'comment_author_IP':
 				case 'comment_agent':
 				case 'comment_date':
-					$value = $comment->$key;
+					$value = $comment->{$key};
 					break;
 
 				case 'comment_content':
@@ -3352,11 +3353,19 @@ function wp_comments_personal_data_exporter( $email_address, $page = 1 ) {
 
 				case 'comment_link':
 					$value = get_comment_link( $comment->comment_ID );
+					$value = sprintf(
+						'<a href="%s" target="_blank" rel="noreferrer noopener">%s</a>',
+						esc_url( $value ),
+						esc_html( $value )
+					);
 					break;
 			}
 
 			if ( ! empty( $value ) ) {
-				$comment_data_to_export[] = array( 'name' => $name, 'value' => $value );
+				$comment_data_to_export[] = array(
+					'name'  => $name,
+					'value' => $value,
+				);
 			}
 		}
 
@@ -3373,5 +3382,123 @@ function wp_comments_personal_data_exporter( $email_address, $page = 1 ) {
 	return array(
 		'data' => $data_to_export,
 		'done' => $done,
+	);
+}
+
+/**
+ * Registers the personal data eraser for comments.
+ *
+ * @since 4.9.6
+ *
+ * @param  array $erasers An array of personal data erasers.
+ * @return array $erasers An array of personal data erasers.
+ */
+function wp_register_comment_personal_data_eraser( $erasers ) {
+	$erasers['wordpress-comments'] = array(
+		'eraser_friendly_name' => __( 'WordPress Comments' ),
+		'callback'             => 'wp_comments_personal_data_eraser',
+	);
+
+	return $erasers;
+}
+
+/**
+ * Erases personal data associated with an email address from the comments table.
+ *
+ * @since 4.9.6
+ *
+ * @param  string $email_address The comment author email address.
+ * @param  int    $page          Comment page.
+ * @return array
+ */
+function wp_comments_personal_data_eraser( $email_address, $page = 1 ) {
+	global $wpdb;
+
+	if ( empty( $email_address ) ) {
+		return array(
+			'items_removed'  => false,
+			'items_retained' => false,
+			'messages'       => array(),
+			'done'           => true,
+		);
+	}
+
+	// Limit us to 500 comments at a time to avoid timing out.
+	$number         = 500;
+	$page           = (int) $page;
+	$items_removed  = false;
+	$items_retained = false;
+
+	$comments = get_comments(
+		array(
+			'author_email'       => $email_address,
+			'number'             => $number,
+			'paged'              => $page,
+			'order_by'           => 'comment_ID',
+			'order'              => 'ASC',
+			'include_unapproved' => true,
+		)
+	);
+
+	$anon_author = __( 'Anonymous' );
+	$messages    = array();
+
+	foreach ( (array) $comments as $comment ) {
+		$anonymized_comment                         = array();
+		$anonymized_comment['comment_agent']        = '';
+		$anonymized_comment['comment_author']       = $anon_author;
+		$anonymized_comment['comment_author_email'] = wp_privacy_anonymize_data( 'email', $comment->comment_author_email );
+		$anonymized_comment['comment_author_IP']    = wp_privacy_anonymize_data( 'ip', $comment->comment_author_IP );
+		$anonymized_comment['comment_author_url']   = wp_privacy_anonymize_data( 'url', $comment->comment_author_url );
+		$anonymized_comment['user_id']              = 0;
+
+		$comment_id = (int) $comment->comment_ID;
+
+		/**
+		 * Filters whether to anonymize the comment.
+		 *
+		 * @since 4.9.6
+		 *
+		 * @param bool|string                    Whether to apply the comment anonymization (bool).
+		 *                                       Custom prevention message (string). Default true.
+		 * @param WP_Comment $comment            WP_Comment object.
+		 * @param array      $anonymized_comment Anonymized comment data.
+		 */
+		$anon_message = apply_filters( 'wp_anonymize_comment', true, $comment, $anonymized_comment );
+
+		if ( true !== $anon_message ) {
+			if ( $anon_message && is_string( $anon_message ) ) {
+				$messages[] = esc_html( $anon_message );
+			} else {
+				/* translators: %d: Comment ID */
+				$messages[] = sprintf( __( 'Comment %d contains personal data but could not be anonymized.' ), $comment_id );
+			}
+
+			$items_retained = true;
+
+			continue;
+		}
+
+		$args = array(
+			'comment_ID' => $comment_id,
+		);
+
+		$updated = $wpdb->update( $wpdb->comments, $anonymized_comment, $args );
+
+		if ( $updated ) {
+			$items_removed = true;
+			clean_comment_cache( $comment_id );
+		} else {
+			$items_retained = true;
+		}
+	}
+
+	$done = count( $comments ) < $number;
+
+	return array(
+		'items_removed'  => $items_removed,
+		'items_retained' => $items_retained,
+		'messages'       => $messages,
+		'done'           => $done,
 	);
 }

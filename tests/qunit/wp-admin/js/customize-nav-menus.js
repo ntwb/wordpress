@@ -1,5 +1,5 @@
 /* global wp */
-jQuery( window ).load( function (){
+jQuery( document ).ready( function (){
 
 	var api = wp.customize,
 		primaryMenuId = 3,

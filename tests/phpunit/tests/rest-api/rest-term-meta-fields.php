@@ -12,36 +12,55 @@
 class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 	protected static $wp_meta_keys_saved;
 	protected static $category_id;
+	protected static $customtax_term_id;
 
 	public static function wpSetUpBeforeClass( $factory ) {
+		register_taxonomy(
+			'customtax',
+			'post',
+			array(
+				'show_in_rest' => true,
+			)
+		);
+
 		self::$wp_meta_keys_saved = isset( $GLOBALS['wp_meta_keys'] ) ? $GLOBALS['wp_meta_keys'] : array();
 		self::$category_id        = $factory->category->create();
+		self::$customtax_term_id  = $factory->term->create( array( 'taxonomy' => 'customtax' ) );
 	}
 
 	public static function wpTearDownAfterClass() {
 		$GLOBALS['wp_meta_keys'] = self::$wp_meta_keys_saved;
 		wp_delete_term( self::$category_id, 'category' );
+		wp_delete_term( self::$customtax_term_id, 'customtax' );
+
+		unregister_taxonomy( 'customtax' );
 	}
 
 	public function setUp() {
 		parent::setUp();
 
 		register_meta(
-			'term', 'test_single', array(
+			'term',
+			'test_single',
+			array(
 				'show_in_rest' => true,
 				'single'       => true,
 				'type'         => 'string',
 			)
 		);
 		register_meta(
-			'term', 'test_multi', array(
+			'term',
+			'test_multi',
+			array(
 				'show_in_rest' => true,
 				'single'       => false,
 				'type'         => 'string',
 			)
 		);
 		register_meta(
-			'term', 'test_bad_auth', array(
+			'term',
+			'test_bad_auth',
+			array(
 				'show_in_rest'  => true,
 				'single'        => true,
 				'auth_callback' => '__return_false',
@@ -49,7 +68,9 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 			)
 		);
 		register_meta(
-			'term', 'test_bad_auth_multi', array(
+			'term',
+			'test_bad_auth_multi',
+			array(
 				'show_in_rest'  => true,
 				'single'        => false,
 				'auth_callback' => '__return_false',
@@ -58,13 +79,17 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 		);
 		register_meta( 'term', 'test_no_rest', array() );
 		register_meta(
-			'term', 'test_rest_disabled', array(
+			'term',
+			'test_rest_disabled',
+			array(
 				'show_in_rest' => false,
 				'type'         => 'string',
 			)
 		);
 		register_meta(
-			'term', 'test_custom_schema', array(
+			'term',
+			'test_custom_schema',
+			array(
 				'single'       => true,
 				'type'         => 'integer',
 				'show_in_rest' => array(
@@ -75,7 +100,9 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 			)
 		);
 		register_meta(
-			'term', 'test_custom_schema_multi', array(
+			'term',
+			'test_custom_schema_multi',
+			array(
 				'single'       => false,
 				'type'         => 'integer',
 				'show_in_rest' => array(
@@ -86,14 +113,18 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 			)
 		);
 		register_meta(
-			'term', 'test_invalid_type', array(
+			'term',
+			'test_invalid_type',
+			array(
 				'single'       => true,
 				'type'         => 'lalala',
 				'show_in_rest' => true,
 			)
 		);
 		register_meta(
-			'term', 'test_no_type', array(
+			'term',
+			'test_no_type',
+			array(
 				'single'       => true,
 				'type'         => null,
 				'show_in_rest' => true,
@@ -101,7 +132,9 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 		);
 
 		register_meta(
-			'term', 'test_custom_name', array(
+			'term',
+			'test_custom_name',
+			array(
 				'single'       => true,
 				'type'         => 'string',
 				'show_in_rest' => array(
@@ -111,12 +144,51 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 		);
 
 		register_meta(
-			'term', 'test_custom_name_multi', array(
+			'term',
+			'test_custom_name_multi',
+			array(
 				'single'       => false,
 				'type'         => 'string',
 				'show_in_rest' => array(
 					'name' => 'new_name_multi',
 				),
+			)
+		);
+
+		register_taxonomy(
+			'customtax',
+			'post',
+			array(
+				'show_in_rest' => true,
+			)
+		);
+
+		register_term_meta(
+			'customtax',
+			'test_customtax_single',
+			array(
+				'show_in_rest' => true,
+				'single'       => true,
+			)
+		);
+
+		register_term_meta(
+			'customtax',
+			'test_customtax_multi',
+			array(
+				'show_in_rest' => true,
+				'single'       => false,
+			)
+		);
+
+		// Register 'test_single' on subtype to override for bad auth.
+		register_term_meta(
+			'customtax',
+			'test_single',
+			array(
+				'show_in_rest'  => true,
+				'single'        => true,
+				'auth_callback' => '__return_false',
 			)
 		);
 
@@ -226,21 +298,27 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 
 	public function test_get_value_types() {
 		register_meta(
-			'term', 'test_string', array(
+			'term',
+			'test_string',
+			array(
 				'show_in_rest' => true,
 				'single'       => true,
 				'type'         => 'string',
 			)
 		);
 		register_meta(
-			'term', 'test_number', array(
+			'term',
+			'test_number',
+			array(
 				'show_in_rest' => true,
 				'single'       => true,
 				'type'         => 'number',
 			)
 		);
 		register_meta(
-			'term', 'test_bool', array(
+			'term',
+			'test_bool',
+			array(
 				'show_in_rest' => true,
 				'single'       => true,
 				'type'         => 'boolean',
@@ -541,7 +619,9 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 
 	public function test_set_value_invalid_value() {
 		register_meta(
-			'term', 'my_meta_key', array(
+			'term',
+			'my_meta_key',
+			array(
 				'show_in_rest' => true,
 				'single'       => true,
 				'type'         => 'string',
@@ -564,7 +644,9 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 
 	public function test_set_value_invalid_value_multiple() {
 		register_meta(
-			'term', 'my_meta_key', array(
+			'term',
+			'my_meta_key',
+			array(
 				'show_in_rest' => true,
 				'single'       => false,
 				'type'         => 'string',
@@ -587,7 +669,9 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 
 	public function test_set_value_sanitized() {
 		register_meta(
-			'term', 'my_meta_key', array(
+			'term',
+			'my_meta_key',
+			array(
 				'show_in_rest' => true,
 				'single'       => true,
 				'type'         => 'integer',
@@ -611,7 +695,9 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 
 	public function test_set_value_csv() {
 		register_meta(
-			'term', 'my_meta_key', array(
+			'term',
+			'my_meta_key',
+			array(
 				'show_in_rest' => true,
 				'single'       => false,
 				'type'         => 'integer',
@@ -1045,6 +1131,128 @@ class WP_Test_REST_Term_Meta_Fields extends WP_Test_REST_TestCase {
 		$this->assertArrayNotHasKey( 'test_rest_disabled', $meta_schema );
 		$this->assertArrayNotHasKey( 'test_invalid_type', $meta_schema );
 		$this->assertArrayNotHasKey( 'test_no_type', $meta_schema );
+	}
+
+	/**
+	 * @ticket 38323
+	 * @dataProvider data_get_subtype_meta_value
+	 */
+	public function test_get_subtype_meta_value( $taxonomy, $meta_key, $single, $in_taxonomy ) {
+		$term_id  = self::$category_id;
+		$endpoint = 'categories';
+		if ( 'customtax' === $taxonomy ) {
+			$term_id  = self::$customtax_term_id;
+			$endpoint = 'customtax';
+		}
+
+		$meta_value = 'testvalue';
+
+		add_term_meta( $term_id, $meta_key, $meta_value );
+
+		$request  = new WP_REST_Request( 'GET', sprintf( '/wp/v2/%s/%d', $endpoint, $term_id ) );
+		$response = rest_get_server()->dispatch( $request );
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+
+		$this->assertArrayHasKey( 'meta', $data );
+		$this->assertInternalType( 'array', $data['meta'] );
+
+		if ( $in_taxonomy ) {
+			$expected_value = $meta_value;
+			if ( ! $single ) {
+				$expected_value = array( $expected_value );
+			}
+
+			$this->assertArrayHasKey( $meta_key, $data['meta'] );
+			$this->assertEquals( $expected_value, $data['meta'][ $meta_key ] );
+		} else {
+			$this->assertArrayNotHasKey( $meta_key, $data['meta'] );
+		}
+	}
+
+	public function data_get_subtype_meta_value() {
+		return array(
+			array( 'customtax', 'test_customtax_single', true, true ),
+			array( 'customtax', 'test_customtax_multi', false, true ),
+			array( 'customtax', 'test_single', true, true ),
+			array( 'customtax', 'test_multi', false, true ),
+			array( 'category', 'test_customtax_single', true, false ),
+			array( 'category', 'test_customtax_multi', false, false ),
+			array( 'category', 'test_single', true, true ),
+			array( 'category', 'test_multi', false, true ),
+		);
+	}
+
+	/**
+	 * @ticket 38323
+	 * @dataProvider data_set_subtype_meta_value
+	 */
+	public function test_set_subtype_meta_value( $taxonomy, $meta_key, $single, $in_taxonomy, $can_write ) {
+		$term_id  = self::$category_id;
+		$endpoint = 'categories';
+		if ( 'customtax' === $taxonomy ) {
+			$term_id  = self::$customtax_term_id;
+			$endpoint = 'customtax';
+		}
+
+		$meta_value = 'value_to_set';
+
+		$this->grant_write_permission();
+
+		$request = new WP_REST_Request( 'POST', sprintf( '/wp/v2/%s/%d', $endpoint, $term_id ) );
+		$request->set_body_params(
+			array(
+				'meta' => array(
+					$meta_key => $meta_value,
+				),
+			)
+		);
+
+		$response = rest_get_server()->dispatch( $request );
+		if ( ! $can_write ) {
+			$this->assertEquals( 403, $response->get_status() );
+			$this->assertEmpty( get_term_meta( $term_id, $meta_key, $single ) );
+			return;
+		}
+
+		$this->assertEquals( 200, $response->get_status() );
+
+		$data = $response->get_data();
+		$this->assertArrayHasKey( 'meta', $data );
+		$this->assertInternalType( 'array', $data['meta'] );
+
+		if ( $in_taxonomy ) {
+			$expected_value = $meta_value;
+			if ( ! $single ) {
+				$expected_value = array( $expected_value );
+			}
+
+			$this->assertEquals( $expected_value, get_term_meta( $term_id, $meta_key, $single ) );
+			$this->assertArrayHasKey( $meta_key, $data['meta'] );
+			$this->assertEquals( $expected_value, $data['meta'][ $meta_key ] );
+		} else {
+			$this->assertEmpty( get_term_meta( $term_id, $meta_key, $single ) );
+			$this->assertArrayNotHasKey( $meta_key, $data['meta'] );
+		}
+	}
+
+	public function data_set_subtype_meta_value() {
+		$data = $this->data_get_subtype_meta_value();
+
+		foreach ( $data as $index => $dataset ) {
+			$can_write = true;
+
+			// This combination is not writable because of an auth callback of '__return_false'.
+			if ( 'customtax' === $dataset[0] && 'test_single' === $dataset[1] ) {
+				$can_write = false;
+			}
+
+			$data[ $index ][] = $can_write;
+		}
+
+		return $data;
 	}
 
 	/**

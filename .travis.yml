@@ -20,6 +20,10 @@ matrix:
       apt:
         packages:
           - libzip4
+  - name: "Windows - PHP 7.2"
+    php: 7.2
+    os: windows
+    services: mysql
   - php: 7.2
     env: WP_TRAVISCI=travis:format
   - php: 7.1

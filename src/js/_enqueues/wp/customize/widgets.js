@@ -1692,7 +1692,7 @@
 					noticeContainer.toggle( shouldShowNotice() );
 				});
 				api.bind( 'pane-contents-reflowed', function() {
-					var duration = ( 'resolved' === api.previewer.deferred.active.state() ) ? 'fast' : 0;
+					var duration = ( api.previewer && 'resolved' === api.previewer.deferred.active.state() ) ? 'fast' : 0;
 					updateNotice();
 					if ( shouldShowNotice() ) {
 						noticeContainer.slideDown( duration );

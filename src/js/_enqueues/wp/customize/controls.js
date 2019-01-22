@@ -1108,7 +1108,7 @@
 				return;
 			}
 
-			duration = ( 'resolved' === api.previewer.deferred.active.state() ? args.duration : 0 );
+			duration = ( api.previewer && 'resolved' === api.previewer.deferred.active.state() ? args.duration : 0 );
 
 			if ( construct.extended( api.Panel ) ) {
 				// If this is a panel is not currently expanded but another panel is expanded, do not animate.
